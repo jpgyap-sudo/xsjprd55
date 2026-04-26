@@ -1,6 +1,7 @@
 // ============================================================
 // Telegram Webhook Handler — /api/telegram
-// Commands: /signal, /market, /status, /scan, /close, /test, /help
+// Commands: /signal, /market, /status, /scan, /close, /test, /help, /ai
+// AI Chat: any non-command text is routed to Claude
 // Callbacks: sig_confirm, sig_dismiss, trade_close
 // ============================================================
 
@@ -8,9 +9,51 @@ import { supabase } from '../lib/supabase.js';
 import { validateSignal, checkRiskGates, logAudit } from '../lib/risk.js';
 import { buildSignal } from '../lib/signal-engine.js';
 import { sendTelegram, editMessage, answerCallback, formatSignalMessage, signalKeyboard } from '../lib/telegram.js';
+import { askAI } from '../lib/ai.js';
 
 const GROUP_ID = process.env.TELEGRAM_GROUP_CHAT_ID;
 const ADMIN_ID = process.env.TELEGRAM_ADMIN_USER_ID;
+
+// In-memory chat history per user (Vercel stateless — TTL 10 min)
+const userHistory = new Map();
+const HISTORY_TTL_MS = 10 * 60 * 1000;
+
+function getHistory(userId) {
+  const entry = userHistory.get(userId);
+  if (!entry) return [];
+  if (Date.now() - entry.ts > HISTORY_TTL_MS) {
+    userHistory.delete(userId);
+    return [];
+  }
+  return entry.messages;
+}
+
+function pushHistory(userId, role, content) {
+  const entry = userHistory.get(userId) || { ts: Date.now(), messages: [] };
+  entry.messages.push({ role, content });
+  if (entry.messages.length > 12) entry.messages = entry.messages.slice(-12);
+  entry.ts = Date.now();
+  userHistory.set(userId, entry);
+}
+
+async function cmdAsk(args, chatId, userId, senderName) {
+  const question = args.join(' ').trim();
+  if (!question) {
+    return sendTelegram(chatId, '💬 *AI Advisor*\nAsk me anything about crypto markets, shorts, longs, or liquidations.\n\nExample: `/ask What is a good short today?`');
+  }
+  const history = getHistory(userId);
+  const result = await askAI({ question, chatHistory: history });
+  if (!result.ok) {
+    return sendTelegram(chatId, `❌ AI error: ${result.error}`);
+  }
+  pushHistory(userId, 'user', question);
+  pushHistory(userId, 'assistant', result.answer);
+  // Telegram message limit is 4096 chars
+  const chunks = result.answer.match(/[\s\S]{1,4000}/g) || [result.answer];
+  for (const chunk of chunks) {
+    await sendTelegram(chatId, chunk);
+  }
+}
 
 async function cmdSignal(args, chatId, userId, senderName) {
   if (args.length < 3) {
@@ -162,6 +205,10 @@ async function cmdTest(chatId) {
 async function cmdHelp(chatId) {
   const msg =
     `*Available Commands*\n\n` +
+    `🤖 *AI Advisor*\n` +
+    `/ask QUESTION — Ask the AI anything (e.g. "/ask good short today?")\n` +
+    `Or just type any message without a "/" — the AI will reply!\n\n` +
+    `📡 *Trading*\n` +
     `/signal SYMBOL SIDE ENTRY [SL:price] [TP:price1,price2] — Manual signal\n` +
     `/market [SYMBOL] — Cached market data\n` +
     `/status — Active signals & trades\n` +
@@ -225,7 +272,16 @@ export default async function handler(req, res) {
   const userId   = msg.from?.id?.toString();
   const sender   = msg.from?.username || msg.from?.first_name || 'Unknown';
 
-  if (!text.startsWith('/')) return res.status(200).send('OK');
+  // AI chat mode: any non-command text goes to Claude
+  if (!text.startsWith('/')) {
+    try {
+      await cmdAsk(text.split(/\s+/), chatId, userId, sender);
+    } catch (e) {
+      console.error('Telegram AI error:', e);
+      if (chatId) sendTelegram(chatId, `❌ AI error: ${e.message}`);
+    }
+    return res.status(200).send('OK');
+  }
 
   const parts = text.split(/\s+/);
   const cmd   = parts[0].split('@')[0].toLowerCase();
@@ -241,6 +297,7 @@ export default async function handler(req, res) {
       case '/test':   await cmdTest(chatId); break;
       case '/help':   await cmdHelp(chatId); break;
       case '/start':  await cmdHelp(chatId); break;
+      case '/ask':    await cmdAsk(args, chatId, userId, sender); break;
       default:
         if (chatId) sendTelegram(chatId, `Unknown command: ${cmd}\nTry /help`);
     }
