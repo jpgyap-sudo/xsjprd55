@@ -177,3 +177,39 @@ CREATE POLICY exch_cred_self_all ON exchange_credentials FOR ALL USING (
     AND bot_users.telegram_user_id = current_setting('app.current_telegram_user_id', true)
   )
 );
+
+-- ── news_articles ────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS news_articles (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  source          TEXT NOT NULL,
+  title           TEXT NOT NULL,
+  summary         TEXT,
+  url             TEXT NOT NULL,
+  published_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  sentiment_score NUMERIC,
+  impact          TEXT DEFAULT 'neutral' CHECK (impact IN ('bullish','bearish','neutral')),
+  detected_assets TEXT[] DEFAULT '{}',
+  matched_keywords JSONB DEFAULT '[]',
+  weight          NUMERIC DEFAULT 1.0,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_news_published ON news_articles(published_at DESC);
+CREATE INDEX IF NOT EXISTS idx_news_impact ON news_articles(impact);
+CREATE INDEX IF NOT EXISTS idx_news_assets ON news_articles USING GIN(detected_assets);
+CREATE INDEX IF NOT EXISTS idx_news_source ON news_articles(source);
+
+-- ── news_signals (link signals to triggering news) ───────────
+CREATE TABLE IF NOT EXISTS news_signals (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  signal_id       UUID NOT NULL REFERENCES signals(id) ON DELETE CASCADE,
+  news_article_ids UUID[] DEFAULT '{}',
+  news_sentiment  NUMERIC,
+  technical_score NUMERIC,
+  price_momentum  NUMERIC,
+  win_probability NUMERIC,
+  risk_level      TEXT DEFAULT 'LOW' CHECK (risk_level IN ('LOW','MEDIUM','HIGH')),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_news_sig_signal ON news_signals(signal_id);

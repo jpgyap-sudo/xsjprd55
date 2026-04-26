@@ -197,7 +197,14 @@
     <div style="display:flex;flex-direction:column;gap:20px;">
       <!-- Recent Signals -->
       <div class="card">
-        <div class="card-header">🚨 Recent Signals</div>
+        <div class="card-header">
+          <span>🚨 Recent Signals</span>
+          <select id="signal-filter" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:0.75rem;">
+            <option value="all">All</option>
+            <option value="News_Event">News Only</option>
+            <option value="EMA_Cross">Technical</option>
+          </select>
+        </div>
         <div class="card-body" style="padding:0;">
           <table class="signal-table" id="signals-table">
             <thead>
@@ -226,6 +233,22 @@
             "height": "100%"
           }
           </script>
+        </div>
+      </div>
+
+      <!-- News Feed -->
+      <div class="card">
+        <div class="card-header">
+          <span>📰 News Feed</span>
+          <span class="badge live" id="news-updated" style="font-size:0.6rem;padding:2px 8px;">Live</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div id="news-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading news...</div>
+          <div id="news-content" style="display:none;">
+            <div id="news-overall" style="padding:12px 18px;border-bottom:1px solid var(--border);font-size:0.85rem;font-weight:600;"></div>
+            <div id="news-list" style="max-height:300px;overflow-y:auto;"></div>
+          </div>
+          <div id="news-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load news</div>
         </div>
       </div>
 
@@ -430,6 +453,62 @@ async function loadLiquidationIntel() {
 }
 loadLiquidationIntel();
 setInterval(loadLiquidationIntel, 60000);
+
+// ── News Feed Panel ──────────────────────────────────
+async function loadNewsFeed() {
+  const loading = document.getElementById('news-loading');
+  const content = document.getElementById('news-content');
+  const error = document.getElementById('news-error');
+  const overall = document.getElementById('news-overall');
+  const list = document.getElementById('news-list');
+
+  try {
+    const res = await fetch('/api/news-feed?limit=15&hours=12');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+
+    // Overall sentiment bar
+    const score = data.overallScore || 0;
+    const sentColor = score > 0.2 ? 'var(--accent)' : score < -0.2 ? 'var(--accent3)' : 'var(--accent2)';
+    const sentLabel = score > 0.2 ? 'Bullish' : score < -0.2 ? 'Bearish' : 'Neutral';
+    overall.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span>Market Sentiment:</span>
+        <span style="color:${sentColor};font-weight:700;">${sentLabel}</span>
+        <span style="color:var(--fg2);font-weight:400;">(${score.toFixed(2)})</span>
+        <span style="margin-left:auto;color:var(--fg2);font-weight:400;">${data.itemCount} articles</span>
+      </div>`;
+
+    // News items
+    list.innerHTML = data.items.map(item => {
+      const impactColor = item.impact === 'bullish' ? 'var(--accent)' : item.impact === 'bearish' ? 'var(--accent3)' : 'var(--fg2)';
+      const impactIcon = item.impact === 'bullish' ? '📈' : item.impact === 'bearish' ? '📉' : '➡️';
+      const assetTags = item.detectedAssets.map(a => `<span style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.7rem;color:var(--fg2);">${a.symbol.replace('USDT','')}</span>`).join(' ');
+      const urgency = item.hasUrgency ? '<span style="color:var(--accent3);font-size:0.7rem;font-weight:700;">BREAKING</span>' : '';
+      return `
+        <div style="padding:10px 18px;border-bottom:1px solid rgba(30,37,56,0.4);">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <span style="font-size:0.75rem;color:var(--fg2);">${item.source}</span>
+            ${urgency}
+            <span style="margin-left:auto;font-size:0.75rem;color:${impactColor};">${impactIcon} ${(item.sentimentScore || 0).toFixed(2)}</span>
+          </div>
+          <a href="${item.url}" target="_blank" style="color:var(--fg);text-decoration:none;font-size:0.82rem;font-weight:500;line-height:1.4;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${item.title}</a>
+          <div style="margin-top:4px;">${assetTags}</div>
+        </div>`;
+    }).join('');
+
+  } catch (e) {
+    loading.style.display = 'none';
+    content.style.display = 'none';
+    error.style.display = 'block';
+  }
+}
+loadNewsFeed();
+setInterval(loadNewsFeed, 120000); // refresh every 2 min
 
 // ── Chart symbol switcher ────────────────────────────
 document.getElementById('chart-symbol').addEventListener('change', function() {

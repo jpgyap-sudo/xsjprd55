@@ -13,10 +13,12 @@
     "@supabase/supabase-js": "^2.47.0",
     "ccxt": "^4.4.0",
     "node-fetch": "^3.3.2",
+    "pg": "^8.20.0",
     "uuid": "^11.0.0"
   },
   "devDependencies": {
-    "eslint": "^9.15.0"
+    "eslint": "^9.15.0",
+    "supabase": "^2.95.3"
   },
   "engines": {
     "node": ">=18.0.0"

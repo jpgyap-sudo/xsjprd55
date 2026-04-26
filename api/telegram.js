@@ -10,6 +10,9 @@ import { validateSignal, checkRiskGates, logAudit } from '../lib/risk.js';
 import { buildSignal } from '../lib/signal-engine.js';
 import { sendTelegram, editMessage, answerCallback, formatSignalMessage, signalKeyboard } from '../lib/telegram.js';
 import { askAI } from '../lib/ai.js';
+import { fetchAllNews } from '../lib/news-aggregator.js';
+import { scoreNewsItems } from '../lib/news-sentiment.js';
+import { scanNewsSignals } from '../lib/news-signal.js';
 
 const GROUP_ID = process.env.TELEGRAM_GROUP_CHAT_ID;
 const ADMIN_ID = process.env.TELEGRAM_ADMIN_USER_ID;
@@ -202,17 +205,107 @@ async function cmdTest(chatId) {
   sendTelegram(chatId, `🩺 *Health Check*\n\n${checks.join('\n')}`);
 }
 
+async function cmdNews(chatId) {
+  try {
+    await sendTelegram(chatId, '📰 Fetching latest crypto news...');
+    const newsItems = await fetchAllNews(120);
+    const scored = scoreNewsItems(newsItems);
+
+    if (scored.items.length === 0) {
+      return sendTelegram(chatId, '📭 No fresh news in the last 2 hours.');
+    }
+
+    // Top 5 headlines with sentiment
+    let msg = `📰 *Latest Crypto News* (${scored.items.length} articles)\n`;
+    msg += `*Market Sentiment: ${scored.overallScore > 0.2 ? '📈 Bullish' : scored.overallScore < -0.2 ? '📉 Bearish' : '➡️ Neutral'}* (${scored.overallScore.toFixed(2)})\n\n`;
+
+    scored.items.slice(0, 5).forEach((item, i) => {
+      const impact = item.impact === 'bullish' ? '📈' : item.impact === 'bearish' ? '📉' : '➡️';
+      const urgency = item.hasUrgency ? ' *BREAKING*' : '';
+      msg += `${i + 1}. ${impact} [${item.source}](${item.url})${urgency}\n`;
+      msg += `   _${item.title}_\n`;
+      msg += `   Score: ${item.sentimentScore.toFixed(2)} | ${item.detectedAssets.map(a => a.symbol.replace('USDT', '')).join(', ') || 'General'}\n\n`;
+    });
+
+    // Add asset summary
+    const byAsset = {};
+    for (const item of scored.items) {
+      for (const asset of item.detectedAssets) {
+        if (!byAsset[asset.symbol]) byAsset[asset.symbol] = { name: asset.name, count: 0, avg: 0, scores: [] };
+        byAsset[asset.symbol].count++;
+        byAsset[asset.symbol].scores.push(item.sentimentScore);
+      }
+    }
+    const sortedAssets = Object.entries(byAsset)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 5);
+
+    if (sortedAssets.length > 0) {
+      msg += `*Most Mentioned:*\n`;
+      sortedAssets.forEach(([sym, data]) => {
+        const avg = data.scores.reduce((s, v) => s + v, 0) / data.scores.length;
+        const dir = avg > 0.2 ? '📈' : avg < -0.2 ? '📉' : '➡️';
+        msg += `${dir} ${sym.replace('USDT', '')}: ${avg.toFixed(2)} (${data.count}x)\n`;
+      });
+    }
+
+    sendTelegram(chatId, msg);
+  } catch (e) {
+    console.error('News command error:', e);
+    sendTelegram(chatId, `❌ News fetch failed: ${e.message}`);
+  }
+}
+
+async function cmdNewsScan(chatId) {
+  try {
+    await sendTelegram(chatId, '🔍 Scanning news for trade signals...');
+    const base = process.env.VERCEL_PRODUCTION_URL || '';
+    const res = await fetch(`${base}/api/news-signal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      return sendTelegram(chatId, `❌ News scan failed: ${data.error}`);
+    }
+
+    let msg = `🔔 *News Signal Scan Complete*\n\n`;
+    msg += `Scanned: ${data.scanned} assets\n`;
+    msg += `Signals generated: ${data.signals?.length || 0}\n`;
+    msg += `Broadcasted: ${data.broadcasted || 0}\n`;
+    if (data.skipped?.length) msg += `Skipped: ${data.skipped.length} (cooldown/duplicate)\n`;
+
+    if (data.signals?.length > 0) {
+      msg += `\n*Signals:*\n`;
+      data.signals.forEach(s => {
+        const emoji = s.side === 'LONG' ? '🟢' : '🔴';
+        msg += `${emoji} ${s.side} ${s.symbol} — Win Prob: ${s.win_probability}% | Conf: ${Math.round(s.confidence * 100)}%\n`;
+      });
+    } else {
+      msg += `\n_No signals met the threshold. Market is quiet._`;
+    }
+
+    sendTelegram(chatId, msg);
+  } catch (e) {
+    sendTelegram(chatId, `❌ Scan failed: ${e.message}`);
+  }
+}
+
 async function cmdHelp(chatId) {
   const msg =
     `*Available Commands*\n\n` +
     `🤖 *AI Advisor*\n` +
     `/ask QUESTION — Ask the AI anything (e.g. "/ask good short today?")\n` +
     `Or just type any message without a "/" — the AI will reply!\n\n` +
+    `📰 *News Signals*\n` +
+    `/news — Latest crypto headlines with sentiment\n` +
+    `/newsscan — Scan news for trade signals NOW\n\n` +
     `📡 *Trading*\n` +
     `/signal SYMBOL SIDE ENTRY [SL:price] [TP:price1,price2] — Manual signal\n` +
     `/market [SYMBOL] — Cached market data\n` +
     `/status — Active signals & trades\n` +
-    `/scan — Trigger signal scan now\n` +
+    `/scan — Trigger technical signal scan\n` +
     `/close SYMBOL — Close open trades\n` +
     `/test — Bot health check\n` +
     `/help — This message`;
@@ -293,6 +386,8 @@ export default async function handler(req, res) {
       case '/market': await cmdMarket(args, chatId); break;
       case '/status': await cmdStatus(chatId); break;
       case '/scan':   await cmdScan(chatId); break;
+      case '/news':   await cmdNews(chatId); break;
+      case '/newsscan': await cmdNewsScan(chatId); break;
       case '/close':  await cmdClose(args, chatId); break;
       case '/test':   await cmdTest(chatId); break;
       case '/help':   await cmdHelp(chatId); break;
