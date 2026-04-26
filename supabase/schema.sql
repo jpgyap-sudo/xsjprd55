@@ -30,11 +30,27 @@ CREATE INDEX IF NOT EXISTS idx_signals_symbol_side_status ON signals(symbol, sid
 CREATE INDEX IF NOT EXISTS idx_signals_generated_at ON signals(generated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_signals_strategy ON signals(strategy);
 
+-- ── bot_users ───────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS bot_users (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  telegram_user_id TEXT UNIQUE,
+  username        TEXT,
+  risk_profile    JSONB DEFAULT '{}',
+  max_position_size_usd NUMERIC DEFAULT 100,
+  daily_loss_limit_usd  NUMERIC DEFAULT 50,
+  cooldown_minutes      NUMERIC DEFAULT 15,
+  auto_trade_enabled    BOOLEAN DEFAULT FALSE,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_bot_users_telegram ON bot_users(telegram_user_id);
+
 -- ── trades ──────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS trades (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  signal_id       UUID REFERENCES signals(id) ON DELETE SET NULL,
-  user_id         UUID REFERENCES bot_users(id) ON DELETE SET NULL,
+  signal_id       UUID,
+  user_id         UUID,
   symbol          TEXT NOT NULL,
   side            TEXT NOT NULL CHECK (side IN ('LONG','SHORT')),
   entry_price     NUMERIC NOT NULL,
@@ -55,22 +71,6 @@ CREATE TABLE IF NOT EXISTS trades (
 CREATE INDEX IF NOT EXISTS idx_trades_symbol_status ON trades(symbol, status);
 CREATE INDEX IF NOT EXISTS idx_trades_opened_at ON trades(opened_at DESC);
 CREATE INDEX IF NOT EXISTS idx_trades_mode ON trades(mode);
-
--- ── bot_users ───────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS bot_users (
-  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  telegram_user_id TEXT UNIQUE,
-  username        TEXT,
-  risk_profile    JSONB DEFAULT '{}',
-  max_position_size_usd NUMERIC DEFAULT 100,
-  daily_loss_limit_usd  NUMERIC DEFAULT 50,
-  cooldown_minutes      NUMERIC DEFAULT 15,
-  auto_trade_enabled    BOOLEAN DEFAULT FALSE,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_bot_users_telegram ON bot_users(telegram_user_id);
 
 -- ── audit_log ───────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS audit_log (
@@ -106,7 +106,7 @@ CREATE INDEX IF NOT EXISTS idx_market_symbol_tf ON market_data(symbol, timeframe
 -- ── exchange_credentials ────────────────────────────────────
 CREATE TABLE IF NOT EXISTS exchange_credentials (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id         UUID REFERENCES bot_users(id) ON DELETE CASCADE,
+  user_id         UUID,
   exchange        TEXT NOT NULL,
   api_key         TEXT NOT NULL,
   api_secret      TEXT NOT NULL,
@@ -117,6 +117,34 @@ CREATE TABLE IF NOT EXISTS exchange_credentials (
 );
 
 CREATE INDEX IF NOT EXISTS idx_exch_cred_user ON exchange_credentials(user_id);
+
+-- ── Add foreign keys after all tables exist ─────────────────
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'fk_trades_signal'
+  ) THEN
+    ALTER TABLE trades ADD CONSTRAINT fk_trades_signal
+      FOREIGN KEY (signal_id) REFERENCES signals(id) ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'fk_trades_user'
+  ) THEN
+    ALTER TABLE trades ADD CONSTRAINT fk_trades_user
+      FOREIGN KEY (user_id) REFERENCES bot_users(id) ON DELETE SET NULL;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'fk_exch_cred_user'
+  ) THEN
+    ALTER TABLE exchange_credentials ADD CONSTRAINT fk_exch_cred_user
+      FOREIGN KEY (user_id) REFERENCES bot_users(id) ON DELETE CASCADE;
+  END IF;
+END $$;
 
 -- ============================================================
 -- Row Level Security (RLS)
