@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/signal",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/market",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/weekly-analysis",
+      "schedule": "0 4 * * 0"
+    },
+    {
+      "path": "/api/health",
+      "schedule": "*/30 * * * *"
+    }
+  ]
+}

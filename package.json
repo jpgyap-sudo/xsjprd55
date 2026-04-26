@@ -1,0 +1,25 @@
+{
+  "name": "trading-signal-bot",
+  "version": "1.0.0",
+  "description": "Trading Signal Telegram Bot — AI-powered crypto signal alerts",
+  "type": "module",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required'",
+    "test": "node --test",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.47.0",
+    "ccxt": "^4.4.0",
+    "node-fetch": "^3.3.2",
+    "uuid": "^11.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.15.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "private": true
+}
