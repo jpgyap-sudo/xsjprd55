@@ -8,6 +8,21 @@ import { supabase } from '../lib/supabase.js';
 import { sendTelegram } from '../lib/telegram.js';
 
 export default async function handler(req, res) {
+  if (!['GET','POST'].includes(req.method)) {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const isManual = req.method === 'POST';
+
+  // Cron protection: GET requests require x-cron-secret header
+  if (!isManual) {
+    const cronSecret = process.env.CRON_SECRET;
+    const provided = req.headers['x-cron-secret'];
+    if (cronSecret && provided !== cronSecret) {
+      return res.status(401).json({ error: 'Unauthorized cron request' });
+    }
+  }
+
   const now = new Date();
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const weekAgoISO = weekAgo.toISOString();

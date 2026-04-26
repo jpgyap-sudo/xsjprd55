@@ -16,6 +16,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const isManual = req.method === 'POST';
+
+  // Cron protection: GET requests require x-cron-secret header
+  if (!isManual) {
+    const cronSecret = process.env.CRON_SECRET;
+    const provided = req.headers['x-cron-secret'];
+    if (cronSecret && provided !== cronSecret) {
+      return res.status(401).json({ error: 'Unauthorized cron request' });
+    }
+  }
+
   const pairs    = req.body?.pairs || DEFAULT_PAIRS;
   const tfs      = req.body?.timeframes || TIMEFRAMES;
   const exchange = req.body?.exchange || DEFAULT_EXCHANGE;
