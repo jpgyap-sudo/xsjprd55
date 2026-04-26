@@ -292,6 +292,57 @@ async function cmdNewsScan(chatId) {
   }
 }
 
+async function cmdCatalysts(chatId) {
+  try {
+    const base = process.env.VERCEL_PRODUCTION_URL || '';
+    const res = await fetch(`${base}/api/catalyst`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    let msg = `🔴 *CATALYST WATCH*\n\n`;
+
+    // High impact
+    if (data.high?.length) {
+      msg += `*High Impact:*\n`;
+      data.high.forEach((c, i) => {
+        const dirEmoji = c.direction === 'bearish' ? '🔴' : c.direction === 'bullish' ? '🟢' : '⚡';
+        msg += `${i + 1}. ${c.emoji} *${c.title}* ${dirEmoji}\n`;
+        msg += `   _${c.impact}_\n`;
+        if (c.alert) msg += `   ⚠️ ${c.alert}\n`;
+        msg += `\n`;
+      });
+    }
+
+    // Readings
+    if (data.readings?.length) {
+      msg += `*Market Readings:*\n`;
+      data.readings.forEach(r => {
+        const sigEmoji = r.signal === 'contrarian_buy' ? '🟢' : r.signal === 'short_risk' ? '🔴' : r.signal === 'squeeze_potential' ? '🚀' : '⚡';
+        msg += `   ${sigEmoji} *${r.label}:* ${r.value} — ${r.implication}\n`;
+      });
+      msg += `\n`;
+    }
+
+    // Key levels
+    if (data.levels) {
+      msg += `*Key Levels:*\n`;
+      Object.entries(data.levels).forEach(([sym, lvl]) => {
+        msg += `   *${sym}:* Support ${lvl.support} | Resistance ${lvl.resistance}\n`;
+      });
+      msg += `\n`;
+    }
+
+    // Bottom line
+    if (data.bottomLine) {
+      msg += `🧠 *Bottom Line:*\n_${data.bottomLine.substring(0, 400)}..._`;
+    }
+
+    sendTelegram(chatId, msg);
+  } catch (e) {
+    sendTelegram(chatId, `❌ Catalyst fetch failed: ${e.message}`);
+  }
+}
+
 async function cmdHelp(chatId) {
   const msg =
     `*Available Commands*\n\n` +
@@ -301,6 +352,8 @@ async function cmdHelp(chatId) {
     `📰 *News Signals*\n` +
     `/news — Latest crypto headlines with sentiment\n` +
     `/newsscan — Scan news for trade signals NOW\n\n` +
+    `🔴 *Catalyst Watch*\n` +
+    `/catalysts — Key macro events & price levels to watch\n\n` +
     `📡 *Trading*\n` +
     `/signal SYMBOL SIDE ENTRY [SL:price] [TP:price1,price2] — Manual signal\n` +
     `/market [SYMBOL] — Cached market data\n` +
@@ -388,6 +441,7 @@ export default async function handler(req, res) {
       case '/scan':   await cmdScan(chatId); break;
       case '/news':   await cmdNews(chatId); break;
       case '/newsscan': await cmdNewsScan(chatId); break;
+      case '/catalysts': await cmdCatalysts(chatId); break;
       case '/close':  await cmdClose(args, chatId); break;
       case '/test':   await cmdTest(chatId); break;
       case '/help':   await cmdHelp(chatId); break;

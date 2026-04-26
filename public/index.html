@@ -158,6 +158,28 @@
     </div>
   </div>
 
+  <!-- Catalyst Watch Panel -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+      <span>🔴 Catalyst Watch</span>
+      <span class="badge live" id="catalyst-updated" style="font-size:0.6rem;padding:2px 8px;">Live</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div id="catalyst-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading catalysts...</div>
+      <div id="catalyst-content" style="display:none;">
+        <!-- High Impact Catalysts -->
+        <div id="catalyst-high" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+        <!-- Market Readings -->
+        <div id="catalyst-readings" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+        <!-- Key Levels -->
+        <div id="catalyst-levels" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+        <!-- Bottom Line -->
+        <div id="catalyst-bottom" style="padding:14px 18px;background:rgba(234,179,8,0.05);"></div>
+      </div>
+      <div id="catalyst-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load catalysts</div>
+    </div>
+  </div>
+
   <div class="grid grid-2">
     <!-- Main Chart -->
     <div class="card">
@@ -631,6 +653,85 @@ async function sendMessage() {
     chatSend.disabled = false;
   }
 }
+
+// ── Catalyst Watch Panel ─────────────────────────────
+async function loadCatalysts() {
+  const loading = document.getElementById('catalyst-loading');
+  const content = document.getElementById('catalyst-content');
+  const error = document.getElementById('catalyst-error');
+  const highDiv = document.getElementById('catalyst-high');
+  const readingsDiv = document.getElementById('catalyst-readings');
+  const levelsDiv = document.getElementById('catalyst-levels');
+  const bottomDiv = document.getElementById('catalyst-bottom');
+
+  try {
+    const res = await fetch('/api/catalyst');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+
+    // High impact catalysts
+    if (data.high?.length) {
+      highDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--accent3);font-weight:700;margin-bottom:10px;">🔴 HIGH IMPACT CATALYSTS</div>' +
+        data.high.map(c => {
+          const dirColor = c.direction === 'bearish' ? 'var(--accent3)' : c.direction === 'bullish' ? 'var(--accent)' : 'var(--accent2)';
+          const dirLabel = c.direction === 'bearish' ? '🔴 Bearish Risk' : c.direction === 'bullish' ? '🟢 Bullish Setup' : '⚡ Both Ways';
+          const urgencyBadge = c.urgency === 'high' ? '<span style="background:rgba(239,68,68,0.15);color:var(--accent3);padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:700;margin-left:6px;">URGENT</span>' : '';
+          const alertBox = c.alert ? `<div style="margin-top:8px;padding:8px 10px;background:rgba(239,68,68,0.08);border-left:3px solid var(--accent3);border-radius:4px;font-size:0.78rem;color:var(--accent3);">${c.alert}</div>` : '';
+          const affectedTags = (c.affected || []).map(a => `<span style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.7rem;color:var(--fg2);">${a.replace('USDT','')}</span>`).join(' ');
+          return `
+            <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(30,37,56,0.4);">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span style="font-size:1.1rem;">${c.emoji}</span>
+                <span style="font-weight:700;font-size:0.9rem;">${c.title}</span>
+                ${urgencyBadge}
+              </div>
+              <div style="font-size:0.78rem;color:var(--fg2);margin-bottom:4px;"><strong>Watch:</strong> ${c.watch}</div>
+              <div style="font-size:0.78rem;color:var(--fg2);margin-bottom:6px;">${c.why}</div>
+              <div style="font-size:0.78rem;color:var(--fg2);margin-bottom:4px;"><strong>Impact:</strong> <span style="color:${dirColor};font-weight:600;">${c.impact}</span></div>
+              <div style="font-size:0.75rem;">${affectedTags}</div>
+              ${alertBox}
+            </div>`;
+        }).join('');
+    } else { highDiv.innerHTML = '<div style="padding:8px;color:var(--fg2);font-size:0.85rem;">No high-impact catalysts</div>'; }
+
+    // Market readings
+    if (data.readings?.length) {
+      readingsDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--accent2);font-weight:700;margin-bottom:10px;">📊 WHAT THE DATA IS TELLING YOU</div>' +
+        '<table style="width:100%;font-size:0.8rem;border-collapse:collapse;">' +
+        '<thead><tr style="color:var(--fg2);font-size:0.7rem;text-align:left;"><th style="padding:4px 0;">Signal</th><th>Reading</th><th>Implication</th></tr></thead><tbody>' +
+        data.readings.map(r => {
+          const sigColor = r.signal === 'contrarian_buy' ? 'var(--accent)' : r.signal === 'short_risk' ? 'var(--accent3)' : r.signal === 'squeeze_potential' ? 'var(--accent)' : 'var(--accent2)';
+          const sigIcon = r.signal === 'contrarian_buy' ? '🟢' : r.signal === 'short_risk' ? '🔴' : r.signal === 'squeeze_potential' ? '🚀' : '⚡';
+          return `<tr style="border-bottom:1px solid rgba(30,37,56,0.3);"><td style="padding:6px 0;font-weight:600;">${r.label}</td><td style="color:${sigColor};font-weight:700;">${r.value}</td><td style="color:var(--fg2);">${r.implication} ${sigIcon}</td></tr>`;
+        }).join('') + '</tbody></table>';
+    } else { readingsDiv.style.display = 'none'; }
+
+    // Key levels
+    if (data.levels) {
+      levelsDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--fg2);font-weight:700;margin-bottom:10px;">⚡ KEY PRICE LEVELS TO WATCH</div>' +
+        Object.entries(data.levels).map(([sym, lvl]) =>
+          `<div style="font-size:0.85rem;margin-bottom:6px;"><strong>${sym}:</strong> <span style="color:var(--accent3);">Support ${lvl.support}</span> | <span style="color:var(--accent);">Resistance ${lvl.resistance}</span></div>`
+        ).join('');
+    } else { levelsDiv.style.display = 'none'; }
+
+    // Bottom line
+    if (data.bottomLine) {
+      bottomDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--accent2);font-weight:700;margin-bottom:8px;">🧠 BOTTOM LINE</div>' +
+        `<div style="font-size:0.85rem;line-height:1.6;color:var(--fg);">${data.bottomLine}</div>`;
+    } else { bottomDiv.style.display = 'none'; }
+
+  } catch (e) {
+    loading.style.display = 'none';
+    content.style.display = 'none';
+    error.style.display = 'block';
+  }
+}
+loadCatalysts();
+setInterval(loadCatalysts, 300000);
 </script>
 
 </body>
