@@ -215,24 +215,34 @@
         <div class="card-header">🌡️ Market Heatmap</div>
         <div class="tradingview-widget-container" style="height:200px;">
           <div class="tradingview-widget-container__widget" style="height:200px;"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js" async>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-crypto-coins-heatmap.js" async>
           {
-            "exchanges": [],
             "dataSource": "Crypto",
-            "grouping": "sector",
             "blockColor": "change",
             "blockSize": "market_cap_basic",
             "locale": "en",
-            "symbolUrl": "",
             "colorTheme": "dark",
-            "hasTopBar": false,
-            "isDataSetEnabled": false,
-            "isZoomEnabled": false,
-            "hasSymbolTooltip": true,
             "width": "100%",
             "height": "100%"
           }
           </script>
+        </div>
+      </div>
+
+      <!-- Liquidation Intelligence -->
+      <div class="card">
+        <div class="card-header">
+          <span>💥 Liquidation Intel</span>
+          <span class="badge live" id="liq-updated" style="font-size:0.6rem;padding:2px 8px;">Live</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div id="liq-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading liquidation data...</div>
+          <div id="liq-content" style="display:none;">
+            <div id="liq-best-short" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+            <div id="liq-best-long" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+            <div id="liq-alerts" style="padding:14px 18px;"></div>
+          </div>
+          <div id="liq-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load. Retrying...</div>
         </div>
       </div>
     </div>
@@ -260,6 +270,7 @@
         <div class="suggestions">
           <span class="suggestion-chip" data-q="What is a good short today?">📉 Good short today?</span>
           <span class="suggestion-chip" data-q="What is a good buy today?">📈 Good buy today?</span>
+          <span class="suggestion-chip" data-q="Which coin has the most crowded longs?">🎯 Most crowded longs?</span>
           <span class="suggestion-chip" data-q="Analyze BTC trend and support levels">🔍 Analyze BTC</span>
           <span class="suggestion-chip" data-q="Any undervalued altcoins for accumulation?">💎 Undervalued alts</span>
         </div>
@@ -359,6 +370,66 @@ function renderSignal(tbody, s) {
 }
 loadSignals();
 setInterval(loadSignals, 30000);
+
+// ── Liquidation Intelligence Panel ───────────────────
+async function loadLiquidationIntel() {
+  const loading = document.getElementById('liq-loading');
+  const content = document.getElementById('liq-content');
+  const error = document.getElementById('liq-error');
+  const bestShort = document.getElementById('liq-best-short');
+  const bestLong = document.getElementById('liq-best-long');
+  const alerts = document.getElementById('liq-alerts');
+
+  try {
+    const res = await fetch('/api/liquidation');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+
+    if (data.bestShort) {
+      bestShort.innerHTML = `
+        <div style="font-size:0.75rem;color:var(--accent3);font-weight:700;margin-bottom:4px;">🔴 BEST SHORT</div>
+        <div style="font-size:1.05rem;font-weight:700;">${data.bestShort.symbol} @ $${data.bestShort.price.toLocaleString()}</div>
+        <div style="font-size:0.8rem;color:var(--fg2);margin-top:4px;">
+          Funding: <span style="color:${data.bestShort.fundingAnnualized > 100 ? 'var(--accent3)' : 'var(--accent)'};">${data.bestShort.fundingAnnualized.toFixed(1)}%</span> ann. ·
+          OI: $${(data.bestShort.openInterestUsd/1e6).toFixed(1)}M ·
+          Risk: ${data.bestShort.riskScore}/100
+        </div>
+        <div style="font-size:0.78rem;color:var(--fg2);margin-top:6px;">${data.bestShort.reason}</div>
+      `;
+    } else { bestShort.innerHTML = '<div style="padding:8px;color:var(--fg2);font-size:0.85rem;">No clear short setup</div>'; }
+
+    if (data.bestLong) {
+      bestLong.innerHTML = `
+        <div style="font-size:0.75rem;color:var(--accent);font-weight:700;margin-bottom:4px;">🟢 BEST LONG</div>
+        <div style="font-size:1.05rem;font-weight:700;">${data.bestLong.symbol} @ $${data.bestLong.price.toLocaleString()}</div>
+        <div style="font-size:0.8rem;color:var(--fg2);margin-top:4px;">
+          Funding: <span style="color:${data.bestLong.fundingAnnualized < -100 ? 'var(--accent)' : 'var(--accent3)'};">${data.bestLong.fundingAnnualized.toFixed(1)}%</span> ann. ·
+          OI: $${(data.bestLong.openInterestUsd/1e6).toFixed(1)}M ·
+          Risk: ${data.bestLong.riskScore}/100
+        </div>
+        <div style="font-size:0.78rem;color:var(--fg2);margin-top:6px;">${data.bestLong.reason}</div>
+      `;
+    } else { bestLong.innerHTML = '<div style="padding:8px;color:var(--fg2);font-size:0.85rem;">No clear long setup</div>'; }
+
+    if (data.alerts?.length) {
+      alerts.innerHTML = data.alerts.slice(0,4).map(a =>
+        `<div style="font-size:0.78rem;padding:6px 0;border-bottom:1px solid rgba(30,37,56,0.4);color:${a.severity==='high'?'var(--accent3)':'var(--accent2)'};">
+          <span style="font-weight:700;">${a.type === 'overleveraged_longs' ? '🔴' : a.type === 'overleveraged_shorts' ? '🟢' : '⚡'}</span> ${a.message}
+        </div>`
+      ).join('');
+    } else { alerts.innerHTML = '<div style="font-size:0.78rem;color:var(--fg2);">No active liquidation alerts</div>'; }
+  } catch (e) {
+    loading.style.display = 'none';
+    content.style.display = 'none';
+    error.style.display = 'block';
+  }
+}
+loadLiquidationIntel();
+setInterval(loadLiquidationIntel, 60000);
 
 // ── Chart symbol switcher ────────────────────────────
 document.getElementById('chart-symbol').addEventListener('change', function() {
