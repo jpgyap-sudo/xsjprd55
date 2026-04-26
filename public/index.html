@@ -3,33 +3,485 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>xsjprd55 — Trading Signal Bot</title>
+  <title>xsjprd55 — Crypto Trading Signal Dashboard</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 640px; margin: 60px auto; padding: 20px; color: #333; }
-    h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
-    .badge { display: inline-block; background: #22c55e; color: white; padding: 4px 12px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
-    .badge.warn { background: #eab308; }
-    code { background: #f3f4f6; padding: 2px 6px; border-radius: 4px; font-size: 0.9rem; }
-    ul { line-height: 1.8; }
-    a { color: #2563eb; }
+    :root {
+      --bg: #0b0e14;
+      --bg2: #121620;
+      --bg3: #1a1f2e;
+      --fg: #e0e6ed;
+      --fg2: #8b95a5;
+      --accent: #22c55e;
+      --accent2: #eab308;
+      --accent3: #ef4444;
+      --border: #1e2538;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; }
+
+    /* Header */
+    header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    header h1 { font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .badge { padding: 4px 12px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+    .badge.paper { background: rgba(234,179,8,0.15); color: var(--accent2); border: 1px solid rgba(234,179,8,0.3); }
+    .badge.live { background: rgba(34,197,94,0.15); color: var(--accent); border: 1px solid rgba(34,197,94,0.3); }
+
+    /* Layout */
+    .container { max-width: 1440px; margin: 0 auto; padding: 20px; }
+    .grid { display: grid; gap: 20px; }
+    .grid-2 { grid-template-columns: 2fr 1fr; }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    @media (max-width: 1024px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 0.9rem; }
+    .card-body { padding: 18px; }
+
+    /* Mini stats */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .stat-item { background: var(--bg3); padding: 14px; border-radius: 10px; }
+    .stat-label { font-size: 0.75rem; color: var(--fg2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .stat-value { font-size: 1.3rem; font-weight: 700; }
+    .stat-change { font-size: 0.8rem; margin-top: 4px; }
+    .stat-change.up { color: var(--accent); }
+    .stat-change.down { color: var(--accent3); }
+
+    /* Signals table */
+    .signal-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .signal-table th { text-align: left; padding: 10px 12px; color: var(--fg2); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid var(--border); }
+    .signal-table td { padding: 12px; border-bottom: 1px solid rgba(30,37,56,0.5); }
+    .signal-table tr:hover { background: rgba(255,255,255,0.02); }
+    .side-badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 0.75rem; }
+    .side-long { background: rgba(34,197,94,0.15); color: var(--accent); }
+    .side-short { background: rgba(239,68,68,0.15); color: var(--accent3); }
+    .side-close { background: rgba(139,149,165,0.15); color: var(--fg2); }
+    .conf-bar { height: 6px; border-radius: 3px; background: var(--bg3); overflow: hidden; width: 60px; }
+    .conf-bar-inner { height: 100%; border-radius: 3px; }
+
+    /* AI Chat */
+    .chat-widget { position: fixed; bottom: 24px; right: 24px; width: 400px; max-height: 600px; background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; display: flex; flex-direction: column; z-index: 200; box-shadow: 0 20px 60px rgba(0,0,0,0.5); transition: transform 0.2s, opacity 0.2s; }
+    .chat-widget.hidden { transform: translateY(20px); opacity: 0; pointer-events: none; }
+    .chat-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(59,130,246,0.1)); border-radius: 16px 16px 0 0; }
+    .chat-title { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+    .chat-close { cursor: pointer; padding: 4px; opacity: 0.6; transition: opacity 0.2s; }
+    .chat-close:hover { opacity: 1; }
+    .chat-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 300px; max-height: 420px; }
+    .msg { max-width: 92%; padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; line-height: 1.5; word-break: break-word; }
+    .msg.user { align-self: flex-end; background: #2563eb; color: white; border-bottom-right-radius: 4px; }
+    .msg.ai { align-self: flex-start; background: var(--bg3); border-bottom-left-radius: 4px; }
+    .msg.ai pre { background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; overflow-x: auto; margin-top: 8px; font-size: 0.8rem; }
+    .msg.ai code { font-family: 'Fira Code', monospace; font-size: 0.8rem; }
+    .msg.ai p { margin-bottom: 8px; }
+    .msg.ai p:last-child { margin-bottom: 0; }
+    .chat-input-area { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; }
+    .chat-input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--fg); font-size: 0.9rem; outline: none; resize: none; font-family: inherit; }
+    .chat-input:focus { border-color: #2563eb; }
+    .chat-send { background: #2563eb; color: white; border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: background 0.2s; }
+    .chat-send:hover { background: #1d4ed8; }
+    .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+    .chat-toggle { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; border: none; font-size: 1.5rem; cursor: pointer; z-index: 200; box-shadow: 0 8px 30px rgba(37,99,235,0.4); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+    .chat-toggle:hover { transform: scale(1.05); }
+    .chat-toggle.hidden { display: none; }
+    .typing { display: flex; gap: 4px; align-items: center; padding: 8px 0; }
+    .typing span { width: 8px; height: 8px; background: var(--fg2); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+    .typing span:nth-child(1) { animation-delay: -0.32s; }
+    .typing span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce { 0%,80%,100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+    /* Suggestions */
+    .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .suggestion-chip { background: rgba(37,99,235,0.15); border: 1px solid rgba(37,99,235,0.3); color: #60a5fa; padding: 6px 12px; border-radius: 999px; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; }
+    .suggestion-chip:hover { background: rgba(37,99,235,0.25); }
+
+    /* Footer */
+    footer { text-align: center; padding: 30px; color: var(--fg2); font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 30px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2e3650; }
   </style>
 </head>
 <body>
-  <h1>📈 xsjprd55 — Trading Signal Bot</h1>
-  <span class="badge">Bot Active</span>
-  <span class="badge warn">Paper Mode</span>
 
-  <p>AI-assisted crypto trading signal alerts delivered via Telegram.</p>
+<header>
+  <h1>📈 xsjprd55 <span style="color:var(--fg2);font-size:0.85rem;font-weight:400;">Crypto Trading Signal Dashboard</span></h1>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span class="badge paper" id="mode-badge">Paper Mode</span>
+    <div class="status-dot"></div>
+    <span style="font-size:0.8rem;color:var(--fg2);">Bot Active</span>
+  </div>
+</header>
 
-  <h3>API Endpoints</h3>
-  <ul>
-    <li><code>POST /api/telegram</code> — Telegram webhook handler</li>
-    <li><code>GET /api/signal</code> — Trigger signal scan</li>
-    <li><code>GET /api/market</code> — Cache OHLCV market data</li>
-    <li><code>GET /api/weekly-analysis</code> — Weekly PnL report</li>
-    <li><code>GET /api/health</code> — Health check</li>
-  </ul>
+<div class="container">
+  <!-- Ticker Tape -->
+  <div style="margin-bottom:20px;border-radius:12px;overflow:hidden;">
+    <div class="tradingview-widget-container">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+      {
+        "symbols": [
+          {"proName": "BINANCE:BTCUSDT","title": "BTC"},
+          {"proName": "BINANCE:ETHUSDT","title": "ETH"},
+          {"proName": "BINANCE:SOLUSDT","title": "SOL"},
+          {"proName": "BINANCE:BNBUSDT","title": "BNB"},
+          {"proName": "BINANCE:XRPUSDT","title": "XRP"},
+          {"proName": "BINANCE:DOGEUSDT","title": "DOGE"},
+          {"proName": "BINANCE:ADAUSDT","title": "ADA"},
+          {"proName": "BINANCE:AVAXUSDT","title": "AVAX"}
+        ],
+        "showSymbolLogo": true,
+        "colorTheme": "dark",
+        "isTransparent": false,
+        "displayMode": "adaptive",
+        "locale": "en"
+      }
+      </script>
+    </div>
+  </div>
 
-  <p><a href="https://github.com/jpgyap-sudo/xsjprd55">GitHub Repo</a></p>
+  <!-- Top Stats -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">Market Snapshot</div>
+    <div class="card-body">
+      <div class="stat-grid" id="stats-grid">
+        <div class="stat-item"><div class="stat-label">BTC Price</div><div class="stat-value" id="btc-price">—</div><div class="stat-change" id="btc-change">—</div></div>
+        <div class="stat-item"><div class="stat-label">ETH Price</div><div class="stat-value" id="eth-price">—</div><div class="stat-change" id="eth-change">—</div></div>
+        <div class="stat-item"><div class="stat-label">SOL Price</div><div class="stat-value" id="sol-price">—</div><div class="stat-change" id="sol-change">—</div></div>
+        <div class="stat-item"><div class="stat-label">Global Market Cap</div><div class="stat-value" id="global-mcap">—</div></div>
+        <div class="stat-item"><div class="stat-label">24h Volume</div><div class="stat-value" id="global-vol">—</div></div>
+        <div class="stat-item"><div class="stat-label">BTC Dominance</div><div class="stat-value" id="btc-dom">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <!-- Main Chart -->
+    <div class="card">
+      <div class="card-header">
+        <span>📊 BTC/USDT Technical Chart</span>
+        <select id="chart-symbol" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;cursor:pointer;">
+          <option value="BINANCE:BTCUSDT">BTC/USDT</option>
+          <option value="BINANCE:ETHUSDT">ETH/USDT</option>
+          <option value="BINANCE:SOLUSDT">SOL/USDT</option>
+          <option value="BINANCE:BNBUSDT">BNB/USDT</option>
+          <option value="BINANCE:XRPUSDT">XRP/USDT</option>
+        </select>
+      </div>
+      <div class="tradingview-widget-container" id="tv-chart" style="height:460px;">
+        <div class="tradingview-widget-container__widget" style="height:460px;"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+        {
+          "autosize": true,
+          "symbol": "BINANCE:BTCUSDT",
+          "interval": "15",
+          "timezone": "Etc/UTC",
+          "theme": "dark",
+          "style": "1",
+          "locale": "en",
+          "enable_publishing": false,
+          "backgroundColor": "rgba(18, 22, 32, 1)",
+          "gridColor": "rgba(30, 37, 56, 0.5)",
+          "allow_symbol_change": false,
+          "calendar": false,
+          "support_host": "https://www.tradingview.com"
+        }
+        </script>
+      </div>
+    </div>
+
+    <!-- Side Panel: Signals + Analysis -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <!-- Recent Signals -->
+      <div class="card">
+        <div class="card-header">🚨 Recent Signals</div>
+        <div class="card-body" style="padding:0;">
+          <table class="signal-table" id="signals-table">
+            <thead>
+              <tr><th>Pair</th><th>Side</th><th>Conf</th><th>Time</th></tr>
+            </thead>
+            <tbody id="signals-tbody">
+              <tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:20px;">Loading signals...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Market Overview Heatmap -->
+      <div class="card">
+        <div class="card-header">🌡️ Market Heatmap</div>
+        <div class="tradingview-widget-container" style="height:200px;">
+          <div class="tradingview-widget-container__widget" style="height:200px;"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-stock-heatmap.js" async>
+          {
+            "exchanges": [],
+            "dataSource": "Crypto",
+            "grouping": "sector",
+            "blockColor": "change",
+            "blockSize": "market_cap_basic",
+            "locale": "en",
+            "symbolUrl": "",
+            "colorTheme": "dark",
+            "hasTopBar": false,
+            "isDataSetEnabled": false,
+            "isZoomEnabled": false,
+            "hasSymbolTooltip": true,
+            "width": "100%",
+            "height": "100%"
+          }
+          </script>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Chat Widget -->
+  <div class="chat-widget hidden" id="chat-widget">
+    <div class="chat-header">
+      <div class="chat-title">🤖 Crypto Strategist</div>
+      <div class="chat-close" id="chat-close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </div>
+    </div>
+    <div class="chat-body" id="chat-body">
+      <div class="msg ai">
+        <strong>Crypto Trading Strategist</strong> at your service.<br><br>
+        I analyze market trends, token strength, liquidity pools, and social momentum. I can help with:
+        <ul style="margin:8px 0 0 18px;">
+          <li>Spot & swing trading opportunities</li>
+          <li>LP opportunities on Meteora</li>
+          <li>Bear-market accumulation picks</li>
+          <li>Organic meme coin research</li>
+          <li>Risk assessment & red flags</li>
+        </ul>
+        <div class="suggestions">
+          <span class="suggestion-chip" data-q="What is a good short today?">📉 Good short today?</span>
+          <span class="suggestion-chip" data-q="What is a good buy today?">📈 Good buy today?</span>
+          <span class="suggestion-chip" data-q="Analyze BTC trend and support levels">🔍 Analyze BTC</span>
+          <span class="suggestion-chip" data-q="Any undervalued altcoins for accumulation?">💎 Undervalued alts</span>
+        </div>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask me anything about crypto..."></textarea>
+      <button class="chat-send" id="chat-send">Send</button>
+    </div>
+  </div>
+  <button class="chat-toggle" id="chat-toggle">💬</button>
+</div>
+
+<footer>
+  xsjprd55 Trading Signal Bot — Paper Mode — <a href="https://github.com/jpgyap-sudo/xsjprd55" style="color:var(--fg2);">GitHub</a>
+</footer>
+
+<script>
+// ── Market Data ──────────────────────────────────────
+async function loadMarketData() {
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana&price_change_percentage=24h');
+    const data = await res.json();
+    const btc = data.find(c => c.id === 'bitcoin');
+    const eth = data.find(c => c.id === 'ethereum');
+    const sol = data.find(c => c.id === 'solana');
+    if (btc) {
+      document.getElementById('btc-price').textContent = '$' + btc.current_price.toLocaleString();
+      const el = document.getElementById('btc-change');
+      el.textContent = (btc.price_change_percentage_24h >= 0 ? '+' : '') + btc.price_change_percentage_24h.toFixed(2) + '%';
+      el.className = 'stat-change ' + (btc.price_change_percentage_24h >= 0 ? 'up' : 'down');
+    }
+    if (eth) {
+      document.getElementById('eth-price').textContent = '$' + eth.current_price.toLocaleString();
+      const el = document.getElementById('eth-change');
+      el.textContent = (eth.price_change_percentage_24h >= 0 ? '+' : '') + eth.price_change_percentage_24h.toFixed(2) + '%';
+      el.className = 'stat-change ' + (eth.price_change_percentage_24h >= 0 ? 'up' : 'down');
+    }
+    if (sol) {
+      document.getElementById('sol-price').textContent = '$' + sol.current_price.toLocaleString();
+      const el = document.getElementById('sol-change');
+      el.textContent = (sol.price_change_percentage_24h >= 0 ? '+' : '') + sol.price_change_percentage_24h.toFixed(2) + '%';
+      el.className = 'stat-change ' + (sol.price_change_percentage_24h >= 0 ? 'up' : 'down');
+    }
+  } catch (e) {}
+
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/global');
+    const data = await res.json();
+    const g = data.data;
+    if (g) {
+      document.getElementById('global-mcap').textContent = '$' + (g.total_market_cap.usd / 1e12).toFixed(2) + 'T';
+      document.getElementById('global-vol').textContent = '$' + (g.total_volume.usd / 1e9).toFixed(1) + 'B';
+      document.getElementById('btc-dom').textContent = g.market_cap_percentage.btc.toFixed(1) + '%';
+    }
+  } catch (e) {}
+}
+loadMarketData();
+
+// ── Signals ──────────────────────────────────────────
+async function loadSignals() {
+  try {
+    const res = await fetch('/api/signal');
+    const data = await res.json();
+    const tbody = document.getElementById('signals-tbody');
+    tbody.innerHTML = '';
+
+    // Also try to fetch from Supabase via a simple query approach
+    // Since we don't have direct Supabase client on frontend, we'll show scan results
+    if (data.signals && data.signals.length > 0) {
+      data.signals.forEach(s => renderSignal(tbody, s));
+    } else {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:20px;">No active signals. Market is quiet.</td></tr>';
+    }
+  } catch (e) {
+    document.getElementById('signals-tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--accent3);padding:20px;">Error loading signals</td></tr>';
+  }
+}
+
+function renderSignal(tbody, s) {
+  const tr = document.createElement('tr');
+  const sideClass = s.side === 'LONG' ? 'side-long' : s.side === 'SHORT' ? 'side-short' : 'side-close';
+  const confPct = Math.round((s.confidence || 0) * 100);
+  const confColor = confPct >= 70 ? 'var(--accent)' : confPct >= 50 ? 'var(--accent2)' : 'var(--accent3)';
+  tr.innerHTML = `
+    <td><strong>${s.symbol}</strong><br><span style="font-size:0.75rem;color:var(--fg2);">${s.strategy} · ${s.timeframe}</span></td>
+    <td><span class="side-badge ${sideClass}">${s.side}</span></td>
+    <td>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="conf-bar"><div class="conf-bar-inner" style="width:${confPct}%;background:${confColor};"></div></div>
+        <span style="font-size:0.8rem;">${confPct}%</span>
+      </div>
+    </td>
+    <td style="font-size:0.8rem;color:var(--fg2);">${new Date(s.generated_at).toLocaleTimeString()}</td>
+  `;
+  tbody.appendChild(tr);
+}
+loadSignals();
+setInterval(loadSignals, 30000);
+
+// ── Chart symbol switcher ────────────────────────────
+document.getElementById('chart-symbol').addEventListener('change', function() {
+  const symbol = this.value;
+  const container = document.getElementById('tv-chart');
+  container.innerHTML = '<div class="tradingview-widget-container__widget" style="height:460px;"></div>';
+  const script = document.createElement('script');
+  script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  script.async = true;
+  script.innerHTML = JSON.stringify({
+    autosize: true, symbol: symbol, interval: "15", timezone: "Etc/UTC",
+    theme: "dark", style: "1", locale: "en", enable_publishing: false,
+    backgroundColor: "rgba(18, 22, 32, 1)", gridColor: "rgba(30, 37, 56, 0.5)",
+    allow_symbol_change: false, calendar: false
+  });
+  container.appendChild(script);
+});
+
+// ── AI Chat ──────────────────────────────────────────
+const chatWidget = document.getElementById('chat-widget');
+const chatToggle = document.getElementById('chat-toggle');
+const chatClose = document.getElementById('chat-close');
+const chatBody = document.getElementById('chat-body');
+const chatInput = document.getElementById('chat-input');
+const chatSend = document.getElementById('chat-send');
+
+let chatHistory = [];
+
+function toggleChat() {
+  chatWidget.classList.toggle('hidden');
+  chatToggle.classList.toggle('hidden');
+}
+
+chatToggle.addEventListener('click', toggleChat);
+chatClose.addEventListener('click', toggleChat);
+
+// Auto-resize textarea
+chatInput.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+chatInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+chatSend.addEventListener('click', sendMessage);
+
+// Suggestion chips
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('suggestion-chip')) {
+    const q = e.target.dataset.q;
+    chatInput.value = q;
+    sendMessage();
+  }
+});
+
+async function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+
+  // Add user message
+  const userMsg = document.createElement('div');
+  userMsg.className = 'msg user';
+  userMsg.textContent = text;
+  chatBody.appendChild(userMsg);
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  chatBody.scrollTop = chatBody.scrollHeight;
+
+  // Typing indicator
+  const typing = document.createElement('div');
+  typing.className = 'typing';
+  typing.innerHTML = '<span></span><span></span><span></span>';
+  chatBody.appendChild(typing);
+  chatBody.scrollTop = chatBody.scrollHeight;
+
+  chatSend.disabled = true;
+
+  try {
+    const res = await fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: text, chatHistory })
+    });
+    const data = await res.json();
+    typing.remove();
+
+    const aiMsg = document.createElement('div');
+    aiMsg.className = 'msg ai';
+    if (data.ok) {
+      // Simple markdown-like parsing
+      let html = data.answer
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/`(.+?)`/g, '<code>$1</code>')
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/s, '<ul style="margin:8px 0 0 18px;">$1</ul>')
+        .replace(/\n/g, '<br>');
+      aiMsg.innerHTML = html;
+
+      chatHistory.push({ role: 'user', content: text });
+      chatHistory.push({ role: 'assistant', content: data.answer });
+      if (chatHistory.length > 12) chatHistory = chatHistory.slice(-12);
+    } else {
+      aiMsg.textContent = 'Error: ' + (data.error || 'Unknown error');
+    }
+    chatBody.appendChild(aiMsg);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  } catch (e) {
+    typing.remove();
+    const errMsg = document.createElement('div');
+    errMsg.className = 'msg ai';
+    errMsg.style.color = 'var(--accent3)';
+    errMsg.textContent = 'Network error. Please try again.';
+    chatBody.appendChild(errMsg);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  } finally {
+    chatSend.disabled = false;
+  }
+}
+</script>
+
 </body>
 </html>
