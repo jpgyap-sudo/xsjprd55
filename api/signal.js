@@ -12,7 +12,7 @@ import { sendTelegram, formatSignalMessage, signalKeyboard } from '../lib/telegr
 
 const DEFAULT_PAIRS = ['BTC/USDT','ETH/USDT','SOL/USDT','BNB/USDT','XRP/USDT'];
 const TIMEFRAMES = ['15m','1h','4h'];
-const DEFAULT_EXCHANGE = process.env.DEFAULT_EXCHANGE || 'binance';
+const DEFAULT_EXCHANGE = (process.env.DEFAULT_EXCHANGE || 'binance').trim();
 
 export default async function handler(req, res) {
   if (!['GET','POST'].includes(req.method)) {
@@ -22,8 +22,8 @@ export default async function handler(req, res) {
   const isManual = req.method === 'POST';
   const pairs    = req.body?.pairs || DEFAULT_PAIRS;
   const tfs      = req.body?.timeframes || TIMEFRAMES;
-  const mode     = req.body?.mode || process.env.TRADING_MODE || 'paper';
-  const exchange = req.body?.exchange || DEFAULT_EXCHANGE;
+  const mode     = (req.body?.mode || process.env.TRADING_MODE || 'paper').trim();
+  const exchange = (req.body?.exchange || DEFAULT_EXCHANGE).trim();
 
   const results = { scanned: 0, signals: [], errors: [] };
 
