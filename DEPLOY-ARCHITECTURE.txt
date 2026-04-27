@@ -1,0 +1,90 @@
+=== BEST DEPLOYMENT ARCHITECTURE FOR YOUR TRADING BOT ===
+
+VERCEL FAILED: "No more than 12 Serverless Functions on Hobby plan"
+You have 21 API files in /api/ — Vercel Hobby blocks you.
+
+--- THE ANSWER: VPS-ONLY DEPLOYMENT ---
+
+For a trading bot, DigitalOcean VPS is BETTER than Vercel.
+
+WHY VPS IS SUPERIOR FOR TRADING BOTS:
++ Background workers run 24/7 (Vercel functions timeout after 10s)
++ Playwright crawler works natively (Vercel has issues with browsers)
++ No serverless function limits (you have 21 API files)
++ WebSocket / long-polling support
++ Lower cost for what you need ($18/mo vs $20+ Vercel Pro)
++ One server, one place to monitor
+
+--- RECOMMENDED ARCHITECTURE ---
+
+  [Telegram]  <--webhook-->  [DigitalOcean VPS 165.22.110.111]
+                                  |
+          +-----------------------+-----------------------+
+          |                       |                       |
+     [API Server]          [Background Workers]     [Playwright]
+     Port 3000              (OI, liquidation,         (crawler)
+     /api/bot               backtest, health,
+     /api/signals           mock trading, wallet
+     /api/market            tracker, social sentiment)
+          |
+     [Supabase]  <--data-->  [Dashboard]
+     (signals, trades,        (static HTML served
+      health logs)            from /public on VPS)
+
+--- WHAT YOU NEED TO DO ---
+
+1. RESIZE VPS to 2 vCPU / 2GB RAM ($18/mo)
+   DigitalOcean → Droplets → Resize → Basic: $18/mo
+
+2. DEPLOY CODE ON VPS
+   cd /opt/trading-bot
+   git pull origin main
+   npm install
+   npx playwright install chromium
+   nano .env   <-- fill in real credentials
+
+3. START WITH PM2
+   pm2 start server.js --name trading-bot
+   pm2 save
+   pm2 startup
+
+4. SET TELEGRAM WEBHOOK TO VPS
+   curl "https://api.telegram.org/botYOUR_TOKEN/setWebhook?url=https://165.22.110.111/api/bot&secret_token=YOUR_SECRET"
+
+5. OPEN FIREWALL
+   ufw allow 3000/tcp
+   ufw allow 22/tcp
+   ufw enable
+
+--- SKIP VERCEL ENTIRELY ---
+
+Your trading bot does not need Vercel. The VPS handles:
+- API endpoints
+- Background workers
+- Telegram webhook
+- Dashboard (serve /public/index.html from VPS)
+
+Vercel is for frontend apps. Your app is a backend trading system.
+
+--- IF YOU WANT A NICE DOMAIN ---
+
+Instead of 165.22.110.111, you can buy a cheap domain and point it:
+
+   bot.yourdomain.com  A-record → 165.22.110.111
+
+Then use free Let's Encrypt SSL:
+   certbot --nginx -d bot.yourdomain.com
+
+Then webhook becomes:
+   https://bot.yourdomain.com/api/bot
+
+--- COST COMPARISON ---
+
+| Option | Monthly Cost | Works? | Best For |
+|--------|-------------|--------|----------|
+| Vercel Hobby | $0 | NO (12 func limit) | Simple frontend |
+| Vercel Pro | $20 | YES | Serverless APIs |
+| DO 2GB VPS | $18 | YES | Trading bots |
+| Both | $38 | Overkill | Your case |
+
+RECOMMENDATION: VPS-ONLY. Save $20/mo and get better performance.

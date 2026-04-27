@@ -1,0 +1,34 @@
+=== VERIFY BOT IS WORKING ===
+
+Run these commands on your VPS (DigitalOcean Web Console):
+
+--- 1. CHECK SERVER IS RUNNING ---
+ps aux | grep node
+
+You should see node server.js running.
+
+--- 2. CHECK HEALTH ENDPOINT ---
+curl http://localhost:3000/api/system-health
+
+Should return JSON with status.
+
+--- 3. CHECK WEBHOOK IS SET ---
+curl "https://api.telegram.org/botYOUR_BOT_TOKEN/getWebhookInfo"
+
+Should show: "url":"https://165.22.110.111/api/bot"
+
+--- 4. TEST TELEGRAM BOT ---
+Open Telegram, message your bot:
+  /status
+
+You should get a reply.
+
+--- 5. CHECK LOGS FOR ERRORS ---
+tail -n 50 /opt/trading-bot/logs/app-$(date +%Y-%m-%d).log
+
+Look for ERROR or FATAL.
+
+--- 6. CHECK SUPABASE DATA ---
+Signals should be appearing in your Supabase signals table.
+
+If any step fails, paste the output here.
