@@ -1,18 +1,21 @@
 // ============================================================
 // Telegram Webhook Handler — /api/telegram
 // Commands: /signal, /market, /status, /scan, /close, /test, /help, /ai
-// AI Chat: any non-command text is routed to Claude
+// AI Chat: directed non-command text (mention/reply/DM) is routed to Claude
 // Callbacks: sig_confirm, sig_dismiss, trade_close
 // ============================================================
 
 import { supabase } from '../lib/supabase.js';
 import { validateSignal, checkRiskGates, logAudit } from '../lib/risk.js';
 import { buildSignal } from '../lib/signal-engine.js';
-import { sendTelegram, editMessage, answerCallback, formatSignalMessage, signalKeyboard } from '../lib/telegram.js';
+import { sendTelegram, editMessage, answerCallback, formatSignalMessage, signalKeyboard, getBotInfo } from '../lib/telegram.js';
 import { askAI } from '../lib/ai.js';
 import { fetchAllNews } from '../lib/news-aggregator.js';
 import { scoreNewsItems } from '../lib/news-sentiment.js';
 import { scanNewsSignals } from '../lib/news-signal.js';
+import { getPatternStats } from '../lib/pattern-learner.js';
+import { runLearningLoop } from '../lib/learning-loop.js';
+import { getSources } from '../lib/data-source-manager.js';
 
 const GROUP_ID = process.env.TELEGRAM_GROUP_CHAT_ID;
 const ADMIN_ID = process.env.TELEGRAM_ADMIN_USER_ID;
@@ -20,6 +23,21 @@ const ADMIN_ID = process.env.TELEGRAM_ADMIN_USER_ID;
 // In-memory chat history per user (Vercel stateless — TTL 10 min)
 const userHistory = new Map();
 const HISTORY_TTL_MS = 10 * 60 * 1000;
+
+let BOT_USERNAME = null;
+
+async function getBotUsername() {
+  if (BOT_USERNAME) return BOT_USERNAME;
+  try {
+    const info = await getBotInfo();
+    if (info?.username) {
+      BOT_USERNAME = info.username.toLowerCase();
+    }
+  } catch (e) {
+    console.error('[getBotUsername] error:', e.message);
+  }
+  return BOT_USERNAME;
+}
 
 function getHistory(userId) {
   const entry = userHistory.get(userId);
@@ -120,7 +138,7 @@ async function cmdMarket(args, chatId) {
     `\`O:\` ${c.open}  \`H:\` ${c.high}  \`L:\` ${c.low}  \`C:\` ${c.close}\n` +
     `📊 Change: ${change}% | Vol: ${Math.round(c.volume || 0)}\n` +
     `🕐 ${new Date(c.timestamp).toISOString()}`;
-  sendTelegram(chatId, msg);
+  return sendTelegram(chatId, msg);
 }
 
 async function cmdStatus(chatId) {
@@ -152,7 +170,7 @@ async function cmdStatus(chatId) {
       msg += `• ${t.side} ${t.symbol} @ ${t.entry_price} [${t.mode}]\n`;
     }
   }
-  sendTelegram(chatId, msg);
+  return sendTelegram(chatId, msg);
 }
 
 async function cmdScan(chatId) {
@@ -161,9 +179,9 @@ async function cmdScan(chatId) {
     const base = process.env.VERCEL_PRODUCTION_URL || '';
     const res = await fetch(`${base}/api/signal`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     const data = await res.json();
-    sendTelegram(chatId, `🔔 Scan done. Signals: ${data.signals?.length || 0} | Errors: ${data.errors?.length || 0}`);
+    return sendTelegram(chatId, `🔔 Scan done. Signals: ${data.signals?.length || 0} | Errors: ${data.errors?.length || 0}`);
   } catch (e) {
-    sendTelegram(chatId, `❌ Scan failed: ${e.message}`);
+    return sendTelegram(chatId, `❌ Scan failed: ${e.message}`);
   }
 }
 
@@ -186,7 +204,7 @@ async function cmdClose(args, chatId) {
       closed_reason: 'manual'
     }).eq('id', t.id);
   }
-  sendTelegram(chatId, `✅ Closed ${trades.length} trade(s) for ${symbol}`);
+  return sendTelegram(chatId, `✅ Closed ${trades.length} trade(s) for ${symbol}`);
 }
 
 async function cmdTest(chatId) {
@@ -202,7 +220,7 @@ async function cmdTest(chatId) {
   } catch (e) { /* ignore */ }
   checks.push(`Supabase connection: ${dbOk ? '✅' : '❌'}`);
 
-  sendTelegram(chatId, `🩺 *Health Check*\n\n${checks.join('\n')}`);
+  return sendTelegram(chatId, `🩺 *Health Check*\n\n${checks.join('\n')}`);
 }
 
 async function cmdNews(chatId) {
@@ -249,10 +267,10 @@ async function cmdNews(chatId) {
       });
     }
 
-    sendTelegram(chatId, msg);
+    return sendTelegram(chatId, msg);
   } catch (e) {
     console.error('News command error:', e);
-    sendTelegram(chatId, `❌ News fetch failed: ${e.message}`);
+    return sendTelegram(chatId, `❌ News fetch failed: ${e.message}`);
   }
 }
 
@@ -286,9 +304,9 @@ async function cmdNewsScan(chatId) {
       msg += `\n_No signals met the threshold. Market is quiet._`;
     }
 
-    sendTelegram(chatId, msg);
+    return sendTelegram(chatId, msg);
   } catch (e) {
-    sendTelegram(chatId, `❌ Scan failed: ${e.message}`);
+    return sendTelegram(chatId, `❌ Scan failed: ${e.message}`);
   }
 }
 
@@ -337,9 +355,96 @@ async function cmdCatalysts(chatId) {
       msg += `🧠 *Bottom Line:*\n_${data.bottomLine.substring(0, 400)}..._`;
     }
 
-    sendTelegram(chatId, msg);
+    return sendTelegram(chatId, msg);
   } catch (e) {
-    sendTelegram(chatId, `❌ Catalyst fetch failed: ${e.message}`);
+    return sendTelegram(chatId, `❌ Catalyst fetch failed: ${e.message}`);
+  }
+}
+
+async function cmdSuggestions(chatId) {
+  const { data } = await supabase
+    .from('app_suggestions')
+    .select('*')
+    .eq('status', 'pending')
+    .order('generated_at', { ascending: false })
+    .limit(5);
+
+  if (!data?.length) {
+    return sendTelegram(chatId, '🤖 *No pending suggestions*\n\nThe bot is still learning. Check back after more signals are generated.');
+  }
+
+  const icons = {
+    new_api: '🔌', new_strategy: '🧠', strategy_tweak: '🔧',
+    new_data_source: '📡', ui_improvement: '🎨', risk_adjustment: '🛡️',
+    tool_discovery: '🔎', correction: '✏️'
+  };
+
+  let msg = '🤖 *Bot Suggestions* — Top 5 pending ideas:\n\n';
+  for (const s of data) {
+    const icon = icons[s.category] || '💡';
+    msg += `${icon} *${s.title}*\n`;
+    msg += `_${s.description.slice(0, 120)}${s.description.length > 120 ? '...' : ''}_\n`;
+    msg += `Expected impact: ${s.expected_impact || 'TBD'}\n\n`;
+  }
+  msg += 'View all in dashboard: https://xsjprd55.vercel.app';
+  return sendTelegram(chatId, msg);
+}
+
+async function cmdLearn(chatId) {
+  await sendTelegram(chatId, '🔄 *Running learning loop...*');
+  try {
+    const results = await runLearningLoop();
+    const msg =
+      `✅ *Learning Loop Complete*\n\n` +
+      `• Outcomes resolved: ${results.outcomesResolved}\n` +
+      `• Strategies rolled up: ${results.strategiesRolledUp}\n` +
+      `• Suggestions generated: ${results.suggestionsGenerated}\n` +
+      `• Sources checked: ${results.sourcesChecked}\n` +
+      `• New sources discovered: ${results.newSourcesDiscovered}` +
+      (results.errors.length ? `\n\n⚠️ Errors: ${results.errors.join(', ')}` : '');
+    return sendTelegram(chatId, msg);
+  } catch (e) {
+    return sendTelegram(chatId, `❌ Learning loop failed: ${e.message}`);
+  }
+}
+
+async function cmdSources(chatId) {
+  const sources = await getSources();
+  if (!sources?.length) {
+    return sendTelegram(chatId, '📡 *No data sources registered*');
+  }
+
+  let msg = '📡 *Data Sources*:\n\n';
+  for (const s of sources) {
+    const statusEmoji = s.status === 'active' ? '🟢' : s.status === 'degraded' ? '🟡' : '🔴';
+    msg += `${statusEmoji} *${s.display_name}* (${s.type})\n`;
+    msg += `Reliability: ${(s.reliability_score * 100).toFixed(0)}% | Signals: ${s.signals_contributed}\n`;
+    if (s.last_error_message) msg += `⚠️ ${s.last_error_message.slice(0, 60)}\n`;
+    msg += '\n';
+  }
+  return sendTelegram(chatId, msg);
+}
+
+async function cmdPatterns(args, chatId) {
+  const strategy = args[0] || null;
+  try {
+    const stats = await getPatternStats({ strategy, limit: 200 });
+    let msg = `📊 *Signal Pattern Stats` + (strategy ? ` — ${strategy}` : '') + `*\n\n`;
+    msg += `Total signals: ${stats.total}\n`;
+    msg += `Win rate: ${(stats.winRate * 100).toFixed(1)}%\n`;
+    msg += `Total PnL: $${stats.totalPnl.toFixed(2)}\n`;
+    msg += `Avg PnL: $${stats.avgPnl.toFixed(2)}\n`;
+    msg += `Avg confidence: ${(stats.avgConfidence * 100).toFixed(1)}%\n\n`;
+
+    if (Object.keys(stats.byStrategy).length > 0) {
+      msg += '*By Strategy:*\n';
+      for (const [k, v] of Object.entries(stats.byStrategy)) {
+        msg += `• ${k}: ${v.count} signals, ${(v.winRate * 100).toFixed(0)}% win\n`;
+      }
+    }
+    return sendTelegram(chatId, msg);
+  } catch (e) {
+    return sendTelegram(chatId, `❌ Pattern stats error: ${e.message}`);
   }
 }
 
@@ -360,16 +465,31 @@ async function cmdHelp(chatId) {
     `/status — Active signals & trades\n` +
     `/scan — Trigger technical signal scan\n` +
     `/close SYMBOL — Close open trades\n` +
-    `/test — Bot health check\n` +
+    `/test — Bot health check\n\n` +
+    `🧠 *Self-Improvement*\n` +
+    `/suggestions — Bot-generated improvement ideas\n` +
+    `/learn — Run learning loop manually\n` +
+    `/sources — Connected data sources & health\n` +
+    `/patterns [STRATEGY] — Signal performance stats\n\n` +
     `/help — This message`;
-  sendTelegram(chatId, msg);
+  return sendTelegram(chatId, msg);
 }
 
 // ── Main handler ────────────────────────────────────────────
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(200).send('OK');
 
+  // ── Webhook secret validation ─────────────────────────────
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const headerSecret = req.headers['x-telegram-bot-api-secret-token'];
+  if (secret && secret !== 'your-webhook-secret' && headerSecret !== secret) {
+    console.warn('[telegram webhook] rejected — invalid secret');
+    return res.status(403).json({ error: 'Invalid webhook secret' });
+  }
+
   const body = req.body;
+  console.log('[telegram webhook] received update', JSON.stringify(body));
+
   const callback = body?.callback_query;
 
   // ── Inline callbacks ──────────────────────────────────────
@@ -418,13 +538,50 @@ export default async function handler(req, res) {
   const userId   = msg.from?.id?.toString();
   const sender   = msg.from?.username || msg.from?.first_name || 'Unknown';
 
-  // AI chat mode: any non-command text goes to Claude
+  console.log(`[telegram] chatId=${chatId} GROUP_ID=${GROUP_ID} text="${text}" sender=${sender}`);
+
+  // Ignore messages from wrong group
+  if (GROUP_ID && chatId !== String(GROUP_ID)) {
+    console.log(`[telegram] ignored: chatId ${chatId} !== GROUP_ID ${GROUP_ID}`);
+    return res.status(200).send('OK');
+  }
+
+  if (msg.from?.is_bot) return res.status(200).send('OK');
+
+  const botUsername = await getBotUsername();
+  const botUsernameClean = botUsername ? `@${botUsername}` : null;
+
+  // Detect reply-to-bot and leading @mention
+  const replyToUsername = msg.reply_to_message?.from?.username?.toLowerCase();
+  const isReplyToBot    = replyToUsername === botUsername;
+  const startsWithMention = botUsername ? text.toLowerCase().startsWith(`@${botUsername}`) : false;
+  const isDirectedAtBot = isReplyToBot || startsWithMention;
+
+  console.log(`[telegram] botUsername=${botUsername} isReplyToBot=${isReplyToBot} startsWithMention=${startsWithMention} isDirectedAtBot=${isDirectedAtBot}`);
+
+  // Determine if this is a group/supergroup (vs DM)
+  const chatType = msg.chat?.type;
+  const isGroup = chatType === 'group' || chatType === 'supergroup';
+
+  // Non-command text
   if (!text.startsWith('/')) {
+    // In groups, only respond if the message is directed at the bot
+    if (isGroup && !isDirectedAtBot) {
+      console.log('[telegram] ignored: non-command in group not directed at bot');
+      return res.status(200).send('OK');
+    }
+
+    // Strip leading @botname so the AI doesn't see its own username
+    let cleanText = text;
+    if (startsWithMention && botUsernameClean) {
+      cleanText = text.slice(botUsernameClean.length).trim();
+    }
+
     try {
-      await cmdAsk(text.split(/\s+/), chatId, userId, sender);
+      await cmdAsk(cleanText.split(/\s+/), chatId, userId, sender);
     } catch (e) {
       console.error('Telegram AI error:', e);
-      if (chatId) sendTelegram(chatId, `❌ AI error: ${e.message}`);
+      if (chatId) await sendTelegram(chatId, `❌ AI error: ${e.message}`);
     }
     return res.status(200).send('OK');
   }
@@ -433,26 +590,28 @@ export default async function handler(req, res) {
   const cmd   = parts[0].split('@')[0].toLowerCase();
   const args  = parts.slice(1);
 
+  console.log(`[telegram] cmd="${cmd}" args=${JSON.stringify(args)}`);
+
   try {
     switch (cmd) {
-      case '/signal': await cmdSignal(args, chatId, userId, sender); break;
-      case '/market': await cmdMarket(args, chatId); break;
-      case '/status': await cmdStatus(chatId); break;
-      case '/scan':   await cmdScan(chatId); break;
-      case '/news':   await cmdNews(chatId); break;
-      case '/newsscan': await cmdNewsScan(chatId); break;
+      case '/signal':    await cmdSignal(args, chatId, userId, sender); break;
+      case '/market':    await cmdMarket(args, chatId); break;
+      case '/status':    await cmdStatus(chatId); break;
+      case '/scan':      await cmdScan(chatId); break;
+      case '/news':      await cmdNews(chatId); break;
+      case '/newsscan':  await cmdNewsScan(chatId); break;
       case '/catalysts': await cmdCatalysts(chatId); break;
-      case '/close':  await cmdClose(args, chatId); break;
-      case '/test':   await cmdTest(chatId); break;
-      case '/help':   await cmdHelp(chatId); break;
-      case '/start':  await cmdHelp(chatId); break;
-      case '/ask':    await cmdAsk(args, chatId, userId, sender); break;
+      case '/close':     await cmdClose(args, chatId); break;
+      case '/test':      await cmdTest(chatId); break;
+      case '/help':      await cmdHelp(chatId); break;
+      case '/start':     await cmdHelp(chatId); break;
+      case '/ask':       await cmdAsk(args, chatId, userId, sender); break;
       default:
-        if (chatId) sendTelegram(chatId, `Unknown command: ${cmd}\nTry /help`);
+        if (chatId) await sendTelegram(chatId, `Unknown command: ${cmd}\nTry /help`);
     }
   } catch (e) {
     console.error('Telegram command error:', e);
-    if (chatId) sendTelegram(chatId, `❌ Error: ${e.message}`);
+    if (chatId) await sendTelegram(chatId, `❌ Error: ${e.message}`);
   }
 
   return res.status(200).send('OK');

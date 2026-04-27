@@ -1,8 +1,16 @@
 {
   "crons": [
     {
-      "path": "/api/news-signal",
+      "path": "/api/bot?type=ingest-news&secret=${CRON_SECRET}",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/news-signal",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/bot?type=learn&secret=${CRON_SECRET}",
+      "schedule": "0 4 * * *"
     }
   ]
 }

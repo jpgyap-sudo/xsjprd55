@@ -1,27 +1,40 @@
 {
   "name": "trading-signal-bot",
-  "version": "1.0.0",
-  "description": "Trading Signal Telegram Bot — AI-powered crypto signal alerts",
+  "version": "2.1.0",
+  "description": "AI-assisted trading signal bot — crypto signal alerts, backtesting, liquidation heatmap, OI tracking, and self-improving loop. Supports Vercel (serverless) and VPS (Docker/PM2).",
   "type": "module",
   "scripts": {
     "dev": "vercel dev",
     "build": "echo 'No build step required'",
+    "start": "node server.js",
+    "start:pm2": "pm2 start ecosystem.config.cjs",
+    "stop:pm2": "pm2 stop ecosystem.config.cjs",
+    "logs:pm2": "pm2 logs trading-signal-bot",
+    "docker:build": "docker build -t trading-signal-bot .",
+    "docker:run": "docker run --env-file .env -p 3000:3000 trading-signal-bot",
+    "docker:compose": "docker-compose up -d",
+    "docker:down": "docker-compose down",
     "test": "node --test",
     "lint": "eslint ."
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.47.0",
+    "@supabase/supabase-js": "^2.49.0",
     "ccxt": "^4.4.0",
+    "dotenv": "^16.4.0",
+    "node-cron": "^3.0.3",
     "node-fetch": "^3.3.2",
+    "playwright": "^1.49.0",
     "pg": "^8.20.0",
-    "uuid": "^11.0.0"
+    "uuid": "^11.1.0",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "eslint": "^9.15.0",
+    "pm2": "^5.4.0",
     "supabase": "^2.95.3"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "private": true
 }

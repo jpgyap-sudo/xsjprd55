@@ -1,11 +1,11 @@
 // ============================================================
 // News Feed — /api/news-feed
 // Returns recent news articles with sentiment scores
-// GET ?limit=20&hours=24
+// GET ?limit=20&hours=24&asset=BTCUSDT
+// Reads from Supabase news_events (populated by /api/news-ingest cron)
 // ============================================================
 
-import { fetchAllNews } from '../lib/news-aggregator.js';
-import { scoreNewsItems } from '../lib/news-sentiment.js';
+import { queryNews } from '../lib/news-store.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -14,35 +14,39 @@ export default async function handler(req, res) {
 
   const limit = Math.min(50, parseInt(req.query?.limit || '20'));
   const hours = Math.min(72, parseInt(req.query?.hours || '24'));
+  const asset = req.query?.asset || null;
 
   try {
-    const maxAgeMinutes = hours * 60;
-    const newsItems = await fetchAllNews(maxAgeMinutes);
-    const scored = scoreNewsItems(newsItems);
+    const assets = asset ? [asset.toUpperCase()] : [];
+    const newsItems = await queryNews({ assets, hours, limit, minFreshness: 0.05 });
 
-    // Limit and format for dashboard
-    const items = scored.items.slice(0, limit).map(item => ({
+    // Format for dashboard
+    const items = newsItems.slice(0, limit).map(item => ({
       source: item.source,
       title: item.title,
       url: item.url,
-      publishedAt: item.publishedAt,
-      sentimentScore: item.sentimentScore,
-      impact: item.impact,
-      hasUrgency: item.hasUrgency,
-      detectedAssets: item.detectedAssets.map(a => ({ symbol: a.symbol, name: a.name })),
-      matchedKeywords: item.matchedKeywords.map(k => ({ term: k.term, score: k.score }))
+      publishedAt: item.published_at || item.ingested_at,
+      ingestedAt: item.ingested_at,
+      sentimentScore: item.sentiment_score,
+      freshnessScore: item.freshness_score,
+      credibilityScore: item.credibility_score,
+      urgencyScore: item.urgency_score,
+      impact: item.sentiment_score > 0.3 ? 'bullish' : item.sentiment_score < -0.3 ? 'bearish' : 'neutral',
+      hasUrgency: (item.urgency_score || 0) > 0.25,
+      detectedAssets: (item.assets || []).map(sym => ({ symbol: sym, name: sym.replace('USDT', '') })),
+      matchedKeywords: item.matched_keywords || []
     }));
 
     // Aggregate sentiment by asset
     const byAsset = {};
-    for (const item of scored.items) {
-      for (const asset of item.detectedAssets) {
-        if (!byAsset[asset.symbol]) {
-          byAsset[asset.symbol] = { symbol: asset.symbol, name: asset.name, count: 0, avgScore: 0, scores: [], items: [] };
+    for (const item of newsItems) {
+      for (const sym of (item.assets || [])) {
+        if (!byAsset[sym]) {
+          byAsset[sym] = { symbol: sym, name: sym.replace('USDT', ''), count: 0, avgScore: 0, scores: [], items: [] };
         }
-        byAsset[asset.symbol].count++;
-        byAsset[asset.symbol].scores.push(item.sentimentScore);
-        byAsset[asset.symbol].items.push(item.title);
+        byAsset[sym].count++;
+        byAsset[sym].scores.push(item.sentiment_score || 0);
+        byAsset[sym].items.push(item.title);
       }
     }
     for (const sym of Object.keys(byAsset)) {
@@ -52,10 +56,21 @@ export default async function handler(req, res) {
       a.items = a.items.slice(0, 3);
     }
 
+    // Compute overall sentiment from fresh news (last 3 hours weighted more)
+    const now = Date.now();
+    let weightedSum = 0, weightTotal = 0;
+    for (const item of newsItems) {
+      const ageHours = (now - new Date(item.ingested_at).getTime()) / 3600000;
+      const w = Math.max(0.1, 1 - ageHours / 12); // decay over 12h
+      weightedSum += (item.sentiment_score || 0) * w;
+      weightTotal += w;
+    }
+    const overallScore = weightTotal > 0 ? weightedSum / weightTotal : 0;
+
     return res.status(200).json({
       ok: true,
-      overallScore: scored.overallScore,
-      itemCount: scored.itemCount,
+      overallScore,
+      itemCount: newsItems.length,
       items,
       byAsset: Object.values(byAsset).sort((a, b) => b.count - a.count)
     });

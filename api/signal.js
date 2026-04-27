@@ -9,6 +9,7 @@ import { fetchOHLCV } from '../lib/exchange.js';
 import { runAllStrategies } from '../lib/signal-engine.js';
 import { validateSignal, checkRiskGates, logAudit } from '../lib/risk.js';
 import { sendTelegram, formatSignalMessage, signalKeyboard } from '../lib/telegram.js';
+import { extractPattern } from '../lib/pattern-learner.js';
 
 const DEFAULT_PAIRS = ['BTC/USDT','ETH/USDT','SOL/USDT','BNB/USDT','XRP/USDT'];
 const TIMEFRAMES = ['15m','1h','4h'];
@@ -91,6 +92,13 @@ export default async function handler(req, res) {
             if (saveErr) {
               results.errors.push({ pair, tf, strategy: raw.strategy, errors: [saveErr.message] });
               continue;
+            }
+
+            // Extract pattern for learning
+            try {
+              await extractPattern(saved);
+            } catch (patErr) {
+              console.warn('[signal] pattern extraction failed:', patErr.message);
             }
 
             // Broadcast

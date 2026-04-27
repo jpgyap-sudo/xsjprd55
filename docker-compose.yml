@@ -1,0 +1,52 @@
+# ============================================================
+# Trading Signal Bot — Docker Compose for VPS
+# Includes: app container + optional nginx reverse proxy
+# ============================================================
+
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trading-signal-bot
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DEPLOYMENT_TARGET=vps
+    volumes:
+      # Persist logs outside container
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/debug').then(r=>{if(!r.ok)throw new Error('unhealthy');process.exit(0)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - botnet
+
+  # Optional: nginx reverse proxy with SSL (uncomment when certs ready)
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: bot-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - app
+  #   networks:
+  #     - botnet
+
+networks:
+  botnet:
+    driver: bridge
