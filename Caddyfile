@@ -1,9 +1,8 @@
 # ============================================================
-# Caddy Reverse Proxy — Automatic HTTPS for DigitalOcean VPS
-# Replace your-domain.com with your actual domain.
+# Caddy Reverse Proxy — Automatic HTTPS for bot.abcx124.xyz
 # ============================================================
 
-your-domain.com {
+bot.abcx124.xyz {
     reverse_proxy app:3000
 
     # Enable gzip compression
