@@ -1,0 +1,104 @@
+DEPLOY INSTRUCTIONS - DigitalOcean Web Console
+Your VPS IP: 165.22.110.111
+
+STEP 1: UPDATE SERVER
+Copy this exact line:
+apt-get update && apt-get upgrade -y
+
+STEP 2: INSTALL NODE.JS
+Copy these two lines one at a time:
+
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+
+apt-get install -y nodejs
+
+Verify it worked:
+node -v
+
+STEP 3: CLONE YOUR BOT
+git clone https://github.com/jpgyap-sudo/xsjprd55.git /opt/trading-bot
+
+STEP 4: ENTER FOLDER
+cd /opt/trading-bot
+
+STEP 5: INSTALL DEPENDENCIES (wait 2-3 minutes)
+npm install
+
+STEP 6: INSTALL PLAYWRIGHT (wait 3-5 minutes)
+npx playwright install chromium
+
+STEP 7: CREATE .ENV FILE
+nano .env
+
+Then paste your REAL credentials. Here is the template (replace ALL your-... values):
+
+SUPABASE_URL=https://your-real-project.supabase.co
+SUPABASE_ANON_KEY=your-real-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-real-service-role-key
+TELEGRAM_BOT_TOKEN=your-real-bot-token
+TELEGRAM_WEBHOOK_SECRET=256a6166f3f332cfc3f668af97686a119938fec9e73d567232ccae1bc022c47c
+TELEGRAM_ADMIN_USER_ID=your-real-telegram-user-id
+TELEGRAM_GROUP_CHAT_ID=your-real-group-chat-id
+TRADING_MODE=paper
+DEFAULT_EXCHANGE=binance
+DEFAULT_SYMBOL=BTCUSDT
+DEFAULT_TIMEFRAME=15m
+MAX_POSITION_SIZE_USD=100
+DAILY_LOSS_LIMIT_USD=50
+SIGNAL_COOLDOWN_MINUTES=30
+SIGNAL_CONFIDENCE_THRESHOLD=0.70
+EMA_SHORT_PERIOD=9
+EMA_LONG_PERIOD=21
+RSI_PERIOD=14
+RSI_OVERBOUGHT=70
+RSI_OVERSOLD=30
+MARKET_SCAN_INTERVAL_MINUTES=5
+HEALTH_CHECK_INTERVAL_MINUTES=30
+CRON_SECRET=your-cron-secret-here
+LEARNING_LOOP_ENABLED=true
+SUGGESTION_AI_ENABLED=true
+SUGGESTION_MIN_PATTERNS=20
+ANTHROPIC_API_KEY=your-anthropic-api-key
+ENABLE_CONTINUOUS_BACKTESTER=true
+ENABLE_MOCK_TRADING=true
+ENABLE_LEARNING_LOOP=true
+ENABLE_NOTIFICATIONS=true
+ENABLE_ADVISOR=true
+ENABLE_WALLET_TRACKER=true
+WALLET_TRACKER_INTERVAL_MS=300000
+ENABLE_DIAGNOSTIC_WORKER=true
+ENABLE_SOCIAL_CRAWLER_WORKER=true
+
+To save in nano:
+Press Ctrl+X
+Press Y
+Press Enter
+
+STEP 8: HEALTH CHECK
+node scripts/pre-deploy-check.js
+
+If this passes, continue. If it fails, fix the issue.
+
+STEP 9: START BOT
+bash scripts/deploy-vps.sh
+
+STEP 10: CHECK STATUS
+pm2 status
+
+STEP 11: VIEW LOGS
+pm2 logs
+
+Press Ctrl+C to exit logs.
+
+STEP 12: SET TELEGRAM WEBHOOK
+Replace YOUR_BOT_TOKEN below with your real token, then copy-paste:
+
+curl -X POST "https://api.telegram.org/botYOUR_BOT_TOKEN/setWebhook" -H "Content-Type: application/json" -d '{"url":"http://165.22.110.111:3000/api/telegram","secret_token":"256a6166f3f332cfc3f668af97686a119938fec9e73d567232ccae1bc022c47c"}'
+
+STEP 13: OPEN FIREWALL
+ufw allow 3000/tcp
+ufw allow ssh
+ufw enable
+
+DONE! Your bot is running.
+Visit: http://165.22.110.111:3000/api/debug
