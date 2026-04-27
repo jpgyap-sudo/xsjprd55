@@ -1,1582 +1,847 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Baby Johnson Care</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,sans-serif;background:#f8f7f4;color:#1a1a18;min-height:100vh}
-.app{max-width:700px;margin:0 auto;padding:1rem}
-.header{background:#fff;border-radius:14px;padding:1rem 1.25rem;margin-bottom:1rem;display:flex;align-items:center;gap:12px;border:0.5px solid #e0ded6;box-shadow:0 1px 3px rgba(0,0,0,.04)}
-.avatar{width:48px;height:48px;border-radius:50%;background:#EEEDFE;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.header-info h1{font-size:18px;font-weight:600;color:#1a1a18}
-.header-info p{font-size:13px;color:#888780}
-.tg-badge{margin-left:auto;font-size:11px;background:#e1f5ee;color:#0f6e56;padding:4px 10px;border-radius:20px;font-weight:500}
-.nav{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap}
-.nav-btn{padding:7px 13px;border-radius:8px;border:0.5px solid #d3d1c7;background:#fff;font-size:13px;cursor:pointer;color:#5f5e5a;transition:all .15s}
-.nav-btn.active{background:#EEEDFE;color:#3C3489;border-color:#AFA9EC;font-weight:500}
-.nav-btn:hover:not(.active){background:#f1efe8}
-.section{display:none}.section.active{display:block}
-.card{background:#fff;border:0.5px solid #e0ded6;border-radius:14px;padding:1rem 1.25rem;margin-bottom:.75rem}
-.card-title{font-size:11px;font-weight:600;color:#888780;margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.06em}
-.input-row{display:flex;gap:8px;margin-bottom:.5rem;flex-wrap:wrap}
-input,select,textarea{font-family:system-ui,sans-serif;font-size:14px;color:#1a1a18;background:#f8f7f4;border:0.5px solid #d3d1c7;border-radius:8px;padding:8px 10px;outline:none}
-input:focus,select:focus,textarea:focus{border-color:#7F77DD;background:#fff}
-input[type=time]{width:108px}
-input[type=text],input[type=date]{flex:1;min-width:100px}
-select{min-width:110px}
-textarea{width:100%;min-height:64px;resize:vertical}
-.btn{padding:8px 16px;border-radius:8px;border:0.5px solid #d3d1c7;background:#fff;font-size:13px;cursor:pointer;color:#1a1a18;font-family:system-ui,sans-serif;transition:all .15s}
-.btn:hover{background:#f1efe8}
-.btn-primary{background:#EEEDFE;color:#3C3489;border-color:#AFA9EC;font-weight:500}
-.btn-primary:hover{background:#CECBF6}
-.btn-sm{padding:5px 10px;font-size:12px}
-.btn-danger{color:#A32D2D;border-color:#F09595}
-.btn-danger:hover{background:#FCEBEB}
-.log-item{display:flex;align-items:flex-start;gap:10px;padding:.65rem 0;border-bottom:0.5px solid #eee}
-.log-item:last-child{border-bottom:none}
-.log-time{font-size:12px;color:#aaa;min-width:48px;padding-top:1px}
-.log-name{font-size:14px;color:#1a1a18;font-weight:500}
-.log-sub{font-size:12px;color:#888}
-.log-actions{margin-left:auto}
-.badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
-.badge-food{background:#EAF3DE;color:#3B6D11}
-.badge-drink{background:#E6F1FB;color:#185FA5}
-.badge-snack{background:#FAEEDA;color:#854F0B}
-.badge-tg{background:#e1f5ee;color:#0f6e56;font-size:10px;padding:1px 6px}
-.vit-row{display:flex;align-items:center;gap:10px;padding:.6rem 0;border-bottom:0.5px solid #eee}
-.vit-row:last-child{border-bottom:none}
-.vit-name{font-size:14px;flex:1}
-.checkbox{width:20px;height:20px;cursor:pointer;accent-color:#7F77DD}
-.sched-item{display:flex;align-items:center;gap:10px;padding:.6rem 0;border-bottom:0.5px solid #eee}
-.sched-item:last-child{border-bottom:none}
-.sched-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-.sched-time{font-size:13px;color:#888;min-width:52px}
-.sched-label{font-size:14px;flex:1}
-.empty-state{text-align:center;padding:2rem;color:#bbb;font-size:13px}
-.summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:.75rem}
-.metric{background:#f8f7f4;border-radius:8px;padding:.75rem;text-align:center}
-.metric-val{font-size:22px;font-weight:600;color:#1a1a18}
-.metric-lbl{font-size:11px;color:#888;margin-top:2px}
-/* Calendar */
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:1rem}
-.cal-header{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
-.cal-day-name{text-align:center;font-size:11px;color:#888;font-weight:500;padding:4px 0}
-.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:13px;cursor:pointer;border:0.5px solid transparent;transition:all .15s;position:relative;flex-direction:column;gap:2px}
-.cal-day:hover{background:#f1efe8}
-.cal-day.has-data{background:#f1efe8}
-.cal-day.selected{background:#EEEDFE;border-color:#AFA9EC;color:#3C3489;font-weight:500}
-.cal-day.today{border-color:#7F77DD}
-.cal-day.other-month{color:#ccc}
-.cal-dots{display:flex;gap:2px;justify-content:center}
-.cal-dot{width:4px;height:4px;border-radius:50%}
-.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
-.cal-nav h3{font-size:15px;font-weight:500}
-.history-day{font-size:14px;font-weight:500;color:#534AB7;margin-bottom:.5rem}
-/* Reminders */
-.reminder-item{display:flex;align-items:center;gap:10px;padding:.6rem 0;border-bottom:0.5px solid #eee}
-.reminder-item:last-child{border-bottom:none}
-.reminder-time{font-size:13px;color:#534AB7;font-weight:500;min-width:52px}
-.reminder-msg{font-size:14px;flex:1}
-.reminder-active{width:36px;height:20px;cursor:pointer;accent-color:#7F77DD}
-/* Meal Plan */
-.week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem}
-.week-nav h3{font-size:15px;font-weight:500}
-.meal-day-card{background:#f8f7f4;border-radius:10px;padding:.75rem 1rem;margin-bottom:.5rem}
-.meal-day-title{font-size:13px;font-weight:600;color:#534AB7;margin-bottom:.5rem}
-.meal-row{display:flex;gap:8px;margin-bottom:.35rem;align-items:flex-start}
-.meal-label{font-size:11px;color:#888;min-width:90px;font-weight:500;padding-top:2px}
-.meal-text{font-size:13px;color:#1a1a18;flex:1;line-height:1.4}
-.meal-edit-btn{font-size:11px;padding:2px 8px;color:#888}
-.grocery-section{margin-bottom:.75rem}
-.grocery-title{font-size:12px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.35rem}
-.grocery-item{font-size:14px;color:#1a1a18;padding:4px 0;border-bottom:0.5px solid #f0ede6;display:flex;align-items:center;gap:8px}
-.grocery-item:last-child{border-bottom:none}
-.grocery-check{accent-color:#7F77DD}
-.ai-box{background:#f8f7f4;border-radius:10px;padding:1rem;margin-bottom:.75rem}
-.ai-response{font-size:14px;color:#1a1a18;line-height:1.6;white-space:pre-wrap}
-.gen-btn{width:100%;padding:10px;font-size:14px}
-.rec-item{padding:.75rem 0;border-bottom:0.5px solid #eee}
-.rec-item:last-child{border-bottom:none}
-.rec-item h3{font-size:14px;font-weight:500;margin-bottom:3px}
-.rec-item p{font-size:13px;color:#666;line-height:1.5}
-.rec-badge{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;margin-right:4px;margin-bottom:4px;font-weight:500}
-.tabs-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.loading{opacity:.5;pointer-events:none}
-/* Floating AI chat */
-.float-btn{position:fixed;bottom:22px;right:22px;width:52px;height:52px;border-radius:50%;background:#7F77DD;color:white;border:none;font-size:22px;cursor:pointer;box-shadow:0 4px 16px rgba(127,119,221,.45);z-index:200;display:flex;align-items:center;justify-content:center;transition:transform .15s}
-.float-btn:hover{transform:scale(1.08)}
-.float-panel{display:none;position:fixed;bottom:84px;right:22px;width:320px;max-width:calc(100vw - 44px);background:#fff;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.16);z-index:200;overflow:hidden;border:0.5px solid #e0ded6;flex-direction:column}
-.float-panel.open{display:flex}
-.chat-msg-user{text-align:right}
-.chat-msg-user span{background:#EEEDFE;color:#3C3489;padding:6px 12px;border-radius:10px 10px 2px 10px;display:inline-block;max-width:85%;font-size:13px;line-height:1.4}
-.chat-msg-bot span{background:#f1efe8;padding:6px 12px;border-radius:10px 10px 10px 2px;display:inline-block;max-width:85%;font-size:13px;line-height:1.4}
-.chat-msg-error span{background:#FCEBEB!important;color:#A32D2D!important}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>xsjprd55 — Crypto Trading Signal Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --bg2: #121620;
+      --bg3: #1a1f2e;
+      --fg: #e0e6ed;
+      --fg2: #8b95a5;
+      --accent: #22c55e;
+      --accent2: #eab308;
+      --accent3: #ef4444;
+      --border: #1e2538;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; }
+
+    /* Header */
+    header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+    header h1 { font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .badge { padding: 4px 12px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+    .badge.paper { background: rgba(234,179,8,0.15); color: var(--accent2); border: 1px solid rgba(234,179,8,0.3); }
+    .badge.live { background: rgba(34,197,94,0.15); color: var(--accent); border: 1px solid rgba(34,197,94,0.3); }
+
+    /* Layout */
+    .container { max-width: 1440px; margin: 0 auto; padding: 20px; }
+    .grid { display: grid; gap: 20px; }
+    .grid-2 { grid-template-columns: 2fr 1fr; }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    @media (max-width: 1024px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 0.9rem; }
+    .card-body { padding: 18px; }
+
+    /* Mini stats */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .stat-item { background: var(--bg3); padding: 14px; border-radius: 10px; }
+    .stat-label { font-size: 0.75rem; color: var(--fg2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .stat-value { font-size: 1.3rem; font-weight: 700; }
+    .stat-change { font-size: 0.8rem; margin-top: 4px; }
+    .stat-change.up { color: var(--accent); }
+    .stat-change.down { color: var(--accent3); }
+
+    /* Signals table */
+    .signal-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .signal-table th { text-align: left; padding: 10px 12px; color: var(--fg2); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid var(--border); }
+    .signal-table td { padding: 12px; border-bottom: 1px solid rgba(30,37,56,0.5); }
+    .signal-table tr:hover { background: rgba(255,255,255,0.02); }
+    .side-badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 0.75rem; }
+    .side-long { background: rgba(34,197,94,0.15); color: var(--accent); }
+    .side-short { background: rgba(239,68,68,0.15); color: var(--accent3); }
+    .side-close { background: rgba(139,149,165,0.15); color: var(--fg2); }
+    .conf-bar { height: 6px; border-radius: 3px; background: var(--bg3); overflow: hidden; width: 60px; }
+    .conf-bar-inner { height: 100%; border-radius: 3px; }
+
+    /* AI Chat */
+    .chat-widget { position: fixed; bottom: 24px; right: 24px; width: 400px; max-height: 600px; background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; display: flex; flex-direction: column; z-index: 200; box-shadow: 0 20px 60px rgba(0,0,0,0.5); transition: transform 0.2s, opacity 0.2s; }
+    .chat-widget.hidden { transform: translateY(20px); opacity: 0; pointer-events: none; }
+    .chat-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(59,130,246,0.1)); border-radius: 16px 16px 0 0; }
+    .chat-title { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+    .chat-close { cursor: pointer; padding: 4px; opacity: 0.6; transition: opacity 0.2s; }
+    .chat-close:hover { opacity: 1; }
+    .chat-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 300px; max-height: 420px; }
+    .msg { max-width: 92%; padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; line-height: 1.5; word-break: break-word; }
+    .msg.user { align-self: flex-end; background: #2563eb; color: white; border-bottom-right-radius: 4px; }
+    .msg.ai { align-self: flex-start; background: var(--bg3); border-bottom-left-radius: 4px; }
+    .msg.ai pre { background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; overflow-x: auto; margin-top: 8px; font-size: 0.8rem; }
+    .msg.ai code { font-family: 'Fira Code', monospace; font-size: 0.8rem; }
+    .msg.ai p { margin-bottom: 8px; }
+    .msg.ai p:last-child { margin-bottom: 0; }
+    .chat-input-area { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; }
+    .chat-input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--fg); font-size: 0.9rem; outline: none; resize: none; font-family: inherit; }
+    .chat-input:focus { border-color: #2563eb; }
+    .chat-send { background: #2563eb; color: white; border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: background 0.2s; }
+    .chat-send:hover { background: #1d4ed8; }
+    .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+    .chat-toggle { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; border: none; font-size: 1.5rem; cursor: pointer; z-index: 200; box-shadow: 0 8px 30px rgba(37,99,235,0.4); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+    .chat-toggle:hover { transform: scale(1.05); }
+    .chat-toggle.hidden { display: none; }
+    .typing { display: flex; gap: 4px; align-items: center; padding: 8px 0; }
+    .typing span { width: 8px; height: 8px; background: var(--fg2); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+    .typing span:nth-child(1) { animation-delay: -0.32s; }
+    .typing span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce { 0%,80%,100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+    /* Suggestions */
+    .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .suggestion-chip { background: rgba(37,99,235,0.15); border: 1px solid rgba(37,99,235,0.3); color: #60a5fa; padding: 6px 12px; border-radius: 999px; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; }
+    .suggestion-chip:hover { background: rgba(37,99,235,0.25); }
+
+    /* Footer */
+    footer { text-align: center; padding: 30px; color: var(--fg2); font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 30px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2e3650; }
+  </style>
 </head>
 <body>
-<div class="app">
-  <div class="header">
-    <div class="avatar">👶</div>
-    <div class="header-info">
-      <h1>Baby Johnson</h1>
-      <p>2 years old · <span id="today-date"></span></p>
+
+<header>
+  <h1>📈 xsjprd55 <span style="color:var(--fg2);font-size:0.85rem;font-weight:400;">Crypto Trading Signal Dashboard</span></h1>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span class="badge paper" id="mode-badge">Paper Mode</span>
+    <div class="status-dot"></div>
+    <span style="font-size:0.8rem;color:var(--fg2);">Bot Active</span>
+  </div>
+</header>
+
+<div class="container">
+  <!-- Ticker Tape -->
+  <div style="margin-bottom:20px;border-radius:12px;overflow:hidden;">
+    <div class="tradingview-widget-container">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+      {
+        "symbols": [
+          {"proName": "BINANCE:BTCUSDT","title": "BTC"},
+          {"proName": "BINANCE:ETHUSDT","title": "ETH"},
+          {"proName": "BINANCE:SOLUSDT","title": "SOL"},
+          {"proName": "BINANCE:BNBUSDT","title": "BNB"},
+          {"proName": "BINANCE:XRPUSDT","title": "XRP"},
+          {"proName": "BINANCE:DOGEUSDT","title": "DOGE"},
+          {"proName": "BINANCE:ADAUSDT","title": "ADA"},
+          {"proName": "BINANCE:AVAXUSDT","title": "AVAX"}
+        ],
+        "showSymbolLogo": true,
+        "colorTheme": "dark",
+        "isTransparent": false,
+        "displayMode": "adaptive",
+        "locale": "en"
+      }
+      </script>
     </div>
-    <div class="tg-badge">🤖 Telegram connected</div>
   </div>
 
-  <div class="nav tabs-scroll">
-    <button class="nav-btn active" onclick="switchTab('food',this)">Food Log</button>
-    <button class="nav-btn" onclick="switchTab('vitamins',this)">Vitamins</button>
-    <button class="nav-btn" onclick="switchTab('schedule',this)">Schedule</button>
-    <button class="nav-btn" onclick="switchTab('calendar',this)">Calendar</button>
-    <button class="nav-btn" onclick="switchTab('reminders',this)">Reminders</button>
-    <button class="nav-btn" onclick="switchTab('mealplan',this)">Meal Plan</button>
-    <button class="nav-btn" onclick="switchTab('ai',this)">🤖 AI</button>
-    <button class="nav-btn" onclick="switchTab('routine',this)">Routine</button>
-    <button class="nav-btn" onclick="switchTab('activity',this)">Activity Log</button>
-    <button class="nav-btn" onclick="switchTab('prefs',this)">💛 Likes</button>
-    <button class="nav-btn" onclick="switchTab('foodguide',this)">Food Guide</button>
-    <button class="nav-btn" onclick="switchTab('recipes',this)">Recipes</button>
-    <button class="nav-btn" onclick="switchTab('insights',this)">💡 Insights</button>
-    <button class="nav-btn" onclick="switchTab('crypto',this)">🪙 Crypto</button>
-    <button class="nav-btn" onclick="switchTab('backtest',this)">📊 Backtest</button>
+  <!-- Top Stats -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">Market Snapshot</div>
+    <div class="card-body">
+      <div class="stat-grid" id="stats-grid">
+        <div class="stat-item"><div class="stat-label">BTC Price</div><div class="stat-value" id="btc-price">—</div><div class="stat-change" id="btc-change">—</div></div>
+        <div class="stat-item"><div class="stat-label">ETH Price</div><div class="stat-value" id="eth-price">—</div><div class="stat-change" id="eth-change">—</div></div>
+        <div class="stat-item"><div class="stat-label">SOL Price</div><div class="stat-value" id="sol-price">—</div><div class="stat-change" id="sol-change">—</div></div>
+        <div class="stat-item"><div class="stat-label">Global Market Cap</div><div class="stat-value" id="global-mcap">—</div></div>
+        <div class="stat-item"><div class="stat-label">24h Volume</div><div class="stat-value" id="global-vol">—</div></div>
+        <div class="stat-item"><div class="stat-label">BTC Dominance</div><div class="stat-value" id="btc-dom">—</div></div>
+      </div>
+    </div>
   </div>
 
-  <!-- FOOD LOG -->
-  <div id="tab-food" class="section active">
+  <!-- Catalyst Watch Panel -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+      <span>🔴 Catalyst Watch</span>
+      <span class="badge live" id="catalyst-updated" style="font-size:0.6rem;padding:2px 8px;">Live</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div id="catalyst-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading catalysts...</div>
+      <div id="catalyst-content" style="display:none;">
+        <!-- High Impact Catalysts -->
+        <div id="catalyst-high" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+        <!-- Market Readings -->
+        <div id="catalyst-readings" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+        <!-- Key Levels -->
+        <div id="catalyst-levels" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+        <!-- Bottom Line -->
+        <div id="catalyst-bottom" style="padding:14px 18px;background:rgba(234,179,8,0.05);"></div>
+      </div>
+      <div id="catalyst-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load catalysts</div>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <!-- Main Chart -->
     <div class="card">
-      <div class="card-title">Add meal or drink</div>
-      <div class="input-row">
-        <input type="time" id="food-time">
-        <input type="text" id="food-name" placeholder="Food or drink name">
-        <select id="food-type">
-          <option value="food">Meal</option>
-          <option value="drink">Drink</option>
-          <option value="snack">Snack</option>
+      <div class="card-header">
+        <span>📊 BTC/USDT Technical Chart</span>
+        <select id="chart-symbol" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;cursor:pointer;">
+          <option value="BINANCE:BTCUSDT">BTC/USDT</option>
+          <option value="BINANCE:ETHUSDT">ETH/USDT</option>
+          <option value="BINANCE:SOLUSDT">SOL/USDT</option>
+          <option value="BINANCE:BNBUSDT">BNB/USDT</option>
+          <option value="BINANCE:XRPUSDT">XRP/USDT</option>
         </select>
       </div>
-      <div class="input-row">
-        <input type="text" id="food-portion" placeholder="Portion (e.g. half bowl)" style="flex:1">
-        <input type="text" id="food-notes" placeholder="Notes (optional)" style="flex:2">
+      <div class="tradingview-widget-container" id="tv-chart" style="height:460px;">
+        <div class="tradingview-widget-container__widget" style="height:460px;"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+        {
+          "autosize": true,
+          "symbol": "BINANCE:BTCUSDT",
+          "interval": "15",
+          "timezone": "Etc/UTC",
+          "theme": "dark",
+          "style": "1",
+          "locale": "en",
+          "enable_publishing": false,
+          "backgroundColor": "rgba(18, 22, 32, 1)",
+          "gridColor": "rgba(30, 37, 56, 0.5)",
+          "allow_symbol_change": false,
+          "calendar": false,
+          "support_host": "https://www.tradingview.com"
+        }
+        </script>
       </div>
-      <button class="btn btn-primary" onclick="addFood()">Add to log</button>
     </div>
-    <div class="card">
-      <div class="card-title" id="food-date-label"></div>
-      <div class="summary-row">
-        <div class="metric"><div class="metric-val" id="meal-count">0</div><div class="metric-lbl">Meals</div></div>
-        <div class="metric"><div class="metric-val" id="drink-count">0</div><div class="metric-lbl">Drinks</div></div>
-        <div class="metric"><div class="metric-val" id="snack-count">0</div><div class="metric-lbl">Snacks</div></div>
-      </div>
-      <div id="food-log"><div class="empty-state">No entries yet today</div></div>
-    </div>
-  </div>
 
-  <!-- VITAMINS -->
-  <div id="tab-vitamins" class="section">
-    <div class="card">
-      <div class="card-title">Daily vitamins checklist</div>
-      <div id="vit-list"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Add vitamin</div>
-      <div class="input-row">
-        <input type="text" id="vit-input" placeholder="Vitamin name (e.g. Vitamin D)" style="flex:1">
-        <button class="btn btn-primary" onclick="addVitamin()">Add</button>
+    <!-- Side Panel: Signals + Analysis -->
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <!-- Recent Signals -->
+      <div class="card">
+        <div class="card-header">
+          <span>🚨 Recent Signals</span>
+          <select id="signal-filter" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:0.75rem;">
+            <option value="all">All</option>
+            <option value="News_Event">News Only</option>
+            <option value="EMA_Cross">Technical</option>
+          </select>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <table class="signal-table" id="signals-table">
+            <thead>
+              <tr><th>Pair</th><th>Side</th><th>Conf</th><th>Time</th></tr>
+            </thead>
+            <tbody id="signals-tbody">
+              <tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:20px;">Loading signals...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <!-- SCHEDULE -->
-  <div id="tab-schedule" class="section">
-    <div class="card">
-      <div class="card-title">Add schedule item</div>
-      <div class="input-row">
-        <input type="time" id="sched-time">
-        <input type="text" id="sched-activity" placeholder="Activity (e.g. Nap time)" style="flex:1">
-        <select id="sched-color">
-          <option value="#7F77DD">Purple</option>
-          <option value="#1D9E75">Green</option>
-          <option value="#378ADD">Blue</option>
-          <option value="#BA7517">Amber</option>
-          <option value="#D85A30">Coral</option>
-        </select>
+      <!-- Market Overview Heatmap -->
+      <div class="card">
+        <div class="card-header">🌡️ Market Heatmap</div>
+        <div class="tradingview-widget-container" style="height:200px;">
+          <div class="tradingview-widget-container__widget" style="height:200px;"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-crypto-coins-heatmap.js" async>
+          {
+            "dataSource": "Crypto",
+            "blockColor": "change",
+            "blockSize": "market_cap_basic",
+            "locale": "en",
+            "colorTheme": "dark",
+            "width": "100%",
+            "height": "100%"
+          }
+          </script>
+        </div>
       </div>
-      <button class="btn btn-primary" onclick="addSched()">Add to schedule</button>
-    </div>
-    <div class="card">
-      <div class="card-title">Today's schedule</div>
-      <div id="sched-list"><div class="empty-state">No schedule items yet</div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">AI assistant — schedule &amp; reminders</div>
-      <div id="sched-chat-msgs" style="min-height:48px;max-height:200px;overflow-y:auto;margin-bottom:.5rem;font-size:13px;display:flex;flex-direction:column;gap:6px"></div>
-      <div class="input-row">
-        <input type="text" id="sched-chat-input" placeholder='e.g. "Add bath time at 7pm" or "Remind me at 9am to give vitamin D"' style="flex:1" onkeydown="if(event.key==='Enter')sendChat('sched-chat-input','sched-chat-msgs')">
-        <button class="btn btn-primary" onclick="sendChat('sched-chat-input','sched-chat-msgs')">Ask</button>
-      </div>
-    </div>
-  </div>
 
-  <!-- CALENDAR -->
-  <div id="tab-calendar" class="section">
-    <div class="card">
-      <div class="cal-nav">
-        <button class="btn btn-sm" onclick="changeMonth(-1)">&#8592;</button>
-        <h3 id="cal-month-label"></h3>
-        <button class="btn btn-sm" onclick="changeMonth(1)">&#8594;</button>
+      <!-- News Feed -->
+      <div class="card">
+        <div class="card-header">
+          <span>📰 News Feed</span>
+          <span class="badge live" id="news-updated" style="font-size:0.6rem;padding:2px 8px;">Live</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div id="news-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading news...</div>
+          <div id="news-content" style="display:none;">
+            <div id="news-overall" style="padding:12px 18px;border-bottom:1px solid var(--border);font-size:0.85rem;font-weight:600;"></div>
+            <div id="news-list" style="max-height:300px;overflow-y:auto;"></div>
+          </div>
+          <div id="news-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load news</div>
+        </div>
       </div>
-      <div class="cal-header">
-        <div class="cal-day-name">Sun</div><div class="cal-day-name">Mon</div>
-        <div class="cal-day-name">Tue</div><div class="cal-day-name">Wed</div>
-        <div class="cal-day-name">Thu</div><div class="cal-day-name">Fri</div>
-        <div class="cal-day-name">Sat</div>
-      </div>
-      <div class="cal-grid" id="cal-grid"></div>
-    </div>
-    <div class="card" id="history-card" style="display:none">
-      <div class="card-title">History for <span id="history-date-label"></span></div>
-      <div id="history-content"></div>
-    </div>
-  </div>
 
-  <!-- REMINDERS -->
-  <div id="tab-reminders" class="section">
-    <div class="card">
-      <div class="card-title">Add reminder</div>
-      <div class="input-row">
-        <input type="time" id="rem-time">
-        <input type="text" id="rem-msg" placeholder="Reminder message" style="flex:1">
-      </div>
-      <button class="btn btn-primary" onclick="addReminder()">Add reminder</button>
-    </div>
-    <div class="card">
-      <div class="card-title">Active reminders — sent via Telegram</div>
-      <div id="reminder-list"><div class="empty-state">No reminders yet</div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Activity-linked reminders</div>
-      <div style="font-size:12px;color:#aaa;margin-bottom:.75rem">These fire automatically when a specific activity happens.</div>
-      <div class="input-row">
-        <input type="text" id="ctx-msg" placeholder="Reminder message (e.g. Eat with Johnson!)" style="flex:2">
-        <select id="ctx-trigger">
-          <option value="food">Any meal / eating</option>
-          <option value="Breakfast">Breakfast</option>
-          <option value="Lunch">Lunch</option>
-          <option value="Dinner">Dinner</option>
-          <option value="Nap">Nap</option>
-          <option value="Bath">Bath</option>
-          <option value="Shower">Shower</option>
-          <option value="School">School</option>
-          <option value="Sleep">Sleep</option>
-          <option value="Playground">Playground</option>
-        </select>
-      </div>
-      <button class="btn btn-primary" onclick="addContextReminder()" style="margin-bottom:.75rem">Add activity reminder</button>
-      <div id="ctx-reminder-list"><div class="empty-state">No activity reminders yet</div></div>
-    </div>
-  </div>
-
-  <!-- MEAL PLAN -->
-  <div id="tab-mealplan" class="section">
-    <div class="card">
-      <div class="week-nav">
-        <button class="btn btn-sm" onclick="changeWeek(-1)">&#8592;</button>
-        <h3 id="week-label">This week</h3>
-        <button class="btn btn-sm" onclick="changeWeek(1)">&#8594;</button>
-      </div>
-      <button class="btn btn-primary gen-btn" onclick="generateMealPlan()" id="gen-btn">Generate this week's meal plan</button>
-    </div>
-    <div id="mealplan-content"></div>
-    <div id="grocery-content"></div>
-  </div>
-
-  <!-- AI ASSISTANT TAB -->
-  <div id="tab-ai" class="section">
-    <div class="card" style="display:flex;flex-direction:column">
-      <div class="card-title">AI Assistant — Baby Johnson</div>
-      <div style="font-size:12px;color:#aaa;margin-bottom:.75rem">Log food, add schedules, set reminders, ask anything about baby care.</div>
-      <div id="ai-msgs" style="min-height:320px;max-height:480px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:.75rem"></div>
-      <div class="input-row" style="margin-bottom:0">
-        <input type="text" id="ai-input" placeholder='e.g. "Log rice porridge for breakfast" or "Add bath at 7pm to routine"' style="flex:1" onkeydown="if(event.key==='Enter')sendChat('ai-input','ai-msgs')">
-        <button class="btn btn-primary" onclick="sendChat('ai-input','ai-msgs')">Send</button>
+      <!-- Liquidation Intelligence -->
+      <div class="card">
+        <div class="card-header">
+          <span>💥 Liquidation Intel</span>
+          <span class="badge live" id="liq-updated" style="font-size:0.6rem;padding:2px 8px;">Live</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div id="liq-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading liquidation data...</div>
+          <div id="liq-content" style="display:none;">
+            <div id="liq-best-short" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+            <div id="liq-best-long" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+            <div id="liq-alerts" style="padding:14px 18px;"></div>
+          </div>
+          <div id="liq-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load. Retrying...</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- ROUTINE / MASTER SCHEDULE -->
-  <div id="tab-routine" class="section">
-    <div class="card">
-      <div class="card-title">Add to daily routine</div>
-      <div class="input-row">
-        <input type="time" id="routine-time">
-        <input type="text" id="routine-activity" placeholder="Activity (e.g. Bath time)" style="flex:1">
-        <select id="routine-color">
-          <option value="#7F77DD">Purple</option>
-          <option value="#1D9E75">Green</option>
-          <option value="#378ADD">Blue</option>
-          <option value="#BA7517">Amber</option>
-          <option value="#D85A30">Coral</option>
-        </select>
+  <!-- Strategy Labs -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+      <span>🧪 Strategy Labs</span>
+      <span class="badge paper" style="font-size:0.6rem;padding:2px 8px;">ML + Mock</span>
+    </div>
+    <div class="card-body">
+      <div id="sl-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading strategy lab data...</div>
+      <div id="sl-content" style="display:none;">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+          <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
+            <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Mock Balance</div>
+            <div id="sl-balance" style="font-size:1.4rem;font-weight:700;color:var(--accent1);margin-top:4px;">—</div>
+          </div>
+          <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
+            <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Peak Balance</div>
+            <div id="sl-peak" style="font-size:1.4rem;font-weight:700;color:var(--accent1);margin-top:4px;">—</div>
+          </div>
+          <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
+            <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Open Trades</div>
+            <div id="sl-open" style="font-size:1.4rem;font-weight:700;color:var(--accent1);margin-top:4px;">—</div>
+          </div>
+          <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
+            <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">ML Model</div>
+            <div id="sl-model" style="font-size:0.9rem;font-weight:600;color:var(--fg);margin-top:4px;">—</div>
+          </div>
+        </div>
+        <div style="margin-bottom:12px;font-weight:600;font-size:0.85rem;">📊 Strategy Performance</div>
+        <div id="sl-stats" style="overflow-x:auto;">
+          <table class="signal-table" style="min-width:500px;">
+            <thead>
+              <tr><th>Strategy</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Total PnL</th><th>Avg Return</th></tr>
+            </thead>
+            <tbody id="sl-stats-body"></tbody>
+          </table>
+        </div>
+        <div style="margin-top:16px;margin-bottom:12px;font-weight:600;font-size:0.85rem;">🏆 Promoted Strategies</div>
+        <div id="sl-promoted"></div>
       </div>
-      <button class="btn btn-primary" onclick="addRoutine()">Add to master schedule</button>
-    </div>
-    <div class="card">
-      <div class="card-title">Master schedule — repeats every day</div>
-      <div id="routine-list"><div class="empty-state">No routine items yet</div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Today's completion status</div>
-      <div id="routine-today"><div class="empty-state">No items yet</div></div>
+      <div id="sl-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load strategy labs. Retrying...</div>
     </div>
   </div>
 
-  <!-- ACTIVITY LOG -->
-  <div id="tab-activity" class="section">
-    <div class="card">
-      <div class="card-title">Log an activity</div>
-      <div class="input-row">
-        <input type="time" id="act-time">
-        <input type="text" id="act-name" placeholder="Activity (e.g. Bath, Brushed teeth, Playground)" style="flex:2">
-      </div>
-      <div class="input-row">
-        <input type="text" id="act-notes" placeholder="Notes (optional)" style="flex:1">
-      </div>
-      <button class="btn btn-primary" onclick="addActivity()">Log activity</button>
-    </div>
-    <div class="card">
-      <div class="card-title">Browse by date</div>
-      <div class="input-row">
-        <input type="date" id="act-date" style="flex:1">
-        <button class="btn" onclick="loadActivities()">Load</button>
+  <!-- AI Chat Widget -->
+  <div class="chat-widget hidden" id="chat-widget">
+    <div class="chat-header">
+      <div class="chat-title">🤖 Crypto Strategist</div>
+      <div class="chat-close" id="chat-close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
       </div>
     </div>
-    <div class="card">
-      <div class="card-title" id="act-date-label">Today's activities</div>
-      <div id="act-log"><div class="empty-state">No activities logged yet</div></div>
+    <div class="chat-body" id="chat-body">
+      <div class="msg ai">
+        <strong>Crypto Trading Strategist</strong> at your service.<br><br>
+        I analyze market trends, token strength, liquidity pools, and social momentum. I can help with:
+        <ul style="margin:8px 0 0 18px;">
+          <li>Spot & swing trading opportunities</li>
+          <li>LP opportunities on Meteora</li>
+          <li>Bear-market accumulation picks</li>
+          <li>Organic meme coin research</li>
+          <li>Risk assessment & red flags</li>
+        </ul>
+        <div class="suggestions">
+          <span class="suggestion-chip" data-q="What is a good short today?">📉 Good short today?</span>
+          <span class="suggestion-chip" data-q="What is a good buy today?">📈 Good buy today?</span>
+          <span class="suggestion-chip" data-q="Which coin has the most crowded longs?">🎯 Most crowded longs?</span>
+          <span class="suggestion-chip" data-q="Analyze BTC trend and support levels">🔍 Analyze BTC</span>
+          <span class="suggestion-chip" data-q="Any undervalued altcoins for accumulation?">💎 Undervalued alts</span>
+        </div>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask me anything about crypto..."></textarea>
+      <button class="chat-send" id="chat-send">Send</button>
     </div>
   </div>
-
-  <!-- PREFERENCES -->
-  <div id="tab-prefs" class="section">
-    <div class="card">
-      <div class="card-title">Add manually</div>
-      <div class="input-row">
-        <input type="text" id="pref-item" placeholder="e.g. Chicken rice, Bitter melon, Playground" style="flex:2">
-        <select id="pref-type">
-          <option value="like">Likes 💛</option>
-          <option value="dislike">Dislikes 🚫</option>
-        </select>
-        <select id="pref-cat">
-          <option value="food">Food</option>
-          <option value="drink">Drink</option>
-          <option value="activity">Activity</option>
-          <option value="place">Place</option>
-          <option value="other">Other</option>
-        </select>
-      </div>
-      <button class="btn btn-primary" onclick="addPref()">Add preference</button>
-    </div>
-    <div class="card">
-      <div class="card-title">💛 Johnson loves</div>
-      <div id="pref-likes"><div class="empty-state">Nothing logged yet</div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">🚫 Johnson doesn't like</div>
-      <div id="pref-dislikes"><div class="empty-state">Nothing logged yet</div></div>
-    </div>
-  </div>
-
-  <!-- FOOD GUIDE -->
-  <div id="tab-foodguide" class="section">
-    <div class="card">
-      <div class="card-title">Recommended foods for 2-year-olds</div>
-      <div class="rec-item"><h3>Whole grains</h3><p>Brown rice, oatmeal, whole wheat bread, and pasta. Great source of energy and fiber for growing toddlers.</p><span class="rec-badge" style="background:#EAF3DE;color:#3B6D11">Energy</span><span class="rec-badge" style="background:#EAF3DE;color:#3B6D11">Fiber</span></div>
-      <div class="rec-item"><h3>Soft fruits</h3><p>Banana, mango, papaya, melon, and ripe avocado. Easy to chew, rich in vitamins, and naturally sweet.</p><span class="rec-badge" style="background:#EEEDFE;color:#534AB7">Vitamins</span><span class="rec-badge" style="background:#EEEDFE;color:#534AB7">Healthy fats</span></div>
-      <div class="rec-item"><h3>Vegetables</h3><p>Sweet potato, carrots, squash, broccoli (steamed soft), and spinach. High in iron, calcium, and key vitamins.</p><span class="rec-badge" style="background:#E6F1FB;color:#185FA5">Iron</span><span class="rec-badge" style="background:#E6F1FB;color:#185FA5">Calcium</span></div>
-      <div class="rec-item"><h3>Lean proteins</h3><p>Chicken, fish (boneless), eggs, and tofu. Essential for muscle growth and brain development.</p><span class="rec-badge" style="background:#FAEEDA;color:#854F0B">Protein</span><span class="rec-badge" style="background:#FAEEDA;color:#854F0B">Brain health</span></div>
-      <div class="rec-item"><h3>Dairy</h3><p>Full-fat milk (up to 2 cups/day), yogurt, and soft cheese. Important for bone strength and calcium.</p><span class="rec-badge" style="background:#E6F1FB;color:#185FA5">Calcium</span><span class="rec-badge" style="background:#E6F1FB;color:#185FA5">Bone health</span></div>
-      <div class="rec-item"><h3>Legumes</h3><p>Lentils, chickpeas, and mashed beans. Great plant-based protein and iron, especially important for toddlers.</p><span class="rec-badge" style="background:#FAEEDA;color:#854F0B">Protein</span><span class="rec-badge" style="background:#E6F1FB;color:#185FA5">Iron</span></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Foods to limit or avoid</div>
-      <div class="rec-item"><h3>Added sugar &amp; salt</h3><p>Avoid sugary drinks, sweets, and salty snacks. A toddler's kidneys and developing taste buds are very sensitive.</p></div>
-      <div class="rec-item"><h3>Choking hazards</h3><p>Whole grapes, large chunks of hard food, whole nuts, popcorn, and hard raw vegetables. Always cut food small.</p></div>
-    </div>
-  </div>
-
-  <!-- RECIPES -->
-  <div id="tab-recipes" class="section">
-    <div class="card">
-      <div class="card-title">Ask for a recipe</div>
-      <textarea id="recipe-prompt" placeholder="e.g. A healthy lunch using chicken and sweet potato, soft enough for a toddler"></textarea>
-      <div style="margin-top:8px"><button class="btn btn-primary" onclick="getRecipe()">Get recipe idea</button></div>
-    </div>
-    <div id="recipe-result"></div>
-    <div class="card" id="saved-recipes-card">
-      <div class="card-title">Saved recipe ideas</div>
-      <div id="saved-recipes-list"><div class="empty-state">No saved recipes yet</div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Quick recipe ideas</div>
-      <div class="rec-item"><h3>Sweet potato &amp; chicken mash</h3><p>Steam sweet potato and chicken breast until soft. Mash together with a small amount of butter. Easy to eat and very nutritious.</p></div>
-      <div class="rec-item"><h3>Oatmeal with banana</h3><p>Cook rolled oats with milk. Top with mashed ripe banana. Great breakfast full of fiber and energy.</p></div>
-      <div class="rec-item"><h3>Egg &amp; veggie scramble</h3><p>Whisk 1 egg and cook with finely chopped spinach and soft tomato in olive oil. Serve with soft whole wheat toast fingers.</p></div>
-      <div class="rec-item"><h3>Lentil soup</h3><p>Simmer red lentils with carrot, onion, and a pinch of turmeric until very soft. Blend smooth. High in iron and protein.</p></div>
-      <div class="rec-item"><h3>Yogurt &amp; fruit bowl</h3><p>Full-fat plain yogurt with mashed ripe mango or banana. No sugar needed — naturally sweet and packed with calcium.</p></div>
-    </div>
-  </div>
-
-  <!-- CRYPTO -->
-  <div id="tab-crypto" class="section">
-    <div class="card">
-      <div class="card-title">LunarCrush — Top Social Coins</div>
-      <div class="input-row" style="margin-bottom:.75rem">
-        <input type="text" id="lc-search" placeholder="Search symbol (e.g. BTC)" style="flex:1" onkeydown="if(event.key==='Enter')loadLunarCrushCoin()">
-        <button class="btn btn-primary" onclick="loadLunarCrushCoin()">Analyze</button>
-        <button class="btn" onclick="loadLunarCrushTop()">Refresh Top</button>
-      </div>
-      <div id="lc-top-table" style="overflow-x:auto">
-        <div class="empty-state">Loading top coins...</div>
-      </div>
-    </div>
-
-    <div class="card" id="lc-coin-card" style="display:none">
-      <div class="card-title" id="lc-coin-title">Coin Analysis</div>
-      <div class="summary-row" id="lc-coin-metrics"></div>
-      <div id="lc-coin-analysis" style="margin-bottom:.75rem"></div>
-      <div id="lc-coin-market" style="margin-bottom:.75rem"></div>
-      <div id="lc-coin-chart" style="height:180px;background:#f8f7f4;border-radius:10px;padding:.5rem"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Market Overview</div>
-      <div id="lc-market-overview"><div class="empty-state">Loading market data...</div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">AI Crypto Assistant</div>
-      <div style="font-size:12px;color:#aaa;margin-bottom:.75rem">Ask about any coin, market conditions, or social sentiment.</div>
-      <div id="lc-chat-msgs" style="min-height:120px;max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;margin-bottom:.75rem"></div>
-      <div class="input-row" style="margin-bottom:0">
-        <input type="text" id="lc-chat-input" placeholder='e.g. "Is BTC bullish on social?" or "Analyze ETH"' style="flex:1" onkeydown="if(event.key==='Enter')sendCryptoChat()">
-        <button class="btn btn-primary" onclick="sendCryptoChat()">Send</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- INSIGHTS -->
-  <div id="tab-insights" class="section">
-    <div class="card">
-      <div class="card-title">Johnson's learned profile</div>
-      <div style="font-size:12px;color:#aaa;margin-bottom:.75rem">Facts the bot has learned from weekly pattern analysis. Updates every Sunday.</div>
-      <div id="profile-list"><div class="empty-state">No profile data yet — runs automatically every Sunday.</div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">App improvement suggestions</div>
-      <div style="font-size:12px;color:#aaa;margin-bottom:.75rem">Bot recommendations based on actual care patterns. Mark as implemented once done.</div>
-      <div id="suggestions-list"><div class="empty-state">No suggestions yet.</div></div>
-    </div>
-  </div>
-
-  <!-- BACKTEST -->
-  <div id="tab-backtest" class="section">
-    <div class="card">
-      <div class="card-title">Strategy Backtest</div>
-      <div style="font-size:12px;color:#aaa;margin-bottom:.75rem">Run historical simulations with probability scoring, SL/TP, and leverage. Results save automatically.</div>
-      <div class="input-row" style="flex-wrap:wrap;gap:8px">
-        <select id="bt-strategy" style="min-width:120px">
-          <option value="ema_cross">EMA Cross (12/26)</option>
-          <option value="rsi_bounce">RSI Bounce (30/70)</option>
-        </select>
-        <input type="text" id="bt-symbol" placeholder="Symbol (e.g. BTC/USDT)" value="BTC/USDT" style="min-width:120px">
-        <select id="bt-timeframe" style="min-width:80px">
-          <option value="1h">1h</option>
-          <option value="15m">15m</option>
-          <option value="4h">4h</option>
-          <option value="1d">1d</option>
-        </select>
-        <input type="number" id="bt-days" placeholder="Days" value="30" min="1" max="365" style="min-width:60px">
-      </div>
-      <div class="input-row" style="flex-wrap:wrap;gap:8px;margin-top:8px">
-        <input type="number" id="bt-capital" placeholder="Capital ($)" value="1000" min="100" style="min-width:90px">
-        <input type="number" id="bt-leverage" placeholder="Leverage" value="1" min="1" max="20" style="min-width:70px">
-        <input type="number" id="bt-sl" placeholder="SL %" value="1.2" step="0.1" style="min-width:60px">
-        <input type="number" id="bt-tp" placeholder="TP %" value="2.5" step="0.1" style="min-width:60px">
-        <label style="font-size:12px;color:#666;display:flex;align-items:center;gap:4px;white-space:nowrap">
-          <input type="checkbox" id="bt-optimize"> Optimize
-        </label>
-      </div>
-      <button class="btn btn-primary" onclick="runBacktest()" id="bt-run-btn" style="margin-top:.75rem">Run Backtest</button>
-    </div>
-
-    <div class="card" id="bt-result-card" style="display:none">
-      <div class="card-title">Results</div>
-      <div class="summary-row" id="bt-metrics"></div>
-      <div id="bt-probability" style="margin-bottom:.75rem"></div>
-      <div id="bt-optimized" style="margin-bottom:.75rem"></div>
-      <div id="bt-equity-chart" style="height:160px;background:#f8f7f4;border-radius:10px;padding:.5rem;margin-bottom:.75rem"></div>
-      <div style="font-size:12px;color:#888;margin-bottom:.5rem">Recent trades</div>
-      <div id="bt-trades" style="overflow-x:auto"></div>
-    </div>
-
-    <div class="card" id="bt-mock-card">
-      <div class="card-title">Paper Account</div>
-      <div style="font-size:12px;color:#aaa;margin-bottom:.75rem">Live mock trades opened by the bot for high-probability signals.</div>
-      <div class="summary-row" id="bt-mock-metrics">
-        <div class="metric"><div class="metric-val" id="mock-balance">—</div><div class="metric-lbl">Balance</div></div>
-        <div class="metric"><div class="metric-val" id="mock-pnl">—</div><div class="metric-lbl">Realized PnL</div></div>
-        <div class="metric"><div class="metric-val" id="mock-open">—</div><div class="metric-lbl">Open Trades</div></div>
-      </div>
-      <div id="bt-mock-trades" style="overflow-x:auto;margin-top:.5rem"></div>
-    </div>
-
-    <div class="card" id="bt-suggestions-card">
-      <div class="card-title">App Improvement Suggestions</div>
-      <div style="font-size:12px;color:#aaa;margin-bottom:.75rem">Auto-generated recommendations based on backtest performance and data quality.</div>
-      <div id="bt-suggestions"></div>
-    </div>
-  </div>
+  <button class="chat-toggle" id="chat-toggle">💬</button>
 </div>
 
-<!-- Floating AI chat button -->
-<button class="float-btn" onclick="toggleFloat()" title="AI Assistant">🤖</button>
-<div class="float-panel" id="float-panel">
-  <div style="background:#7F77DD;color:white;padding:11px 14px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
-    <span style="font-weight:600;font-size:14px">🤖 AI Assistant</span>
-    <button onclick="toggleFloat()" style="background:none;border:none;color:white;cursor:pointer;font-size:20px;line-height:1;padding:0">✕</button>
-  </div>
-  <div id="float-msgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px;min-height:160px;max-height:280px"></div>
-  <div style="padding:10px 12px;border-top:0.5px solid #eee;display:flex;gap:8px;flex-shrink:0">
-    <input type="text" id="float-input" placeholder="Log food, add schedule, ask anything..." style="flex:1;font-size:13px" onkeydown="if(event.key==='Enter')sendChat('float-input','float-msgs')">
-    <button class="btn btn-primary btn-sm" onclick="sendChat('float-input','float-msgs')">Send</button>
-  </div>
-</div>
+<footer>
+  xsjprd55 Trading Signal Bot — Paper Mode — <a href="https://github.com/jpgyap-sudo/xsjprd55" style="color:var(--fg2);">GitHub</a>
+</footer>
 
 <script>
-// ── CONFIG ── Loaded from /api/config at runtime
-let sb;
+// ── Market Data ──────────────────────────────────────
+async function loadMarketData() {
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana&price_change_percentage=24h');
+    const data = await res.json();
+    const btc = data.find(c => c.id === 'bitcoin');
+    const eth = data.find(c => c.id === 'ethereum');
+    const sol = data.find(c => c.id === 'solana');
+    if (btc) {
+      document.getElementById('btc-price').textContent = '$' + btc.current_price.toLocaleString();
+      const el = document.getElementById('btc-change');
+      el.textContent = (btc.price_change_percentage_24h >= 0 ? '+' : '') + btc.price_change_percentage_24h.toFixed(2) + '%';
+      el.className = 'stat-change ' + (btc.price_change_percentage_24h >= 0 ? 'up' : 'down');
+    }
+    if (eth) {
+      document.getElementById('eth-price').textContent = '$' + eth.current_price.toLocaleString();
+      const el = document.getElementById('eth-change');
+      el.textContent = (eth.price_change_percentage_24h >= 0 ? '+' : '') + eth.price_change_percentage_24h.toFixed(2) + '%';
+      el.className = 'stat-change ' + (eth.price_change_percentage_24h >= 0 ? 'up' : 'down');
+    }
+    if (sol) {
+      document.getElementById('sol-price').textContent = '$' + sol.current_price.toLocaleString();
+      const el = document.getElementById('sol-change');
+      el.textContent = (sol.price_change_percentage_24h >= 0 ? '+' : '') + sol.price_change_percentage_24h.toFixed(2) + '%';
+      el.className = 'stat-change ' + (sol.price_change_percentage_24h >= 0 ? 'up' : 'down');
+    }
+  } catch (e) {}
 
-// ── STATE ──
-const now = new Date();
-const todayKey = now.toISOString().slice(0, 10);
-let calYear = now.getFullYear(), calMonth = now.getMonth();
-let selectedCalDate = todayKey;
-let currentWeekOffset = 0;
-let currentMealPlan = null;
-let lastRecipe = null;
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/global');
+    const data = await res.json();
+    const g = data.data;
+    if (g) {
+      document.getElementById('global-mcap').textContent = '$' + (g.total_market_cap.usd / 1e12).toFixed(2) + 'T';
+      document.getElementById('global-vol').textContent = '$' + (g.total_volume.usd / 1e9).toFixed(1) + 'B';
+      document.getElementById('btc-dom').textContent = g.market_cap_percentage.btc.toFixed(1) + '%';
+    }
+  } catch (e) {}
+}
+loadMarketData();
 
-// ── INIT ──
-document.getElementById('today-date').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-document.getElementById('food-date-label').textContent = now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-const h = String(now.getHours()).padStart(2,'0'), m = String(now.getMinutes()).padStart(2,'0');
-document.getElementById('food-time').value = h+':'+m;
-document.addEventListener('DOMContentLoaded', () => {
-  const actDate = document.getElementById('act-date');
-  if(actDate) actDate.value = todayKey;
-  const actTime = document.getElementById('act-time');
-  if(actTime) actTime.value = h+':'+m;
+// ── Signals ──────────────────────────────────────────
+async function loadSignals() {
+  try {
+    const res = await fetch('/api/signal');
+    const data = await res.json();
+    const tbody = document.getElementById('signals-tbody');
+    tbody.innerHTML = '';
+
+    // Also try to fetch from Supabase via a simple query approach
+    // Since we don't have direct Supabase client on frontend, we'll show scan results
+    if (data.signals && data.signals.length > 0) {
+      data.signals.forEach(s => renderSignal(tbody, s));
+    } else {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:20px;">No active signals. Market is quiet.</td></tr>';
+    }
+  } catch (e) {
+    document.getElementById('signals-tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--accent3);padding:20px;">Error loading signals</td></tr>';
+  }
+}
+
+function renderSignal(tbody, s) {
+  const tr = document.createElement('tr');
+  const sideClass = s.side === 'LONG' ? 'side-long' : s.side === 'SHORT' ? 'side-short' : 'side-close';
+  const confPct = Math.round((s.confidence || 0) * 100);
+  const confColor = confPct >= 70 ? 'var(--accent)' : confPct >= 50 ? 'var(--accent2)' : 'var(--accent3)';
+  tr.innerHTML = `
+    <td><strong>${s.symbol}</strong><br><span style="font-size:0.75rem;color:var(--fg2);">${s.strategy} · ${s.timeframe}</span></td>
+    <td><span class="side-badge ${sideClass}">${s.side}</span></td>
+    <td>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="conf-bar"><div class="conf-bar-inner" style="width:${confPct}%;background:${confColor};"></div></div>
+        <span style="font-size:0.8rem;">${confPct}%</span>
+      </div>
+    </td>
+    <td style="font-size:0.8rem;color:var(--fg2);">${new Date(s.generated_at).toLocaleTimeString()}</td>
+  `;
+  tbody.appendChild(tr);
+}
+loadSignals();
+setInterval(loadSignals, 30000);
+
+// ── Liquidation Intelligence Panel ───────────────────
+async function loadLiquidationIntel() {
+  const loading = document.getElementById('liq-loading');
+  const content = document.getElementById('liq-content');
+  const error = document.getElementById('liq-error');
+  const bestShort = document.getElementById('liq-best-short');
+  const bestLong = document.getElementById('liq-best-long');
+  const alerts = document.getElementById('liq-alerts');
+
+  try {
+    const res = await fetch('/api/liquidation');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+
+    if (data.bestShort) {
+      bestShort.innerHTML = `
+        <div style="font-size:0.75rem;color:var(--accent3);font-weight:700;margin-bottom:4px;">🔴 BEST SHORT</div>
+        <div style="font-size:1.05rem;font-weight:700;">${data.bestShort.symbol} @ $${data.bestShort.price.toLocaleString()}</div>
+        <div style="font-size:0.8rem;color:var(--fg2);margin-top:4px;">
+          Funding: <span style="color:${data.bestShort.fundingAnnualized > 100 ? 'var(--accent3)' : 'var(--accent)'};">${data.bestShort.fundingAnnualized.toFixed(1)}%</span> ann. ·
+          OI: $${(data.bestShort.openInterestUsd/1e6).toFixed(1)}M ·
+          Risk: ${data.bestShort.riskScore}/100
+        </div>
+        <div style="font-size:0.78rem;color:var(--fg2);margin-top:6px;">${data.bestShort.reason}</div>
+      `;
+    } else { bestShort.innerHTML = '<div style="padding:8px;color:var(--fg2);font-size:0.85rem;">No clear short setup</div>'; }
+
+    if (data.bestLong) {
+      bestLong.innerHTML = `
+        <div style="font-size:0.75rem;color:var(--accent);font-weight:700;margin-bottom:4px;">🟢 BEST LONG</div>
+        <div style="font-size:1.05rem;font-weight:700;">${data.bestLong.symbol} @ $${data.bestLong.price.toLocaleString()}</div>
+        <div style="font-size:0.8rem;color:var(--fg2);margin-top:4px;">
+          Funding: <span style="color:${data.bestLong.fundingAnnualized < -100 ? 'var(--accent)' : 'var(--accent3)'};">${data.bestLong.fundingAnnualized.toFixed(1)}%</span> ann. ·
+          OI: $${(data.bestLong.openInterestUsd/1e6).toFixed(1)}M ·
+          Risk: ${data.bestLong.riskScore}/100
+        </div>
+        <div style="font-size:0.78rem;color:var(--fg2);margin-top:6px;">${data.bestLong.reason}</div>
+      `;
+    } else { bestLong.innerHTML = '<div style="padding:8px;color:var(--fg2);font-size:0.85rem;">No clear long setup</div>'; }
+
+    if (data.alerts?.length) {
+      alerts.innerHTML = data.alerts.slice(0,4).map(a =>
+        `<div style="font-size:0.78rem;padding:6px 0;border-bottom:1px solid rgba(30,37,56,0.4);color:${a.severity==='high'?'var(--accent3)':'var(--accent2)'};">
+          <span style="font-weight:700;">${a.type === 'overleveraged_longs' ? '🔴' : a.type === 'overleveraged_shorts' ? '🟢' : '⚡'}</span> ${a.message}
+        </div>`
+      ).join('');
+    } else { alerts.innerHTML = '<div style="font-size:0.78rem;color:var(--fg2);">No active liquidation alerts</div>'; }
+  } catch (e) {
+    loading.style.display = 'none';
+    content.style.display = 'none';
+    error.style.display = 'block';
+  }
+}
+loadLiquidationIntel();
+setInterval(loadLiquidationIntel, 60000);
+
+// ── News Feed Panel ──────────────────────────────────
+async function loadNewsFeed() {
+  const loading = document.getElementById('news-loading');
+  const content = document.getElementById('news-content');
+  const error = document.getElementById('news-error');
+  const overall = document.getElementById('news-overall');
+  const list = document.getElementById('news-list');
+
+  try {
+    const res = await fetch('/api/news-feed?limit=15&hours=12');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+
+    // Overall sentiment bar
+    const score = data.overallScore || 0;
+    const sentColor = score > 0.2 ? 'var(--accent)' : score < -0.2 ? 'var(--accent3)' : 'var(--accent2)';
+    const sentLabel = score > 0.2 ? 'Bullish' : score < -0.2 ? 'Bearish' : 'Neutral';
+    overall.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span>Market Sentiment:</span>
+        <span style="color:${sentColor};font-weight:700;">${sentLabel}</span>
+        <span style="color:var(--fg2);font-weight:400;">(${score.toFixed(2)})</span>
+        <span style="margin-left:auto;color:var(--fg2);font-weight:400;">${data.itemCount} articles</span>
+      </div>`;
+
+    // News items
+    list.innerHTML = data.items.map(item => {
+      const impactColor = item.impact === 'bullish' ? 'var(--accent)' : item.impact === 'bearish' ? 'var(--accent3)' : 'var(--fg2)';
+      const impactIcon = item.impact === 'bullish' ? '📈' : item.impact === 'bearish' ? '📉' : '➡️';
+      const assetTags = item.detectedAssets.map(a => `<span style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.7rem;color:var(--fg2);">${a.symbol.replace('USDT','')}</span>`).join(' ');
+      const urgency = item.hasUrgency ? '<span style="color:var(--accent3);font-size:0.7rem;font-weight:700;">BREAKING</span>' : '';
+      return `
+        <div style="padding:10px 18px;border-bottom:1px solid rgba(30,37,56,0.4);">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <span style="font-size:0.75rem;color:var(--fg2);">${item.source}</span>
+            ${urgency}
+            <span style="margin-left:auto;font-size:0.75rem;color:${impactColor};">${impactIcon} ${(item.sentimentScore || 0).toFixed(2)}</span>
+          </div>
+          <a href="${item.url}" target="_blank" style="color:var(--fg);text-decoration:none;font-size:0.82rem;font-weight:500;line-height:1.4;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${item.title}</a>
+          <div style="margin-top:4px;">${assetTags}</div>
+        </div>`;
+    }).join('');
+
+  } catch (e) {
+    loading.style.display = 'none';
+    content.style.display = 'none';
+    error.style.display = 'block';
+  }
+}
+loadNewsFeed();
+setInterval(loadNewsFeed, 120000); // refresh every 2 min
+
+// ── Chart symbol switcher ────────────────────────────
+document.getElementById('chart-symbol').addEventListener('change', function() {
+  const symbol = this.value;
+  const container = document.getElementById('tv-chart');
+  container.innerHTML = '<div class="tradingview-widget-container__widget" style="height:460px;"></div>';
+  const script = document.createElement('script');
+  script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  script.async = true;
+  script.innerHTML = JSON.stringify({
+    autosize: true, symbol: symbol, interval: "15", timezone: "Etc/UTC",
+    theme: "dark", style: "1", locale: "en", enable_publishing: false,
+    backgroundColor: "rgba(18, 22, 32, 1)", gridColor: "rgba(30, 37, 56, 0.5)",
+    allow_symbol_change: false, calendar: false
+  });
+  container.appendChild(script);
 });
 
-function switchTab(tab, btn) {
-  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  btn.classList.add('active');
-  if(tab==='food') loadFoods();
-  if(tab==='vitamins') loadVitamins();
-  if(tab==='schedule') loadSchedule();
-  if(tab==='calendar') renderCalendar();
-  if(tab==='reminders') { loadReminders(); loadContextReminders(); }
-  if(tab==='mealplan') loadMealPlan();
-  if(tab==='routine') loadRoutine();
-  if(tab==='activity') loadActivities();
-  if(tab==='prefs') loadPrefs();
-  if(tab==='ai') {}
-  if(tab==='insights') loadInsights();
-  if(tab==='crypto') loadCryptoTab();
-  if(tab==='backtest') loadBacktestTab();
+// ── AI Chat ──────────────────────────────────────────
+const chatWidget = document.getElementById('chat-widget');
+const chatToggle = document.getElementById('chat-toggle');
+const chatClose = document.getElementById('chat-close');
+const chatBody = document.getElementById('chat-body');
+const chatInput = document.getElementById('chat-input');
+const chatSend = document.getElementById('chat-send');
+
+let chatHistory = [];
+
+function toggleChat() {
+  chatWidget.classList.toggle('hidden');
+  chatToggle.classList.toggle('hidden');
 }
 
-// ── FOOD LOG ──
-async function addFood() {
-  const t=document.getElementById('food-time').value;
-  const n=document.getElementById('food-name').value.trim();
-  const ty=document.getElementById('food-type').value;
-  const p=document.getElementById('food-portion').value.trim();
-  const no=document.getElementById('food-notes').value.trim();
-  if(!n) return;
-  await sb.from('food_logs').insert({date:todayKey,time:t,name:n,food_type:ty,portion:p,notes:no,source:'app'});
-  document.getElementById('food-name').value='';
-  document.getElementById('food-portion').value='';
-  document.getElementById('food-notes').value='';
-  loadFoods();
-}
+chatToggle.addEventListener('click', toggleChat);
+chatClose.addEventListener('click', toggleChat);
 
-async function loadFoods(dateStr) {
-  const d = dateStr || todayKey;
-  const {data} = await sb.from('food_logs').select('*').eq('date',d).order('time');
-  const el = document.getElementById('food-log');
-  const mc = document.getElementById('meal-count');
-  const dc = document.getElementById('drink-count');
-  const sc = document.getElementById('snack-count');
-  if(mc) mc.textContent = data?.filter(f=>f.food_type==='food').length||0;
-  if(dc) dc.textContent = data?.filter(f=>f.food_type==='drink').length||0;
-  if(sc) sc.textContent = data?.filter(f=>f.food_type==='snack').length||0;
-  if(!data?.length){if(el)el.innerHTML='<div class="empty-state">No entries yet</div>';return data||[];}
-  if(el) el.innerHTML = data.map(f=>{
-    const badge = f.food_type==='food'?'badge-food':f.food_type==='drink'?'badge-drink':'badge-snack';
-    const label = f.food_type==='food'?'Meal':f.food_type==='drink'?'Drink':'Snack';
-    const tgBadge = f.source==='telegram'?'<span class="badge badge-tg">via Telegram</span>':'';
-    return `<div class="log-item">
-      <span class="log-time">${f.time||''}</span>
-      <div style="flex:1"><div class="log-name">${f.name} <span class="badge ${badge}">${label}</span>${tgBadge}</div>
-      <div class="log-sub">${[f.portion,f.notes].filter(Boolean).join(' · ')}</div></div>
-      <div class="log-actions"><button class="btn btn-sm btn-danger" onclick="deleteFood('${f.id}')">Remove</button></div>
-    </div>`;
-  }).join('');
-  return data;
-}
+// Auto-resize textarea
+chatInput.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
 
-async function deleteFood(id) {
-  await sb.from('food_logs').delete().eq('id',id);
-  loadFoods();
-}
+chatInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
 
-// ── VITAMINS ──
-async function loadVitamins() {
-  const {data:vits} = await sb.from('vitamins').select('*').order('name');
-  const {data:logs} = await sb.from('vitamin_logs').select('*').eq('date',todayKey);
-  const el = document.getElementById('vit-list');
-  const takenNames = new Set((logs||[]).filter(l=>l.taken).map(l=>l.vitamin_name));
-  if(!vits?.length){el.innerHTML='<div class="empty-state">No vitamins added yet</div>';return;}
-  el.innerHTML = vits.map(v=>{
-    const done = takenNames.has(v.name);
-    return `<div class="vit-row">
-      <input type="checkbox" class="checkbox" ${done?'checked':''} onchange="toggleVit('${v.name}',this.checked)">
-      <span class="vit-name" style="text-decoration:${done?'line-through':'none'};color:${done?'#aaa':'#1a1a18'}">${v.name}</span>
-      <span class="badge" style="background:${done?'#EAF3DE':'#FAEEDA'};color:${done?'#3B6D11':'#854F0B'}">${done?'Given':'Pending'}</span>
-      <button class="btn btn-sm" onclick="deleteVit('${v.id}')" style="color:#aaa;border-color:transparent">x</button>
-    </div>`;
-  }).join('');
-}
+chatSend.addEventListener('click', sendMessage);
 
-async function toggleVit(name, checked) {
-  if(checked) {
-    await sb.from('vitamin_logs').upsert({date:todayKey,vitamin_name:name,taken:true,time_taken:new Date().toTimeString().slice(0,5),source:'app'},{onConflict:'date,vitamin_name'});
-  } else {
-    await sb.from('vitamin_logs').delete().eq('date',todayKey).eq('vitamin_name',name);
+// Suggestion chips
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('suggestion-chip')) {
+    const q = e.target.dataset.q;
+    chatInput.value = q;
+    sendMessage();
   }
-  loadVitamins();
-}
+});
 
-async function addVitamin() {
-  const v = document.getElementById('vit-input').value.trim();
-  if(!v) return;
-  await sb.from('vitamins').insert({name:v});
-  document.getElementById('vit-input').value='';
-  loadVitamins();
-}
+async function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
 
-async function deleteVit(id) {
-  await sb.from('vitamins').delete().eq('id',id);
-  loadVitamins();
-}
+  // Add user message
+  const userMsg = document.createElement('div');
+  userMsg.className = 'msg user';
+  userMsg.textContent = text;
+  chatBody.appendChild(userMsg);
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  chatBody.scrollTop = chatBody.scrollHeight;
 
-// ── SCHEDULE ──
-async function loadSchedule() {
-  const {data} = await sb.from('schedule').select('*').order('time');
-  const el = document.getElementById('sched-list');
-  if(!data?.length){el.innerHTML='<div class="empty-state">No schedule items yet</div>';return;}
-  el.innerHTML = data.map(s=>`<div class="sched-item">
-    <span class="sched-dot" style="background:${s.color||'#7F77DD'}"></span>
-    <span class="sched-time">${s.time}</span>
-    <span class="sched-label">${s.activity}</span>
-    <button class="btn btn-sm btn-danger" onclick="deleteSched('${s.id}')">Remove</button>
-  </div>`).join('');
-}
+  // Typing indicator
+  const typing = document.createElement('div');
+  typing.className = 'typing';
+  typing.innerHTML = '<span></span><span></span><span></span>';
+  chatBody.appendChild(typing);
+  chatBody.scrollTop = chatBody.scrollHeight;
 
-async function addSched() {
-  const t=document.getElementById('sched-time').value;
-  const a=document.getElementById('sched-activity').value.trim();
-  const c=document.getElementById('sched-color').value;
-  if(!a||!t) return;
-  await sb.from('schedule').insert({time:t,activity:a,color:c,source:'app'});
-  document.getElementById('sched-activity').value='';
-  loadSchedule();
-}
-
-async function deleteSched(id) {
-  await sb.from('schedule').delete().eq('id',id);
-  loadSchedule();
-}
-
-// ── CALENDAR ──
-async function renderCalendar() {
-  const label = new Date(calYear,calMonth,1).toLocaleDateString('en-US',{month:'long',year:'numeric'});
-  document.getElementById('cal-month-label').textContent = label;
-
-  const {data:foodData} = await sb.from('food_logs').select('date').gte('date',`${calYear}-${String(calMonth+1).padStart(2,'0')}-01`).lte('date',`${calYear}-${String(calMonth+1).padStart(2,'0')}-31`);
-  const {data:vitData} = await sb.from('vitamin_logs').select('date').gte('date',`${calYear}-${String(calMonth+1).padStart(2,'0')}-01`).lte('date',`${calYear}-${String(calMonth+1).padStart(2,'0')}-31`).eq('taken',true);
-
-  const daysWithFood = new Set((foodData||[]).map(f=>f.date));
-  const daysWithVit = new Set((vitData||[]).map(v=>v.date));
-
-  const firstDay = new Date(calYear,calMonth,1).getDay();
-  const daysInMonth = new Date(calYear,calMonth+1,0).getDate();
-  const prevDays = new Date(calYear,calMonth,0).getDate();
-
-  const grid = document.getElementById('cal-grid');
-  let html = '';
-
-  for(let i=0;i<firstDay;i++){
-    const d = prevDays - firstDay + i + 1;
-    html += `<div class="cal-day other-month">${d}</div>`;
-  }
-  for(let d=1;d<=daysInMonth;d++){
-    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const isToday = dateStr === todayKey;
-    const isSel = dateStr === selectedCalDate;
-    const hasFood = daysWithFood.has(dateStr);
-    const hasVit = daysWithVit.has(dateStr);
-    const hasData = hasFood || hasVit;
-    const cls = [isSel?'selected':'',isToday?'today':'',hasData?'has-data':''].filter(Boolean).join(' ');
-    const dots = [hasFood?`<div class="cal-dot" style="background:#3B6D11"></div>`:'', hasVit?`<div class="cal-dot" style="background:#534AB7"></div>`:''].filter(Boolean).join('');
-    html += `<div class="cal-day ${cls}" onclick="selectCalDate('${dateStr}')">${d}${dots?`<div class="cal-dots">${dots}</div>`:''}</div>`;
-  }
-  grid.innerHTML = html;
-}
-
-async function selectCalDate(dateStr) {
-  selectedCalDate = dateStr;
-  renderCalendar();
-  const card = document.getElementById('history-card');
-  card.style.display = 'block';
-  document.getElementById('history-date-label').textContent = new Date(dateStr+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  const {data:foods} = await sb.from('food_logs').select('*').eq('date',dateStr).order('time');
-  const {data:vits} = await sb.from('vitamin_logs').select('*').eq('date',dateStr).eq('taken',true);
-  let html = '';
-  if(foods?.length){
-    html += '<div style="margin-bottom:.75rem"><div class="card-title" style="margin-bottom:.5rem">Food &amp; Drinks</div>';
-    html += foods.map(f=>`<div class="log-item"><span class="log-time">${f.time||''}</span><div style="flex:1"><div class="log-name">${f.name}</div><div class="log-sub">${[f.portion,f.notes].filter(Boolean).join(' · ')}</div></div></div>`).join('');
-    html += '</div>';
-  }
-  if(vits?.length){
-    html += '<div style="margin-bottom:.75rem"><div class="card-title" style="margin-bottom:.5rem">Vitamins taken</div>';
-    html += vits.map(v=>`<div class="vit-row"><span style="font-size:14px;color:#3B6D11">✓</span><span class="vit-name">${v.vitamin_name}</span><span style="font-size:12px;color:#888">${v.time_taken||''}</span></div>`).join('');
-    html += '</div>';
-  }
-  if(!foods?.length && !vits?.length) html = '<div class="empty-state">No records for this day</div>';
-  document.getElementById('history-content').innerHTML = html;
-}
-
-function changeMonth(dir) {
-  calMonth += dir;
-  if(calMonth>11){calMonth=0;calYear++;}
-  if(calMonth<0){calMonth=11;calYear--;}
-  renderCalendar();
-}
-
-// ── REMINDERS ──
-async function loadReminders() {
-  const {data} = await sb.from('reminders').select('*').order('time');
-  const el = document.getElementById('reminder-list');
-  if(!data?.length){el.innerHTML='<div class="empty-state">No reminders yet</div>';return;}
-  el.innerHTML = data.map(r=>`<div class="reminder-item">
-    <span class="reminder-time">${r.time}</span>
-    <span class="reminder-msg">${r.message}</span>
-    <input type="checkbox" class="reminder-active" ${r.active?'checked':''} onchange="toggleReminder('${r.id}',this.checked)" title="Active">
-    <button class="btn btn-sm btn-danger" onclick="deleteReminder('${r.id}')">Remove</button>
-  </div>`).join('');
-}
-
-async function loadContextReminders() {
-  const {data} = await sb.from('context_reminders').select('*').order('created_at',{ascending:false});
-  const el = document.getElementById('ctx-reminder-list');
-  if(!data?.length){el.innerHTML='<div class="empty-state">No activity reminders yet</div>';return;}
-  el.innerHTML = data.map(c=>`<div class="reminder-item">
-    <span class="reminder-time" style="min-width:80px;font-size:12px">${c.trigger==='food'?'Any meal':c.trigger}</span>
-    <span class="reminder-msg">${c.message}</span>
-    <input type="checkbox" class="reminder-active" ${c.active?'checked':''} onchange="toggleCtxReminder('${c.id}',this.checked)" title="Active">
-    <button class="btn btn-sm btn-danger" onclick="deleteCtxReminder('${c.id}')">Remove</button>
-  </div>`).join('');
-}
-
-async function addContextReminder() {
-  const msg = document.getElementById('ctx-msg').value.trim();
-  const trigger = document.getElementById('ctx-trigger').value;
-  if(!msg) return;
-  await sb.from('context_reminders').insert({trigger, message:msg, active:true});
-  document.getElementById('ctx-msg').value='';
-  loadContextReminders();
-}
-
-async function toggleCtxReminder(id, active) {
-  await sb.from('context_reminders').update({active}).eq('id',id);
-  loadContextReminders();
-}
-
-async function deleteCtxReminder(id) {
-  await sb.from('context_reminders').delete().eq('id',id);
-  loadContextReminders();
-}
-
-async function addReminder() {
-  const t=document.getElementById('rem-time').value;
-  const m=document.getElementById('rem-msg').value.trim();
-  if(!t||!m) return;
-  await sb.from('reminders').insert({time:t,message:m,active:true});
-  document.getElementById('rem-msg').value='';
-  loadReminders();
-}
-
-async function toggleReminder(id, active) {
-  await sb.from('reminders').update({active}).eq('id',id);
-  loadReminders();
-}
-
-async function deleteReminder(id) {
-  await sb.from('reminders').delete().eq('id',id);
-  loadReminders();
-}
-
-// ── MEAL PLAN ──
-function getWeekStart(offset) {
-  const d = new Date();
-  d.setDate(d.getDate() - d.getDay() + 1 + offset*7);
-  return d.toISOString().slice(0,10);
-}
-
-async function loadMealPlan() {
-  const ws = getWeekStart(currentWeekOffset);
-  const d1 = new Date(ws+'T12:00:00');
-  const d2 = new Date(ws+'T12:00:00');
-  d2.setDate(d2.getDate()+6);
-  document.getElementById('week-label').textContent = `${d1.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${d2.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
-  const {data} = await sb.from('meal_plans').select('*').eq('week_start',ws).single();
-  if(data) { currentMealPlan = JSON.parse(data.plan); renderMealPlan(); }
-  else { document.getElementById('mealplan-content').innerHTML='<div class="empty-state" style="padding:1.5rem">No meal plan for this week yet. Generate one below.</div>'; document.getElementById('grocery-content').innerHTML=''; }
-}
-
-function renderMealPlan() {
-  if(!currentMealPlan) return;
-  const p = currentMealPlan;
-  const mealLabels = {breakfast:'Breakfast',morning_snack:'AM Snack',lunch:'Lunch',afternoon_snack:'PM Snack',dinner:'Dinner'};
-  let html = '<div class="card"><div class="card-title">Weekly meal plan</div>';
-  (p.days||[]).forEach((day,di)=>{
-    html += `<div class="meal-day-card"><div class="meal-day-title">${day.day}</div>`;
-    Object.entries(mealLabels).forEach(([key,lbl])=>{
-      const meal = day.meals?.[key]||'—';
-      html += `<div class="meal-row"><span class="meal-label">${lbl}</span><span class="meal-text" id="meal-${di}-${key}" contenteditable="true" onblur="saveMealEdit(${di},'${key}',this.textContent)">${meal}</span></div>`;
-    });
-    html += '</div>';
-  });
-  html += '</div>';
-  document.getElementById('mealplan-content').innerHTML = html;
-
-  if(p.grocery_list) {
-    let gh = '<div class="card"><div class="card-title">Grocery list</div>';
-    Object.entries(p.grocery_list).forEach(([cat,items])=>{
-      gh += `<div class="grocery-section"><div class="grocery-title">${cat}</div>`;
-      (items||[]).forEach((item,i)=>{
-        gh += `<div class="grocery-item"><input type="checkbox" class="grocery-check" id="gc-${cat}-${i}"><label for="gc-${cat}-${i}" style="cursor:pointer">${item}</label></div>`;
-      });
-      gh += '</div>';
-    });
-    gh += '</div>';
-    document.getElementById('grocery-content').innerHTML = gh;
-  }
-}
-
-async function saveMealEdit(dayIdx, mealKey, val) {
-  if(!currentMealPlan) return;
-  currentMealPlan.days[dayIdx].meals[mealKey] = val;
-  const ws = getWeekStart(currentWeekOffset);
-  await sb.from('meal_plans').update({plan:JSON.stringify(currentMealPlan)}).eq('week_start',ws);
-}
-
-async function generateMealPlan() {
-  const btn = document.getElementById('gen-btn');
-  btn.textContent = 'Generating...';
-  btn.classList.add('loading');
-  try {
-    const res = await fetch('/api/mealplan');
-    if (!res.ok) throw new Error();
-    await loadMealPlan();
-  } catch(e) {
-    alert('Could not generate meal plan. Please check your connection and try again.');
-  }
-  btn.textContent = 'Regenerate meal plan';
-  btn.classList.remove('loading');
-}
-
-function changeWeek(dir) {
-  currentWeekOffset += dir;
-  loadMealPlan();
-}
-
-// ── RECIPES ──
-async function getRecipe() {
-  const prompt = document.getElementById('recipe-prompt').value.trim();
-  if(!prompt) return;
-  const res = document.getElementById('recipe-result');
-  res.innerHTML = `<div class="ai-box"><div style="font-size:13px;color:#888;margin-bottom:.5rem">AI recipe for Johnson</div><div class="ai-response">Thinking...</div></div>`;
-  try {
-    const r = await fetch('/api/recipe', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt})});
-    const d = await r.json();
-    const txt = d.text || '';
-    lastRecipe = { prompt, text: txt };
-    res.innerHTML = `<div class="ai-box">
-      <div style="font-size:13px;color:#888;margin-bottom:.5rem">AI recipe for Johnson</div>
-      <div class="ai-response">${txt.replace(/</g,'&lt;')}</div>
-      <div style="margin-top:.75rem"><button class="btn btn-primary btn-sm" onclick="saveRecipe()">Save to Recipe Ideas</button></div>
-    </div>`;
-  } catch(e) {
-    res.innerHTML = `<div class="ai-box"><div class="ai-response" style="color:#A32D2D">Could not load recipe. Please try again.</div></div>`;
-  }
-}
-
-function saveRecipe() {
-  if(!lastRecipe) return;
-  const saved = JSON.parse(localStorage.getItem('saved_recipes')||'[]');
-  saved.unshift({ ...lastRecipe, savedAt: new Date().toISOString() });
-  localStorage.setItem('saved_recipes', JSON.stringify(saved));
-  renderSavedRecipes();
-  document.querySelector('#recipe-result .btn-primary').textContent = 'Saved ✓';
-}
-
-function renderSavedRecipes() {
-  const saved = JSON.parse(localStorage.getItem('saved_recipes')||'[]');
-  const el = document.getElementById('saved-recipes-list');
-  if(!saved.length){el.innerHTML='<div class="empty-state">No saved recipes yet</div>';return;}
-  el.innerHTML = saved.map((r,i)=>`
-    <div class="rec-item">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-        <h3>${r.prompt}</h3>
-        <button class="btn btn-sm btn-danger" onclick="deleteSavedRecipe(${i})">Remove</button>
-      </div>
-      <div class="ai-response" style="font-size:13px;margin-top:6px;color:#444">${r.text.replace(/</g,'&lt;')}</div>
-    </div>`).join('');
-}
-
-function deleteSavedRecipe(i) {
-  const saved = JSON.parse(localStorage.getItem('saved_recipes')||'[]');
-  saved.splice(i,1);
-  localStorage.setItem('saved_recipes', JSON.stringify(saved));
-  renderSavedRecipes();
-}
-
-function toggleFloat() {
-  document.getElementById('float-panel').classList.toggle('open');
-}
-
-async function sendChat(inputId, msgsId) {
-  const inputEl = document.getElementById(inputId);
-  const msgsEl = document.getElementById(msgsId);
-  const msg = inputEl.value.trim();
-  if(!msg || !sb) return;
-  inputEl.value = '';
-  const userDiv = document.createElement('div');
-  userDiv.className = 'chat-msg-user';
-  userDiv.innerHTML = `<span>${msg.replace(/</g,'&lt;')}</span>`;
-  msgsEl.appendChild(userDiv);
-  const botDiv = document.createElement('div');
-  botDiv.className = 'chat-msg-bot';
-  botDiv.innerHTML = '<span style="color:#aaa">Thinking...</span>';
-  msgsEl.appendChild(botDiv);
-  msgsEl.scrollTop = msgsEl.scrollHeight;
-  try {
-    const r = await fetch('/api/assistant',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})});
-    const d = await r.json();
-    botDiv.innerHTML = `<span>${(d.reply||'Done!').replace(/</g,'&lt;')}</span>`;
-    const active = t => document.getElementById('tab-'+t)?.classList.contains('active');
-    if(d.type==='add_food' && active('food')) loadFoods();
-    if(d.type==='add_schedule' && active('schedule')) loadSchedule();
-    if(d.type==='add_reminder' && active('reminders')) loadReminders();
-    if(d.type==='add_routine' && active('routine')) loadRoutine();
-    if(d.type==='add_vitamin' && active('vitamins')) loadVitamins();
-  } catch(e) {
-    botDiv.className = 'chat-msg-bot chat-msg-error';
-    botDiv.innerHTML = '<span>Error. Try again.</span>';
-  }
-  msgsEl.scrollTop = msgsEl.scrollHeight;
-}
-
-function sendSchedChat() { sendChat('sched-chat-input','sched-chat-msgs'); }
-
-// ── ROUTINE / MASTER SCHEDULE ──
-async function loadRoutine() {
-  const {data:items} = await sb.from('master_schedule').select('*').order('time');
-  const {data:logs} = await sb.from('master_schedule_log').select('*').eq('date',todayKey);
-  const listEl = document.getElementById('routine-list');
-  const todayEl = document.getElementById('routine-today');
-  if(!items?.length){
-    listEl.innerHTML='<div class="empty-state">No routine items yet</div>';
-    todayEl.innerHTML='<div class="empty-state">No items yet</div>';
-    return;
-  }
-  const logMap={};
-  (logs||[]).forEach(l=>{logMap[l.master_schedule_id]=l;});
-  listEl.innerHTML = items.map(item=>`
-    <div class="sched-item">
-      <span class="sched-dot" style="background:${item.color||'#7F77DD'}"></span>
-      <span class="sched-time">${item.time}</span>
-      <span class="sched-label">${item.activity}</span>
-      <input type="checkbox" class="checkbox" ${item.active?'checked':''} onchange="toggleRoutine('${item.id}',this.checked)" title="Active">
-      <button class="btn btn-sm btn-danger" onclick="deleteRoutine('${item.id}')">Remove</button>
-    </div>`).join('');
-  const statusLabel = {
-    pending: '<span class="badge" style="background:#f1efe8;color:#888">Not yet</span>',
-    notified: '<span class="badge" style="background:#EEEDFE;color:#534AB7">Waiting...</span>',
-    done: '<span class="badge" style="background:#EAF3DE;color:#3B6D11">✅ Done</span>',
-    skipped: '<span class="badge" style="background:#FAEEDA;color:#854F0B">⏰ Skipped</span>'
-  };
-  todayEl.innerHTML = items.map(item=>{
-    const log = logMap[item.id];
-    const status = !log ? 'pending' : log.completed===null ? 'notified' : log.completed ? 'done' : 'skipped';
-    return `<div class="sched-item">
-      <span class="sched-dot" style="background:${item.color||'#7F77DD'}"></span>
-      <span class="sched-time">${item.time}</span>
-      <span class="sched-label">${item.activity}</span>
-      ${statusLabel[status]}
-    </div>`;
-  }).join('');
-}
-
-async function addRoutine() {
-  const time=document.getElementById('routine-time').value;
-  const activity=document.getElementById('routine-activity').value.trim();
-  const color=document.getElementById('routine-color').value;
-  if(!time||!activity) return;
-  await sb.from('master_schedule').insert({time,activity,color,active:true});
-  document.getElementById('routine-activity').value='';
-  loadRoutine();
-}
-
-async function toggleRoutine(id,active) {
-  await sb.from('master_schedule').update({active}).eq('id',id);
-  loadRoutine();
-}
-
-async function deleteRoutine(id) {
-  await sb.from('master_schedule').delete().eq('id',id);
-  loadRoutine();
-}
-
-// ── PREFERENCES ──
-async function loadPrefs() {
-  const {data} = await sb.from('johnson_preferences').select('*').eq('status','confirmed').order('created_at',{ascending:false});
-  const likes = (data||[]).filter(p=>p.pref_type==='like');
-  const dislikes = (data||[]).filter(p=>p.pref_type==='dislike');
-  const catEmoji = {food:'🍽️',drink:'🥤',activity:'🎮',place:'📍',other:'•'};
-  const render = (items, elId) => {
-    const el = document.getElementById(elId);
-    if(!items.length){el.innerHTML='<div class="empty-state">Nothing logged yet</div>';return;}
-    el.innerHTML = items.map(p=>`<div class="log-item">
-      <span style="font-size:16px;min-width:24px">${catEmoji[p.category]||'•'}</span>
-      <div style="flex:1"><div class="log-name">${p.item}</div><div class="log-sub">${p.category}</div></div>
-      <button class="btn btn-sm btn-danger" onclick="deletePref('${p.id}')">Remove</button>
-    </div>`).join('');
-  };
-  render(likes,'pref-likes');
-  render(dislikes,'pref-dislikes');
-}
-
-async function addPref() {
-  const item = document.getElementById('pref-item').value.trim();
-  const pref_type = document.getElementById('pref-type').value;
-  const category = document.getElementById('pref-cat').value;
-  if(!item) return;
-  await sb.from('johnson_preferences').insert({pref_type, category, item, status:'confirmed'});
-  document.getElementById('pref-item').value='';
-  loadPrefs();
-}
-
-async function deletePref(id) {
-  await sb.from('johnson_preferences').delete().eq('id',id);
-  loadPrefs();
-}
-
-// ── ACTIVITY LOG ──
-async function loadActivities() {
-  const dateInput = document.getElementById('act-date');
-  const d = dateInput?.value || todayKey;
-  const label = document.getElementById('act-date-label');
-  if(label) label.textContent = d === todayKey ? "Today's activities" : `Activities on ${d}`;
-  const {data} = await sb.from('activity_logs').select('*').eq('date', d).order('time');
-  const el = document.getElementById('act-log');
-  if(!data?.length){el.innerHTML='<div class="empty-state">No activities logged for this day</div>';return;}
-  el.innerHTML = data.map(a=>`<div class="log-item">
-    <span class="log-time">${a.time||''}</span>
-    <div style="flex:1">
-      <div class="log-name">${a.activity}${a.source==='telegram'?'<span class="badge badge-tg" style="margin-left:6px">via Telegram</span>':''}</div>
-      ${a.notes?`<div class="log-sub">${a.notes}</div>`:''}
-    </div>
-    <div class="log-actions"><button class="btn btn-sm btn-danger" onclick="deleteActivity('${a.id}')">Remove</button></div>
-  </div>`).join('');
-}
-
-async function addActivity() {
-  const t = document.getElementById('act-time').value;
-  const n = document.getElementById('act-name').value.trim();
-  const no = document.getElementById('act-notes').value.trim();
-  if(!n) return;
-  const dateInput = document.getElementById('act-date');
-  const d = dateInput?.value || todayKey;
-  await sb.from('activity_logs').insert({date:d, time:t||new Date().toTimeString().slice(0,5), activity:n, notes:no, source:'app'});
-  document.getElementById('act-name').value='';
-  document.getElementById('act-notes').value='';
-  loadActivities();
-}
-
-async function deleteActivity(id) {
-  await sb.from('activity_logs').delete().eq('id',id);
-  loadActivities();
-}
-
-// ── INSIGHTS ──
-async function loadInsights() {
-  const [{data:profile},{data:suggestions}] = await Promise.all([
-    sb.from('johnson_profile').select('*').order('updated_at',{ascending:false}),
-    sb.from('app_suggestions').select('*').order('created_at',{ascending:false})
-  ]);
-
-  const profileEl = document.getElementById('profile-list');
-  if(!profile?.length){
-    profileEl.innerHTML='<div class="empty-state">No profile data yet — runs automatically every Sunday.</div>';
-  } else {
-    const catColors={food_preference:['#EAF3DE','#3B6D11'],sleep_pattern:['#E6F1FB','#185FA5'],behavior:['#FAEEDA','#854F0B'],health:['#FCEBEB','#A32D2D'],routine:['#EEEDFE','#534AB7'],development:['#e1f5ee','#0f6e56']};
-    const catLabels={food_preference:'Food Preferences',sleep_pattern:'Sleep Patterns',behavior:'Behavior',health:'Health',routine:'Routine',development:'Development'};
-    const grouped={};
-    profile.forEach(p=>{if(!grouped[p.category])grouped[p.category]=[];grouped[p.category].push(p);});
-    profileEl.innerHTML=Object.entries(grouped).map(([cat,facts])=>{
-      const [bg,fg]=catColors[cat]||['#f1efe8','#888780'];
-      return `<div style="margin-bottom:.85rem">
-        <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.4rem">${catLabels[cat]||cat}</div>
-        ${facts.map(f=>`<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:.35rem">
-          <span class="badge" style="background:${bg};color:${fg};flex-shrink:0">${f.confidence||'medium'}</span>
-          <span style="font-size:13px;line-height:1.4">${f.fact}</span>
-        </div>`).join('')}
-      </div>`;
-    }).join('');
-  }
-
-  const sugEl=document.getElementById('suggestions-list');
-  if(!suggestions?.length){sugEl.innerHTML='<div class="empty-state">No suggestions yet.</div>';return;}
-  const pending=suggestions.filter(s=>s.status==='pending');
-  const resolved=suggestions.filter(s=>s.status!=='pending');
-  const priStyle={high:'background:#FCEBEB;color:#A32D2D',medium:'background:#FAEEDA;color:#854F0B',low:'background:#f1efe8;color:#888780'};
-  let html='';
-  if(pending.length){
-    html+=pending.map(s=>`<div style="padding:.75rem 0;border-bottom:.5px solid #eee">
-      <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:.4rem">
-        <span class="badge" style="${priStyle[s.priority]||priStyle.low};flex-shrink:0">${s.priority}</span>
-        <span style="font-size:13px;font-weight:500">${s.title}</span>
-      </div>
-      <div style="font-size:12px;color:#666;margin-bottom:.3rem;line-height:1.5">${s.description}</div>
-      <div style="font-size:11px;color:#aaa;font-style:italic;margin-bottom:.5rem">Why: ${s.reason||''}</div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-sm btn-primary" onclick="updateSuggestion('${s.id}','implemented')">✅ Implemented</button>
-        <button class="btn btn-sm" onclick="updateSuggestion('${s.id}','dismissed')" style="color:#aaa">Dismiss</button>
-      </div>
-    </div>`).join('');
-  } else {
-    html+='<div style="font-size:13px;color:#aaa;padding:.5rem 0">No pending suggestions.</div>';
-  }
-  if(resolved.length){
-    html+=`<div style="margin-top:.75rem"><div style="font-size:11px;color:#ccc;margin-bottom:.35rem">RESOLVED (${resolved.length})</div>
-    ${resolved.map(s=>`<div style="display:flex;gap:8px;padding:.3rem 0;opacity:.55">
-      <span style="font-size:12px;${s.status==='implemented'?'color:#3B6D11':'color:#ccc'}">${s.status==='implemented'?'✅':'✕'}</span>
-      <span style="font-size:12px;color:#888">${s.title}</span>
-    </div>`).join('')}</div>`;
-  }
-  sugEl.innerHTML=html;
-}
-
-async function updateSuggestion(id,status){
-  await sb.from('app_suggestions').update({status}).eq('id',id);
-  loadInsights();
-}
-
-// ── CRYPTO / LUNARCRUSH ─────────────────────────────────────
-
-let lcTopCoins = [];
-
-async function loadCryptoTab() {
-  await loadLunarCrushTop();
-  await loadMarketOverview();
-}
-
-async function loadLunarCrushTop() {
-  const el = document.getElementById('lc-top-table');
-  try {
-    const r = await fetch('/api/lunarcrush?limit=20');
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error);
-    lcTopCoins = d.coins || [];
-    renderTopTable(lcTopCoins);
-  } catch (e) {
-    el.innerHTML = `<div class="empty-state" style="color:#A32D2D">${e.message}</div>`;
-  }
-}
-
-function renderTopTable(coins) {
-  const el = document.getElementById('lc-top-table');
-  if (!coins?.length) { el.innerHTML = '<div class="empty-state">No coins loaded.</div>'; return; }
-  const rows = coins.map((c,i)=>{
-    const a = c.analysis || {};
-    const color = a.overall==='BULLISH'?'#3B6D11':a.overall==='BEARISH'?'#A32D2D':'#888';
-    return `<tr style="border-bottom:.5px solid #eee;cursor:pointer" onclick="selectLcCoin('${c.symbol}')">
-      <td style="padding:6px 4px;font-size:13px;font-weight:600">${i+1}</td>
-      <td style="padding:6px 4px;font-size:13px"><b>${c.symbol}</b><br><span style="font-size:11px;color:#888">${c.name}</span></td>
-      <td style="padding:6px 4px;font-size:13px">$${fmtPrice(c.price)}</td>
-      <td style="padding:6px 4px;font-size:13px;color:${(c.percent_change_24h||0)>=0?'#3B6D11':'#A32D2D'}">${(c.percent_change_24h||0).toFixed(2)}%</td>
-      <td style="padding:6px 4px;font-size:13px">${c.galaxy_score||'—'}</td>
-      <td style="padding:6px 4px;font-size:13px">#${c.alt_rank||'—'}</td>
-      <td style="padding:6px 4px;font-size:13px;color:${color};font-weight:500">${a.overall||'—'}</td>
-    </tr>`;
-  }).join('');
-  el.innerHTML = `<table style="width:100%;border-collapse:collapse"><thead><tr style="font-size:11px;color:#888;text-align:left">
-    <th style="padding:6px 4px">#</th><th style="padding:6px 4px">Coin</th><th style="padding:6px 4px">Price</th>
-    <th style="padding:6px 4px">24h</th><th style="padding:6px 4px">Galaxy</th><th style="padding:6px 4px">AltRank</th><th style="padding:6px 4px">Sentiment</th>
-  </tr></thead><tbody>${rows}</tbody></table>`;
-}
-
-async function loadLunarCrushCoin() {
-  const sym = document.getElementById('lc-search').value.trim().toUpperCase();
-  if (!sym) return;
-  await selectLcCoin(sym);
-}
-
-async function selectLcCoin(symbol) {
-  const card = document.getElementById('lc-coin-card');
-  const title = document.getElementById('lc-coin-title');
-  const metrics = document.getElementById('lc-coin-metrics');
-  const analysis = document.getElementById('lc-coin-analysis');
-  const market = document.getElementById('lc-coin-market');
-  const chart = document.getElementById('lc-coin-chart');
-
-  card.style.display = 'block';
-  title.textContent = `${symbol} — Loading...`;
-  metrics.innerHTML = '';
-  analysis.innerHTML = '';
-  market.innerHTML = '';
-  chart.innerHTML = '<div class="empty-state">Loading chart...</div>';
+  chatSend.disabled = true;
 
   try {
-    const r = await fetch(`/api/lunarcrush?symbol=${encodeURIComponent(symbol)}&market=true`);
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error);
-
-    const c = d.coin;
-    const a = d.analysis;
-    title.textContent = `${c.symbol} — ${c.name}`;
-
-    metrics.innerHTML = `
-      <div class="metric"><div class="metric-val">${c.galaxy_score||'—'}</div><div class="metric-lbl">Galaxy Score</div></div>
-      <div class="metric"><div class="metric-val">#${c.alt_rank||'—'}</div><div class="metric-lbl">AltRank</div></div>
-      <div class="metric"><div class="metric-val">${fmtNum(c.social_volume)}</div><div class="metric-lbl">Social Vol</div></div>
-      <div class="metric"><div class="metric-val">${(c.bullish_sentiment*100||0).toFixed(0)}%</div><div class="metric-lbl">Bullish</div></div>
-      <div class="metric"><div class="metric-val">$${fmtPrice(c.price)}</div><div class="metric-lbl">Price</div></div>
-      <div class="metric"><div class="metric-val" style="color:${(c.percent_change_24h||0)>=0?'#3B6D11':'#A32D2D'}">${(c.percent_change_24h||0).toFixed(2)}%</div><div class="metric-lbl">24h</div></div>
-    `;
-
-    let anHtml = `<div style="font-size:13px;font-weight:500;margin-bottom:4px">Overall: <span style="color:${a.overall==='BULLISH'?'#3B6D11':a.overall==='BEARISH'?'#A32D2D':'#888'}">${a.overall}</span></div>`;
-    if (a.positives?.length) anHtml += '<div style="font-size:12px;color:#3B6D11;margin-bottom:2px">✅ ' + a.positives.slice(0,2).join('</div><div style="font-size:12px;color:#3B6D11;margin-bottom:2px">✅ ') + '</div>';
-    if (a.issues?.length) anHtml += '<div style="font-size:12px;color:#A32D2D;margin-bottom:2px">⚠️ ' + a.issues.slice(0,2).join('</div><div style="font-size:12px;color:#A32D2D;margin-bottom:2px">⚠️ ') + '</div>';
-    analysis.innerHTML = anHtml;
-
-    if (d.market && !d.market.error) {
-      const m = d.market;
-      market.innerHTML = `<div style="font-size:12px;color:#666;line-height:1.6">
-        <b>Market (futures)</b><br>
-        ${m.pair} — $${fmtPrice(m.close)} &nbsp;|&nbsp; 24h: <span style="color:${m.change_24h>=0?'#3B6D11':'#A32D2D'}">${Number(m.change_24h).toFixed(2)}%</span><br>
-        O: $${fmtPrice(m.open)} &nbsp;H: $${fmtPrice(m.high)} &nbsp;L: $${fmtPrice(m.low)} &nbsp;Vol: ${fmtNum(m.volume)}
-      </div>`;
-    } else {
-      market.innerHTML = '<div style="font-size:12px;color:#aaa">Market data unavailable</div>';
-    }
-
-    // Sparkline chart from timeSeries
-    if (d.timeSeries?.length) {
-      renderSparkline(chart, d.timeSeries);
-    } else {
-      chart.innerHTML = '<div class="empty-state">No chart data</div>';
-    }
-  } catch (e) {
-    title.textContent = `${symbol} — Error`;
-    analysis.innerHTML = `<div style="color:#A32D2D;font-size:13px">${e.message}</div>`;
-  }
-}
-
-function renderSparkline(el, series) {
-  const w = el.clientWidth || 600;
-  const h = 160;
-  const pad = 10;
-  const vals = series.map(s => s.close || s.price || 0).filter(v => v > 0);
-  if (vals.length < 2) { el.innerHTML = '<div class="empty-state">Not enough data</div>'; return; }
-  const min = Math.min(...vals), max = Math.max(...vals);
-  const range = max - min || 1;
-  const pts = vals.map((v,i)=>{
-    const x = pad + (i / (vals.length - 1)) * (w - pad*2);
-    const y = h - pad - ((v - min) / range) * (h - pad*2);
-    return `${x},${y}`;
-  }).join(' ');
-
-  const color = vals[vals.length-1] >= vals[0] ? '#3B6D11' : '#A32D2D';
-  el.innerHTML = `<svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" style="overflow:visible">
-    <polyline fill="none" stroke="${color}" stroke-width="2" points="${pts}"/>
-    <circle cx="${pts.split(' ').pop().split(',')[0]}" cy="${pts.split(' ').pop().split(',')[1]}" r="3" fill="${color}"/>
-  </svg>`;
-}
-
-async function loadMarketOverview() {
-  const el = document.getElementById('lc-market-overview');
-  try {
-    const r = await fetch('/api/market?symbol=BTC/USDT&timeframe=1h&limit=24');
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error);
-    const l = d.latest;
-    const change = ((l.close - d.latest.open) / d.latest.open * 100);
-    el.innerHTML = `<div class="summary-row">
-      <div class="metric"><div class="metric-val">$${fmtPrice(l.close)}</div><div class="metric-lbl">BTC/USDT</div></div>
-      <div class="metric"><div class="metric-val" style="color:${change>=0?'#3B6D11':'#A32D2D'}">${change.toFixed(2)}%</div><div class="metric-lbl">1h Change</div></div>
-      <div class="metric"><div class="metric-val">${fmtNum(l.volume)}</div><div class="metric-lbl">Volume</div></div>
-    </div>
-    <div style="font-size:12px;color:#666">High: $${fmtPrice(l.high)} &nbsp;|&nbsp; Low: $${fmtPrice(l.low)} &nbsp;|&nbsp; Open: $${fmtPrice(l.open)}</div>`;
-  } catch (e) {
-    el.innerHTML = `<div class="empty-state" style="color:#A32D2D">${e.message}</div>`;
-  }
-}
-
-async function sendCryptoChat() {
-  const inputEl = document.getElementById('lc-chat-input');
-  const msgsEl = document.getElementById('lc-chat-msgs');
-  const msg = inputEl.value.trim();
-  if (!msg) return;
-  inputEl.value = '';
-
-  const userDiv = document.createElement('div');
-  userDiv.className = 'chat-msg-user';
-  userDiv.innerHTML = `<span>${msg.replace(/</g,'<')}</span>`;
-  msgsEl.appendChild(userDiv);
-
-  const botDiv = document.createElement('div');
-  botDiv.className = 'chat-msg-bot';
-  botDiv.innerHTML = '<span style="color:#aaa">Analyzing...</span>';
-  msgsEl.appendChild(botDiv);
-  msgsEl.scrollTop = msgsEl.scrollHeight;
-
-  try {
-    const r = await fetch('/api/ask', {
+    const res = await fetch('/api/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: msg, context: 'crypto', topCoins: lcTopCoins.map(c=>c.symbol).join(',') })
+      body: JSON.stringify({ question: text, chatHistory })
     });
-    const d = await r.json();
-    botDiv.innerHTML = `<span>${(d.answer || d.reply || 'No response').replace(/</g,'<')}</span>`;
-  } catch (e) {
-    botDiv.className = 'chat-msg-bot chat-msg-error';
-    botDiv.innerHTML = '<span>Error. Try again.</span>';
-  }
-  msgsEl.scrollTop = msgsEl.scrollHeight;
-}
+    const data = await res.json();
+    typing.remove();
 
-function fmtPrice(n) {
-  if (n === undefined || n === null) return '—';
-  if (n >= 1000) return n.toLocaleString('en-US',{maximumFractionDigits:0});
-  if (n >= 1) return n.toLocaleString('en-US',{maximumFractionDigits:2});
-  if (n >= 0.01) return n.toLocaleString('en-US',{maximumFractionDigits:4});
-  return n.toLocaleString('en-US',{maximumFractionDigits:6});
-}
-function fmtNum(n) {
-  if (n === undefined || n === null) return '—';
-  if (n >= 1e9) return (n/1e9).toFixed(1)+'B';
-  if (n >= 1e6) return (n/1e6).toFixed(1)+'M';
-  if (n >= 1e3) return (n/1e3).toFixed(1)+'K';
-  return String(n);
-}
+    const aiMsg = document.createElement('div');
+    aiMsg.className = 'msg ai';
+    if (data.ok) {
+      // Simple markdown-like parsing
+      let html = data.answer
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/`(.+?)`/g, '<code>$1</code>')
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/s, '<ul style="margin:8px 0 0 18px;">$1</ul>')
+        .replace(/\n/g, '<br>');
+      aiMsg.innerHTML = html;
 
-// ── BACKTEST ──
-async function loadBacktestTab() {
-  await loadBacktestDashboard();
-  await loadMockAccount();
-  await loadImprovementSuggestions();
-}
-
-async function runBacktest() {
-  const btn = document.getElementById('bt-run-btn');
-  btn.textContent = 'Running…';
-  btn.classList.add('loading');
-  const params = {
-    symbol: document.getElementById('bt-symbol').value.trim(),
-    strategy: document.getElementById('bt-strategy').value,
-    timeframe: document.getElementById('bt-timeframe').value,
-    days: Number(document.getElementById('bt-days').value),
-    capital: Number(document.getElementById('bt-capital').value),
-    leverage: Number(document.getElementById('bt-leverage').value),
-    stopLossPct: Number(document.getElementById('bt-sl').value),
-    takeProfitPct: Number(document.getElementById('bt-tp').value),
-    optimize: document.getElementById('bt-optimize').checked,
-  };
-  try {
-    const r = await fetch('/api/backtest?' + new URLSearchParams(params));
-    const d = await r.json();
-    if (!r.ok) throw new Error(d.error);
-    renderBacktestResults(d);
-  } catch (e) {
-    alert('Backtest failed: ' + e.message);
-  }
-  btn.textContent = 'Run Backtest';
-  btn.classList.remove('loading');
-}
-
-function renderBacktestResults(d) {
-  const card = document.getElementById('bt-result-card');
-  card.style.display = 'block';
-
-  const metrics = document.getElementById('bt-metrics');
-  metrics.innerHTML = `
-    <div class="metric"><div class="metric-val">${d.totalReturnPct?.toFixed(2)}%</div><div class="metric-lbl">Return</div></div>
-    <div class="metric"><div class="metric-val">${d.totalTrades}</div><div class="metric-lbl">Trades</div></div>
-    <div class="metric"><div class="metric-val">${d.winRate?.toFixed(1)}%</div><div class="metric-lbl">Win Rate</div></div>
-    <div class="metric"><div class="metric-val">${d.maxDrawdownPct?.toFixed(2)}%</div><div class="metric-lbl">Max DD</div></div>
-    <div class="metric"><div class="metric-val">${d.profitFactor?.toFixed(2)}</div><div class="metric-lbl">Profit Factor</div></div>
-    <div class="metric"><div class="metric-val">$${d.avgPnl?.toFixed(2)}</div><div class="metric-lbl">Avg PnL</div></div>
-  `;
-
-  const probEl = document.getElementById('bt-probability');
-  if (d.probability) {
-    const p = d.probability;
-    probEl.innerHTML = `<div style="font-size:12px;color:#666">
-      <b>Probability:</b> ${p.finalProbability}% (${p.confidence}) &nbsp;|&nbsp;
-      Market ${p.scores.market} · Liq ${p.scores.liquidation} · Soc ${p.scores.social} · Fund/OI ${p.scores.fundingOi}
-    </div>`;
-  } else { probEl.innerHTML = ''; }
-
-  const optEl = document.getElementById('bt-optimized');
-  if (d.optimized) {
-    const o = d.optimized;
-    optEl.innerHTML = `<div style="font-size:12px;color:#3B6D11"><b>Optimized:</b> Lev ${o.leverage}× · SL ${o.stopLossPct}% · TP ${o.takeProfitPct}% → $${o.pnlUsd?.toFixed(2)}</div>`;
-  } else { optEl.innerHTML = ''; }
-
-  // Equity chart
-  const chartEl = document.getElementById('bt-equity-chart');
-  if (d.equityCurve?.length > 1) {
-    renderSparkline(chartEl, d.equityCurve.map(e => ({ close: e.equity })));
-  } else {
-    chartEl.innerHTML = '<div class="empty-state">No equity curve</div>';
-  }
-
-  // Trades table
-  const tradesEl = document.getElementById('bt-trades');
-  if (d.trades?.length) {
-    const rows = d.trades.slice(-20).map((t, i) => `
-      <tr style="border-bottom:.5px solid #eee;font-size:12px">
-        <td style="padding:4px">${i+1}</td>
-        <td style="padding:4px;color:${t.result==='win'?'#3B6D11':'#A32D2D'}">${t.result.toUpperCase()}</td>
-        <td style="padding:4px">${t.side}</td>
-        <td style="padding:4px">$${fmtPrice(t.entryPrice)}</td>
-        <td style="padding:4px">$${fmtPrice(t.exitPrice)}</td>
-        <td style="padding:4px">${t.pnlPct?.toFixed(2)}%</td>
-        <td style="padding:4px">$${t.pnlUsd?.toFixed(2)}</td>
-        <td style="padding:4px">${t.exitReason}</td>
-      </tr>
-    `).join('');
-    tradesEl.innerHTML = `<table style="width:100%;border-collapse:collapse"><thead><tr style="font-size:11px;color:#888;text-align:left">
-      <th style="padding:4px">#</th><th style="padding:4px">Result</th><th style="padding:4px">Side</th><th style="padding:4px">Entry</th><th style="padding:4px">Exit</th><th style="padding:4px">PnL%</th><th style="padding:4px">PnL$</th><th style="padding:4px">Reason</th>
-    </tr></thead><tbody>${rows}</tbody></table>`;
-  } else {
-    tradesEl.innerHTML = '<div class="empty-state">No trades generated</div>';
-  }
-}
-
-async function loadBacktestDashboard() {
-  try {
-    const r = await fetch('/api/backtest/dashboard');
-    const d = await r.json();
-    if (!r.ok) return;
-
-    // Populate runs/trades into results card if empty; otherwise keep user-run results
-    const tradesEl = document.getElementById('bt-trades');
-    if (tradesEl && tradesEl.innerText.includes('No trades') && d.trades?.length) {
-      const rows = d.trades.slice(0, 20).map((t, i) => `
-        <tr style="border-bottom:.5px solid #eee;font-size:12px">
-          <td style="padding:4px">${i+1}</td>
-          <td style="padding:4px;color:${t.result==='win'?'#3B6D11':'#A32D2D'}">${(t.result||'').toUpperCase()}</td>
-          <td style="padding:4px">${t.side}</td>
-          <td style="padding:4px">$${fmtPrice(t.entry_price)}</td>
-          <td style="padding:4px">$${fmtPrice(t.exit_price)}</td>
-          <td style="padding:4px">${Number(t.pnl_pct||0).toFixed(2)}%</td>
-          <td style="padding:4px">$${Number(t.pnl_usd||0).toFixed(2)}</td>
-          <td style="padding:4px">${t.exit_reason}</td>
-        </tr>
-      `).join('');
-      tradesEl.innerHTML = `<table style="width:100%;border-collapse:collapse"><thead><tr style="font-size:11px;color:#888;text-align:left">
-        <th style="padding:4px">#</th><th style="padding:4px">Result</th><th style="padding:4px">Side</th><th style="padding:4px">Entry</th><th style="padding:4px">Exit</th><th style="padding:4px">PnL%</th><th style="padding:4px">PnL$</th><th style="padding:4px">Reason</th>
-      </tr></thead><tbody>${rows}</tbody></table>`;
-      document.getElementById('bt-result-card').style.display = 'block';
-    }
-  } catch (e) { /* silent */ }
-}
-
-async function loadMockAccount() {
-  try {
-    const r = await fetch('/api/backtest/dashboard');
-    const d = await r.json();
-    const acc = d.mockAccount;
-    document.getElementById('mock-balance').textContent = acc ? `$${Number(acc.current_balance||0).toFixed(2)}` : '—';
-    document.getElementById('mock-pnl').textContent = acc ? `$${Number(acc.realized_pnl||0).toFixed(2)}` : '—';
-
-    const open = (d.trades || []).filter(t => t.status === 'open');
-    document.getElementById('mock-open').textContent = open.length;
-
-    const el = document.getElementById('bt-mock-trades');
-    if (open.length) {
-      el.innerHTML = `<table style="width:100%;border-collapse:collapse"><thead><tr style="font-size:11px;color:#888;text-align:left">
-        <th style="padding:4px">Symbol</th><th style="padding:4px">Side</th><th style="padding:4px">Entry</th><th style="padding:4px">SL</th><th style="padding:4px">TP</th><th style="padding:4px">Lev</th>
-      </tr></thead><tbody>${open.map(t=>`<tr style="border-bottom:.5px solid #eee;font-size:12px">
-        <td style="padding:4px">${t.symbol}</td><td style="padding:4px">${t.side}</td><td style="padding:4px">$${fmtPrice(t.entry_price)}</td>
-        <td style="padding:4px">$${fmtPrice(t.stop_loss)}</td><td style="padding:4px">$${fmtPrice(t.take_profit)}</td><td style="padding:4px">${t.leverage}×</td>
-      </tr>`).join('')}</tbody></table>`;
+      chatHistory.push({ role: 'user', content: text });
+      chatHistory.push({ role: 'assistant', content: data.answer });
+      if (chatHistory.length > 12) chatHistory = chatHistory.slice(-12);
     } else {
-      el.innerHTML = '<div class="empty-state">No open mock trades</div>';
+      aiMsg.textContent = 'Error: ' + (data.error || 'Unknown error');
     }
-  } catch (e) { /* silent */ }
-}
-
-async function loadImprovementSuggestions() {
-  try {
-    const r = await fetch('/api/backtest/dashboard');
-    const d = await r.json();
-    const el = document.getElementById('bt-suggestions');
-    if (!d.suggestions?.length) { el.innerHTML = '<div class="empty-state">No suggestions yet.</div>'; return; }
-    const priStyle = { high: 'background:#FCEBEB;color:#A32D2D', medium: 'background:#FAEEDA;color:#854F0B', low: 'background:#f1efe8;color:#888780' };
-    el.innerHTML = d.suggestions.map(s => `<div style="padding:.5rem 0;border-bottom:.5px solid #eee">
-      <div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:.3rem">
-        <span class="badge" style="${priStyle[s.priority]||priStyle.low};flex-shrink:0">${s.priority}</span>
-        <span style="font-size:12px;font-weight:500">${s.title}</span>
-      </div>
-      <div style="font-size:11px;color:#666;line-height:1.4">${s.reason}</div>
-      <div style="font-size:11px;color:#aaa;margin-top:2px">${s.category} · ${s.suggested_provider||''}</div>
-    </div>`).join('');
-  } catch (e) { /* silent */ }
-}
-
-// ── INIT LOAD ──
-(async () => {
-  try {
-    const cfg = await fetch('/api/config').then(r => r.json());
-    sb = supabase.createClient(cfg.url, cfg.anonKey);
-    loadFoods();
-    renderSavedRecipes();
-  } catch(e) {
-    document.querySelector('.app').innerHTML = '<div style="padding:2rem;text-align:center;color:#A32D2D">Failed to connect. Check Vercel environment variables.</div>';
+    chatBody.appendChild(aiMsg);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  } catch (e) {
+    typing.remove();
+    const errMsg = document.createElement('div');
+    errMsg.className = 'msg ai';
+    errMsg.style.color = 'var(--accent3)';
+    errMsg.textContent = 'Network error. Please try again.';
+    chatBody.appendChild(errMsg);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  } finally {
+    chatSend.disabled = false;
   }
-})();
+}
+
+// ── Catalyst Watch Panel ─────────────────────────────
+async function loadCatalysts() {
+  const loading = document.getElementById('catalyst-loading');
+  const content = document.getElementById('catalyst-content');
+  const error = document.getElementById('catalyst-error');
+  const highDiv = document.getElementById('catalyst-high');
+  const readingsDiv = document.getElementById('catalyst-readings');
+  const levelsDiv = document.getElementById('catalyst-levels');
+  const bottomDiv = document.getElementById('catalyst-bottom');
+
+  try {
+    const res = await fetch('/api/catalyst');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+
+    // High impact catalysts
+    if (data.high?.length) {
+      highDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--accent3);font-weight:700;margin-bottom:10px;">🔴 HIGH IMPACT CATALYSTS</div>' +
+        data.high.map(c => {
+          const dirColor = c.direction === 'bearish' ? 'var(--accent3)' : c.direction === 'bullish' ? 'var(--accent)' : 'var(--accent2)';
+          const dirLabel = c.direction === 'bearish' ? '🔴 Bearish Risk' : c.direction === 'bullish' ? '🟢 Bullish Setup' : '⚡ Both Ways';
+          const urgencyBadge = c.urgency === 'high' ? '<span style="background:rgba(239,68,68,0.15);color:var(--accent3);padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:700;margin-left:6px;">URGENT</span>' : '';
+          const alertBox = c.alert ? `<div style="margin-top:8px;padding:8px 10px;background:rgba(239,68,68,0.08);border-left:3px solid var(--accent3);border-radius:4px;font-size:0.78rem;color:var(--accent3);">${c.alert}</div>` : '';
+          const affectedTags = (c.affected || []).map(a => `<span style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.7rem;color:var(--fg2);">${a.replace('USDT','')}</span>`).join(' ');
+          return `
+            <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(30,37,56,0.4);">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span style="font-size:1.1rem;">${c.emoji}</span>
+                <span style="font-weight:700;font-size:0.9rem;">${c.title}</span>
+                ${urgencyBadge}
+              </div>
+              <div style="font-size:0.78rem;color:var(--fg2);margin-bottom:4px;"><strong>Watch:</strong> ${c.watch}</div>
+              <div style="font-size:0.78rem;color:var(--fg2);margin-bottom:6px;">${c.why}</div>
+              <div style="font-size:0.78rem;color:var(--fg2);margin-bottom:4px;"><strong>Impact:</strong> <span style="color:${dirColor};font-weight:600;">${c.impact}</span></div>
+              <div style="font-size:0.75rem;">${affectedTags}</div>
+              ${alertBox}
+            </div>`;
+        }).join('');
+    } else { highDiv.innerHTML = '<div style="padding:8px;color:var(--fg2);font-size:0.85rem;">No high-impact catalysts</div>'; }
+
+    // Market readings
+    if (data.readings?.length) {
+      readingsDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--accent2);font-weight:700;margin-bottom:10px;">📊 WHAT THE DATA IS TELLING YOU</div>' +
+        '<table style="width:100%;font-size:0.8rem;border-collapse:collapse;">' +
+        '<thead><tr style="color:var(--fg2);font-size:0.7rem;text-align:left;"><th style="padding:4px 0;">Signal</th><th>Reading</th><th>Implication</th></tr></thead><tbody>' +
+        data.readings.map(r => {
+          const sigColor = r.signal === 'contrarian_buy' ? 'var(--accent)' : r.signal === 'short_risk' ? 'var(--accent3)' : r.signal === 'squeeze_potential' ? 'var(--accent)' : 'var(--accent2)';
+          const sigIcon = r.signal === 'contrarian_buy' ? '🟢' : r.signal === 'short_risk' ? '🔴' : r.signal === 'squeeze_potential' ? '🚀' : '⚡';
+          return `<tr style="border-bottom:1px solid rgba(30,37,56,0.3);"><td style="padding:6px 0;font-weight:600;">${r.label}</td><td style="color:${sigColor};font-weight:700;">${r.value}</td><td style="color:var(--fg2);">${r.implication} ${sigIcon}</td></tr>`;
+        }).join('') + '</tbody></table>';
+    } else { readingsDiv.style.display = 'none'; }
+
+    // Key levels
+    if (data.levels) {
+      levelsDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--fg2);font-weight:700;margin-bottom:10px;">⚡ KEY PRICE LEVELS TO WATCH</div>' +
+        Object.entries(data.levels).map(([sym, lvl]) =>
+          `<div style="font-size:0.85rem;margin-bottom:6px;"><strong>${sym}:</strong> <span style="color:var(--accent3);">Support ${lvl.support}</span> | <span style="color:var(--accent);">Resistance ${lvl.resistance}</span></div>`
+        ).join('');
+    } else { levelsDiv.style.display = 'none'; }
+
+    // Bottom line
+    if (data.bottomLine) {
+      bottomDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--accent2);font-weight:700;margin-bottom:8px;">🧠 BOTTOM LINE</div>' +
+        `<div style="font-size:0.85rem;line-height:1.6;color:var(--fg);">${data.bottomLine}</div>`;
+    } else { bottomDiv.style.display = 'none'; }
+
+  } catch (e) {
+    loading.style.display = 'none';
+    content.style.display = 'none';
+    error.style.display = 'block';
+  }
+}
+loadCatalysts();
+setInterval(loadCatalysts, 300000);
+
+// ── Strategy Labs Panel ──────────────────────────────
+async function loadStrategyLabs() {
+  const loading = document.getElementById('sl-loading');
+  const content = document.getElementById('sl-content');
+  const error = document.getElementById('sl-error');
+
+  try {
+    const res = await fetch('/api/strategy-labs');
+    const data = await res.json();
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+
+    // Mock account
+    document.getElementById('sl-balance').textContent = data.mock?.balance != null
+      ? '$' + data.mock.balance.toLocaleString(undefined, { maximumFractionDigits: 0 })
+      : '—';
+    document.getElementById('sl-peak').textContent = data.mock?.peak != null
+      ? '$' + data.mock.peak.toLocaleString(undefined, { maximumFractionDigits: 0 })
+      : '—';
+    document.getElementById('sl-open').textContent = data.mock?.openTrades?.length ?? 0;
+
+    // ML model
+    document.getElementById('sl-model').textContent = data.mlModel
+      ? `${data.mlModel.name} (acc ${data.mlModel.metrics?.accuracy ?? '?'})`
+      : 'No model trained yet';
+
+    // Stats table
+    const statsBody = document.getElementById('sl-stats-body');
+    if (data.mock?.closedStats?.length) {
+      statsBody.innerHTML = data.mock.closedStats.map(s => {
+        const pnlColor = s.total_pnl > 0 ? 'var(--accent)' : s.total_pnl < 0 ? 'var(--accent3)' : 'var(--fg2)';
+        return `<tr>
+          <td style="font-weight:600;">${s.strategy_name}</td>
+          <td>${s.trades}</td>
+          <td style="color:var(--accent);">${s.wins}</td>
+          <td style="color:var(--accent3);">${s.losses}</td>
+          <td style="color:${pnlColor};font-weight:700;">$${Number(s.total_pnl).toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+          <td>${Number(s.avg_return).toFixed(2)}%</td>
+        </tr>`;
+      }).join('');
+    } else {
+      statsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg2);padding:16px;">No closed trades yet. Strategies are being tested.</td></tr>';
+    }
+
+    // Promoted strategies
+    const promotedDiv = document.getElementById('sl-promoted');
+    if (data.promotedStrategies?.length) {
+      promotedDiv.innerHTML = data.promotedStrategies.map(p =>
+        `<span style="display:inline-block;background:rgba(16,185,129,0.12);color:var(--accent);padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;margin:0 6px 6px 0;">
+          🏆 ${p.name} · ${(p.winRate*100).toFixed(0)}% WR · $${Number(p.totalPnl).toLocaleString(undefined,{maximumFractionDigits:0})}
+        </span>`
+      ).join('');
+    } else {
+      promotedDiv.innerHTML = '<span style="color:var(--fg2);font-size:0.8rem;">No strategies promoted yet. Need ≥30 trades with ≥54% win rate.</span>';
+    }
+
+  } catch (e) {
+    loading.style.display = 'none';
+    error.style.display = 'block';
+  }
+}
+loadStrategyLabs();
+setInterval(loadStrategyLabs, 60000);
 </script>
+
 </body>
 </html>

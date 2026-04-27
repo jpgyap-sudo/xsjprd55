@@ -39,6 +39,9 @@ import signalHandler from './api/signal.js';
 import walletTrackerHandler from './api/wallet-tracker.js';
 import agentImprovementHandler from './api/agent-improvement.js';
 import socialSentimentHandler from './api/social-sentiment.js';
+import strategyLabsHandler from './api/strategy-labs.js';
+import researchAgentHandler from './api/research-agent.js';
+import mockFeedbackHandler from './api/mock-feedback.js';
 
 const PORT = config.PORT || 3000;
 const HOST = config.HOST || '0.0.0.0';
@@ -71,6 +74,9 @@ const routes = {
   '/api/agent-improvement/summary': agentImprovementHandler,
   '/api/social-sentiment': socialSentimentHandler,
   '/api/social-sentiment/trends': socialSentimentHandler,
+  '/api/strategy-labs': strategyLabsHandler,
+  '/api/research-agent': researchAgentHandler,
+  '/api/mock-feedback': mockFeedbackHandler,
 };
 
 // ── Request / Response helpers ──────────────────────────────
