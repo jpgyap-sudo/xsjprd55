@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neural Social Intelligence — xsjprd55</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0b0e14; color: #c9d1d9; padding: 20px; }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; color: #58a6ff; }
+    .subtitle { font-size: 0.85rem; color: #8b949e; margin-bottom: 24px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 16px; }
+    .card h2 { font-size: 1rem; margin-bottom: 12px; color: #79c0ff; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 6px; }
+    .badge-bullish { background: #238636; color: #fff; }
+    .badge-bearish { background: #da3633; color: #fff; }
+    .badge-neutral { background: #6e7681; color: #fff; }
+    .badge-high { background: #f85149; color: #fff; }
+    .badge-medium { background: #d29922; color: #000; }
+    .badge-low { background: #3fb950; color: #000; }
+    .event-row { border-bottom: 1px solid #21262d; padding: 10px 0; }
+    .event-row:last-child { border-bottom: none; }
+    .event-meta { font-size: 0.75rem; color: #8b949e; margin-top: 4px; }
+    .score-bar { height: 6px; background: #21262d; border-radius: 3px; margin-top: 6px; overflow: hidden; }
+    .score-bar-fill { height: 100%; border-radius: 3px; }
+    .score-bar-fill.positive { background: #238636; }
+    .score-bar-fill.negative { background: #da3633; }
+    .controls { margin-bottom: 20px; }
+    .controls select, .controls button { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; margin-right: 8px; cursor: pointer; }
+    .controls button:hover { background: #30363d; }
+    .health-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #21262d; }
+    .health-row:last-child { border-bottom: none; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .status-dot.ok { background: #3fb950; }
+    .status-dot.degraded { background: #d29922; }
+    .status-dot.offline { background: #f85149; }
+    .empty { color: #8b949e; font-style: italic; font-size: 0.85rem; }
+    .refresh { float: right; font-size: 0.75rem; color: #8b949e; }
+  </style>
+</head>
+<body>
+  <h1>Neural Social Intelligence</h1>
+  <div class="subtitle">AI-analyzed crypto news & sentiment feed</div>
+
+  <div class="controls">
+    <select id="symbolFilter">
+      <option value="">All Symbols</option>
+      <option value="BTCUSDT">BTCUSDT</option>
+      <option value="ETHUSDT">ETHUSDT</option>
+      <option value="SOLUSDT">SOLUSDT</option>
+      <option value="BNBUSDT">BNBUSDT</option>
+      <option value="XRPUSDT">XRPUSDT</option>
+      <option value="DOGEUSDT">DOGEUSDT</option>
+    </select>
+    <button onclick="loadEvents()">Refresh Events</button>
+    <button onclick="loadHealth()">Refresh Health</button>
+    <span class="refresh" id="lastRefresh">Never</span>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Latest Events</h2>
+      <div id="eventsList"><div class="empty">Loading...</div></div>
+    </div>
+    <div class="card">
+      <h2>Source Health</h2>
+      <div id="healthList"><div class="empty">Loading...</div></div>
+    </div>
+    <div class="card">
+      <h2>Sentiment Overview</h2>
+      <div id="sentimentOverview"><div class="empty">Loading...</div></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '';
+
+    function formatTime(iso) {
+      if (!iso) return '-';
+      const d = new Date(iso);
+      return d.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' });
+    }
+
+    function biasBadge(bias) {
+      const cls = bias === 'bullish' ? 'badge-bullish' : bias === 'bearish' ? 'badge-bearish' : 'badge-neutral';
+      return `<span class="badge ${cls}">${bias}</span>`;
+    }
+
+    function impactBadge(level) {
+      const cls = level === 'high' || level === 'critical' ? 'badge-high' : level === 'medium' ? 'badge-medium' : 'badge-low';
+      return `<span class="badge ${cls}">${level}</span>`;
+    }
+
+    async function loadEvents() {
+      const symbol = document.getElementById('symbolFilter').value;
+      const url = `${API_BASE}/api/social-intel?type=latest&limit=25${symbol ? '&symbol=' + symbol : ''}`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        const el = document.getElementById('eventsList');
+        if (!data.ok || !data.events.length) {
+          el.innerHTML = '<div class="empty">No events found.</div>';
+          return;
+        }
+        el.innerHTML = data.events.map(ev => {
+          const sentimentBar = Math.abs(ev.sentiment_score || 0) * 50;
+          const barClass = (ev.sentiment_score || 0) >= 0 ? 'positive' : 'negative';
+          return `
+            <div class="event-row">
+              <div>
+                ${biasBadge(ev.suggested_bias)}
+                ${impactBadge(ev.impact_level)}
+                <strong>${ev.symbol || 'N/A'}</strong> — ${ev.event_type}
+              </div>
+              <div style="margin-top:4px;font-size:0.85rem;">${ev.summary || 'No summary'}</div>
+              <div class="score-bar"><div class="score-bar-fill ${barClass}" style="width:${sentimentBar}%"></div></div>
+              <div class="event-meta">
+                Score: ${ev.event_score} | Confidence: ${ev.confidence} | ${ev.model_provider} | ${formatTime(ev.created_at)}
+              </div>
+            </div>
+          `;
+        }).join('');
+        updateSentimentOverview(data.events);
+      } catch (err) {
+        document.getElementById('eventsList').innerHTML = `<div class="empty">Error: ${err.message}</div>`;
+      }
+      document.getElementById('lastRefresh').textContent = 'Last: ' + new Date().toLocaleTimeString();
+    }
+
+    async function loadHealth() {
+      try {
+        const res = await fetch(`${API_BASE}/api/social-intel?type=health`);
+        const data = await res.json();
+        const el = document.getElementById('healthList');
+        if (!data.ok || !data.health.length) {
+          el.innerHTML = '<div class="empty">No health data.</div>';
+          return;
+        }
+        el.innerHTML = data.health.map(h => `
+          <div class="health-row">
+            <span><span class="status-dot ${h.status}"></span>${h.source_id}</span>
+            <span style="font-size:0.8rem;color:#8b949e">${h.last_items_found || 0} items | ${h.status}</span>
+          </div>
+        `).join('');
+      } catch (err) {
+        document.getElementById('healthList').innerHTML = `<div class="empty">Error: ${err.message}</div>`;
+      }
+    }
+
+    function updateSentimentOverview(events) {
+      const el = document.getElementById('sentimentOverview');
+      let bullish = 0, bearish = 0, neutral = 0;
+      let highImpact = 0;
+      for (const ev of events) {
+        if (ev.suggested_bias === 'bullish') bullish++;
+        else if (ev.suggested_bias === 'bearish') bearish++;
+        else neutral++;
+        if (ev.impact_level === 'high' || ev.impact_level === 'critical') highImpact++;
+      }
+      const total = events.length;
+      el.innerHTML = `
+        <div style="margin-bottom:10px;"><strong>Total Events:</strong> ${total}</div>
+        <div style="margin-bottom:6px;">${biasBadge('bullish')} ${bullish} (${Math.round(bullish/total*100)}%)</div>
+        <div style="margin-bottom:6px;">${biasBadge('bearish')} ${bearish} (${Math.round(bearish/total*100)}%)</div>
+        <div style="margin-bottom:6px;">${biasBadge('neutral')} ${neutral} (${Math.round(neutral/total*100)}%)</div>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #21262d;">
+          <strong>High Impact:</strong> ${highImpact} events
+        </div>
+      `;
+    }
+
+    document.getElementById('symbolFilter').addEventListener('change', loadEvents);
+    loadEvents();
+    loadHealth();
+    setInterval(() => { loadEvents(); loadHealth(); }, 60000);
+  </script>
+</body>
+</html>

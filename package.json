@@ -11,14 +11,19 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
     "@supabase/supabase-js": "^2.47.0",
     "better-sqlite3": "^11.0.0",
     "ccxt": "^4.4.0",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.7",
     "express": "^4.19.0",
     "ml-random-forest": "^2.0.0",
     "node-fetch": "^3.3.2",
+    "openai": "^4.95.0",
     "pg": "^8.20.0",
-    "uuid": "^11.0.0"
+    "rss-parser": "^3.13.0",
+    "uuid": "^14.0.0"
   },
   "devDependencies": {
     "eslint": "^9.15.0",

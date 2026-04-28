@@ -2,11 +2,12 @@
 // Signal Generator — /api/signal
 // GET  : cron-triggered auto-scan
 // POST : manual trigger with optional overrides
+// Now integrates Neural Social Intelligence boost.
 // ============================================================
 
 import { supabase } from '../lib/supabase.js';
 import { fetchOHLCV } from '../lib/exchange.js';
-import { runAllStrategies } from '../lib/signal-engine.js';
+import { runAllStrategiesWithIntel } from '../lib/signal-engine.js';
 import { validateSignal, checkRiskGates, logAudit } from '../lib/risk.js';
 import { sendTelegram, formatSignalMessage, signalKeyboard } from '../lib/telegram.js';
 import { extractPattern } from '../lib/pattern-learner.js';
@@ -56,8 +57,8 @@ export default async function handler(req, res) {
             close: latest[4], volume: latest[5]
           }, { onConflict: 'symbol,exchange,timeframe,timestamp' });
 
-          // Run all strategies
-          const candidates = runAllStrategies(pair, tf, ohlcv);
+          // Run all strategies with social intel boost
+          const candidates = await runAllStrategiesWithIntel(pair, tf, ohlcv);
           for (const raw of candidates) {
             raw.mode = mode;
 

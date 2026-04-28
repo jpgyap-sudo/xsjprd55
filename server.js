@@ -4,6 +4,7 @@
 // Serves public/ static files and routes /api/* to handlers.
 // ============================================================
 
+import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
