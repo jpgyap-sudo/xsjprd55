@@ -87,6 +87,20 @@ async function checkOkxFunding() {
   }
 }
 
+async function checkHyperliquid() {
+  try {
+    const start = Date.now();
+    const res = await fetch('https://api.hyperliquid.xyz/info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'meta' })
+    });
+    return { ok: res.ok, latency: Date.now() - start };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
 async function checkLunarCrush() {
   const apiKey = config.LUNARCRUSH_API_KEY;
   if (!apiKey) return { ok: false, error: 'LUNARCRUSH_API_KEY not configured', configured: false };
@@ -100,63 +114,71 @@ async function checkLunarCrush() {
 }
 
 export default async function handler(req, res) {
-  const [
-    supabaseStatus,
-    binanceStatus,
-    bybitStatus,
-    okxStatus,
-    telegramStatus,
-    kimiStatus,
-    anthropicStatus,
-    coinGeckoStatus,
-    okxFundingStatus,
-    lunarCrushStatus
-  ] = await Promise.all([
-    checkSupabase(),
-    checkExchange('binance'),
-    checkExchange('bybit'),
-    checkExchange('okx'),
-    checkTelegram(),
-    checkKimi(),
-    checkAnthropic(),
-    checkCoinGecko(),
-    checkOkxFunding(),
-    checkLunarCrush()
-  ]);
+  try {
+    const [
+      supabaseStatus,
+      binanceStatus,
+      bybitStatus,
+      okxStatus,
+      hyperliquidStatus,
+      telegramStatus,
+      kimiStatus,
+      anthropicStatus,
+      coinGeckoStatus,
+      okxFundingStatus,
+      lunarCrushStatus
+    ] = await Promise.all([
+      checkSupabase(),
+      checkExchange('binance'),
+      checkExchange('bybit'),
+      checkExchange('okx'),
+      checkHyperliquid(),
+      checkTelegram(),
+      checkKimi(),
+      checkAnthropic(),
+      checkCoinGecko(),
+      checkOkxFunding(),
+      checkLunarCrush()
+    ]);
 
-  const checks = {
-    env: {
-      ai_provider: config.AI_PROVIDER,
-      trading_mode: config.TRADING_MODE,
-      deployment_target: config.DEPLOYMENT_TARGET
-    },
-    services: {
-      supabase: supabaseStatus,
-      telegram: telegramStatus,
-      coingecko: coinGeckoStatus,
-      okx_funding: okxFundingStatus
-    },
-    exchanges: {
-      binance: binanceStatus,
-      bybit: bybitStatus,
-      okx: okxStatus
-    },
-    ai: {
-      kimi: kimiStatus,
-      anthropic: anthropicStatus
-    },
-    data_feeds: {
-      lunarcrush: lunarCrushStatus
-    },
-    timestamp: new Date().toISOString()
-  };
+    const checks = {
+      env: {
+        ai_provider: config.AI_PROVIDER,
+        trading_mode: config.TRADING_MODE,
+        deployment_target: config.DEPLOYMENT_TARGET
+      },
+      services: {
+        supabase: supabaseStatus,
+        telegram: telegramStatus,
+        coingecko: coinGeckoStatus,
+        okx_funding: okxFundingStatus
+      },
+      exchanges: {
+        binance: binanceStatus,
+        bybit: bybitStatus,
+        okx: okxStatus,
+        hyperliquid: hyperliquidStatus
+      },
+      ai: {
+        kimi: kimiStatus,
+        anthropic: anthropicStatus
+      },
+      data_feeds: {
+        lunarcrush: lunarCrushStatus
+      },
+      timestamp: new Date().toISOString()
+    };
 
-  const allOk = [
-    supabaseStatus.ok,
-    binanceStatus.ok,
-    telegramStatus.ok,
-    coinGeckoStatus.ok
-  ].every(Boolean);
+    const allOk = [
+      supabaseStatus.ok,
+      binanceStatus.ok,
+      telegramStatus.ok,
+      coinGeckoStatus.ok
+    ].every(Boolean);
 
-  return res.status(allOk ? 200 : 503).json(checks);
+    return res.status(allOk ? 200 : 503).json({ ok: true, checks });
+  } catch (e) {
+    console.error('[health] Error:', e);
+    return res.status(500).json({ ok: false, error: e.message });
+  }
 }
