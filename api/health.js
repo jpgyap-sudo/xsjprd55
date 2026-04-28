@@ -44,8 +44,17 @@ async function checkKimi() {
   if (!apiKey) return { ok: false, error: 'KIMI_API_KEY not configured', configured: false };
   try {
     const start = Date.now();
-    const res = await fetch(`${config.KIMI_BASE_URL}/models`, {
-      headers: { 'Authorization': `Bearer ${apiKey}` }
+    const res = await fetch(`${config.KIMI_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: config.KIMI_MODEL || 'kimi-k2-6',
+        messages: [{ role: 'user', content: 'Hi' }],
+        max_tokens: 1
+      })
     });
     return { ok: res.ok, latency: Date.now() - start, configured: true };
   } catch (e) {

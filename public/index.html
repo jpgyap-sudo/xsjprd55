@@ -128,6 +128,22 @@
     .status-dot-sm.online { background: var(--accent); box-shadow: 0 0 8px rgba(34,197,94,0.4); }
     .status-dot-sm.offline { background: var(--accent3); box-shadow: 0 0 8px rgba(239,68,68,0.4); }
     .status-dot-sm.warn { background: var(--accent2); box-shadow: 0 0 8px rgba(234,179,8,0.4); }
+    /* Diagnostics */
+    .diag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+    .diag-card { background: var(--bg2); border-radius: 12px; padding: 18px; border: 1px solid var(--border); }
+    .diag-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .diag-card-title { font-weight: 700; font-size: 0.9rem; }
+    .diag-metric { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(30,37,56,0.4); }
+    .diag-metric:last-child { border-bottom: none; }
+    .diag-metric-label { font-size: 0.82rem; color: var(--fg2); }
+    .diag-metric-value { font-weight: 600; font-size: 0.85rem; }
+    .diag-bar { width: 100%; height: 6px; background: var(--bg3); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+    .diag-bar-inner { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+    .diag-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+    .diag-badge.fresh { background: rgba(34,197,94,0.15); color: var(--accent); }
+    .diag-badge.warn { background: rgba(234,179,8,0.15); color: var(--accent2); }
+    .diag-badge.stale { background: rgba(239,68,68,0.15); color: var(--accent3); }
+    .diag-badge.no-data { background: rgba(148,163,184,0.15); color: var(--fg2); }
     .status-info { flex: 1; min-width: 0; }
     .status-name { font-weight: 600; font-size: 0.88rem; }
     .status-meta { font-size: 0.75rem; color: var(--fg2); margin-top: 2px; }
@@ -248,6 +264,7 @@
   <button class="tab-btn" data-tab="news">📰 News & Intel</button>
   <button class="tab-btn" data-tab="ai">🤖 AI Chat</button>
   <button class="tab-btn" data-tab="api-status">📡 API Status</button>
+  <button class="tab-btn" data-tab="diagnostics">🩺 Diagnostics</button>
 </nav>
 
 <div class="container">
@@ -560,6 +577,68 @@
           <div>
             <div style="font-size:0.75rem;color:var(--fg2);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Data Feeds</div>
             <div class="status-grid" id="status-data"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- DIAGNOSTICS TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-diagnostics">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🩺 System Diagnostics</span>
+        <span style="font-size:0.75rem;color:var(--fg2);" id="diag-time">Checking…</span>
+      </div>
+      <div class="card-body">
+        <div id="diag-loading" style="text-align:center;padding:30px;color:var(--fg2);">
+          <div class="spinner" style="width:28px;height:28px;border:3px solid rgba(148,163,184,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px;"></div>
+          Running diagnostics…
+        </div>
+        <div id="diag-error" style="display:none;text-align:center;padding:30px;color:var(--accent3);">
+          Failed to load diagnostics.
+        </div>
+        <div id="diag-content" style="display:none;">
+          <div class="diag-grid">
+            <!-- News Quality -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <span class="diag-card-title">📰 News Feed Quality</span>
+                <span class="diag-badge" id="diag-news-badge">—</span>
+              </div>
+              <div id="diag-news-metrics"></div>
+            </div>
+            <!-- Signal Accuracy -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <span class="diag-card-title">🎯 Signal Accuracy (7d)</span>
+                <span class="diag-badge" id="diag-signal-badge">—</span>
+              </div>
+              <div id="diag-signal-metrics"></div>
+            </div>
+            <!-- Backtest Performance -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <span class="diag-card-title">📊 Backtest Performance</span>
+              </div>
+              <div id="diag-backtest-metrics"></div>
+            </div>
+            <!-- Data Freshness -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <span class="diag-card-title">⏱️ Data Freshness</span>
+              </div>
+              <div id="diag-freshness-metrics"></div>
+            </div>
+            <!-- System Performance -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <span class="diag-card-title">⚙️ System Performance</span>
+              </div>
+              <div id="diag-system-metrics"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1079,6 +1158,106 @@ async function loadApiStatus() {
 }
 loadApiStatus();
 setInterval(loadApiStatus, 30000);
+
+// ── Diagnostics ──────────────────────────────────────
+async function loadDiagnostics() {
+  const loading = document.getElementById('diag-loading');
+  const content = document.getElementById('diag-content');
+  const error = document.getElementById('diag-error');
+  const timeEl = document.getElementById('diag-time');
+
+  try {
+    const res = await fetch('/api/diagnostics');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+    timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+    // News
+    const news = data.news || {};
+    const newsBadge = document.getElementById('diag-news-badge');
+    if (newsBadge) {
+      newsBadge.className = 'diag-badge ' + (news.freshness || 'no-data');
+      newsBadge.textContent = news.freshness === 'fresh' ? 'Fresh' : news.freshness === 'stale' ? 'Stale' : news.freshness === 'warn' ? 'Warning' : 'No Data';
+    }
+    document.getElementById('diag-news-metrics').innerHTML = news.ok ? `
+      <div class="diag-metric"><span class="diag-metric-label">Last Ingest</span><span class="diag-metric-value">${news.lastIngestAgo}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Total Articles</span><span class="diag-metric-value">${news.totalArticles.toLocaleString()}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Active Sources (24h)</span><span class="diag-metric-value">${news.activeSources24h}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Sources</span><span class="diag-metric-value" style="font-size:0.75rem;color:var(--fg2);">${(news.sourceNames || []).join(', ') || '—'}</span></div>
+    ` : `<div style="color:var(--accent3);font-size:0.85rem;">Error: ${news.error}</div>`;
+
+    // Signals
+    const sig = data.signals || {};
+    const sigBadge = document.getElementById('diag-signal-badge');
+    if (sigBadge) {
+      const sr = sig.winRate || 0;
+      sigBadge.className = 'diag-badge ' + (sr >= 0.6 ? 'fresh' : sr >= 0.5 ? 'warn' : 'stale');
+      sigBadge.textContent = (sr * 100).toFixed(0) + '% WR';
+    }
+    document.getElementById('diag-signal-metrics').innerHTML = sig.ok ? `
+      <div class="diag-metric"><span class="diag-metric-label">Signals (7d)</span><span class="diag-metric-value">${sig.signals7d}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">With Outcome</span><span class="diag-metric-value">${sig.withOutcome}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Wins / Losses</span><span class="diag-metric-value" style="color:var(--accent);">${sig.wins}</span> / <span style="color:var(--accent3);">${sig.losses}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Win Rate</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="diag-bar" style="flex:1;"><div class="diag-bar-inner" style="width:${(sig.winRate*100).toFixed(0)}%;background:${sig.winRate>=0.6?'var(--accent)':sig.winRate>=0.5?'var(--accent2)':'var(--accent3)'};"></div></div>
+          <span style="font-size:0.8rem;font-weight:600;">${(sig.winRate*100).toFixed(1)}%</span>
+        </div>
+      </div>
+      <div class="diag-metric"><span class="diag-metric-label">Avg Confidence</span><span class="diag-metric-value">${(sig.avgConfidence*100).toFixed(1)}%</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Top Strategy</span><span class="diag-metric-value" style="font-size:0.75rem;">${sig.topStrategies?.[0]?.name || '—'}</span></div>
+    ` : `<div style="color:var(--accent3);font-size:0.85rem;">Error: ${sig.error}</div>`;
+
+    // Backtests
+    const bt = data.backtests || {};
+    document.getElementById('diag-backtest-metrics').innerHTML = bt.ok ? `
+      <div class="diag-metric"><span class="diag-metric-label">Total Backtests</span><span class="diag-metric-value">${bt.totalBacktests}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Best Strategy</span><span class="diag-metric-value">${bt.bestStrategy || '—'}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Best Return</span><span class="diag-metric-value" style="color:${bt.bestReturnPct>=0?'var(--accent)':'var(--accent3)'}">${bt.bestReturnPct?.toFixed(2) || 0}%</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Best Sharpe</span><span class="diag-metric-value">${bt.bestSharpe?.toFixed(2) || '—'}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Avg Trades / BT</span><span class="diag-metric-value">${Math.round(bt.avgTrades || 0)}</span></div>
+    ` : `<div style="color:var(--accent3);font-size:0.85rem;">Error: ${bt.error}</div>`;
+
+    // Freshness
+    const fresh = data.freshness || [];
+    document.getElementById('diag-freshness-metrics').innerHTML = fresh.map(f => {
+      const badgeClass = f.status;
+      const badgeText = f.status === 'fresh' ? 'Fresh' : f.status === 'warn' ? 'Warning' : f.status === 'stale' ? 'Stale' : f.status === 'error' ? 'Error' : 'No Data';
+      return `
+        <div class="diag-metric">
+          <span class="diag-metric-label">${f.source}</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="diag-badge ${badgeClass}">${badgeText}</span>
+            <span style="font-size:0.75rem;color:var(--fg2);">${f.ageMin != null ? f.ageMin + 'm ago' : '—'}</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    // System
+    const sys = data.system || {};
+    document.getElementById('diag-system-metrics').innerHTML = `
+      <div class="diag-metric"><span class="diag-metric-label">Uptime</span><span class="diag-metric-value">${sys.uptimeFormatted || '—'}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Node</span><span class="diag-metric-value" style="font-size:0.75rem;">${sys.nodeVersion || '—'}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Memory (RSS)</span><span class="diag-metric-value">${sys.memoryMb?.rss || '—'} MB</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Heap Used</span><span class="diag-metric-value">${sys.memoryMb?.heapUsed || '—'} / ${sys.memoryMb?.heapTotal || '—'} MB</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Environment</span><span class="diag-metric-value">${sys.env || '—'} · ${sys.tradingMode || '—'}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">AI Provider</span><span class="diag-metric-value">${sys.aiProvider || '—'}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Deployment</span><span class="diag-metric-value">${sys.deploymentTarget || '—'}</span></div>
+    `;
+
+  } catch (e) {
+    loading.style.display = 'none';
+    content.style.display = 'none';
+    error.style.display = 'block';
+    timeEl.textContent = 'Check failed';
+  }
+}
+loadDiagnostics();
+setInterval(loadDiagnostics, 60000);
 </script>
 
 </body>

@@ -33,6 +33,26 @@ module.exports = {
       // Max restarts within 60s before marked as errored
       max_restarts: 10,
       min_uptime: '10s'
+    },
+    {
+      name: 'diagnostic-agent',
+      script: './workers/diagnostic-agent.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/diag-combined.log',
+      out_file: './logs/diag-out.log',
+      error_file: './logs/diag-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
     }
   ]
 };
