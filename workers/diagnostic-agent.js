@@ -19,7 +19,10 @@ let lastAlertTimes = {};
 async function checkApi(url, options = {}) {
   const start = Date.now();
   try {
-    const res = await fetch(url, { ...options, timeout: 15000 });
+    const res = await fetch(url, {
+      ...options,
+      signal: AbortSignal.timeout(15000),
+    });
     return { ok: res.ok, latency: Date.now() - start, status: res.status };
   } catch (e) {
     return { ok: false, error: e.message, latency: Date.now() - start };
@@ -62,16 +65,49 @@ async function checkCoinGecko() {
 
 async function checkKimi() {
   if (!config.KIMI_API_KEY) return { ok: false, configured: false };
-  return checkApi(`${config.KIMI_BASE_URL}/models`, {
-    headers: { 'Authorization': `Bearer ${config.KIMI_API_KEY}` },
-  });
+  const start = Date.now();
+  try {
+    const res = await fetch(`${config.KIMI_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${config.KIMI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: config.KIMI_MODEL || 'kimi-k2-6',
+        messages: [{ role: 'user', content: 'Hi' }],
+        max_tokens: 1,
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    return { ok: res.ok, latency: Date.now() - start, configured: true };
+  } catch (e) {
+    return { ok: false, error: e.message, latency: Date.now() - start, configured: true };
+  }
 }
 
 async function checkAnthropic() {
   if (!config.ANTHROPIC_API_KEY) return { ok: false, configured: false };
-  return checkApi('https://api.anthropic.com/v1/models', {
-    headers: { 'x-api-key': config.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-  });
+  const start = Date.now();
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': config.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: config.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'Hi' }],
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+    return { ok: res.ok, latency: Date.now() - start, configured: true };
+  } catch (e) {
+    return { ok: false, error: e.message, latency: Date.now() - start, configured: true };
+  }
 }
 
 async function checkTelegram() {
