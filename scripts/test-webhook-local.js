@@ -1,11 +1,17 @@
 // Local webhook simulator — feeds the handler the exact Telegram payload
+// IMPORTANT: Load secrets from .env.local, never hardcode them in this file.
 import { createServer } from 'http';
+import 'dotenv/config';
 
-// Set env vars inline (same as .env.local)
-process.env.TELEGRAM_BOT_TOKEN = '8772102071:AAGZgdhXLTLe72PKAzcjOsv03xF3Ic6DMzQ';
-process.env.TELEGRAM_GROUP_CHAT_ID = '-1003775841452';
-process.env.SUPABASE_URL = 'https://yvsaxxuejxguvqahdpfi.supabase.co';
-process.env.SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2c2F4eHVlanhndXZxYWhkcGZpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NzAzNTA4MywiZXhwIjoyMDkyNjExMDgzfQ.M9Onpkr72DPGZmuYj8hzGbq_ft8u0qcMigCWuQ4aVuo';
+// Validate required env vars
+if (!process.env.TELEGRAM_BOT_TOKEN) {
+  console.error('❌ Set TELEGRAM_BOT_TOKEN in .env.local before running this script');
+  process.exit(1);
+}
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_KEY) {
+  console.error('❌ Set SUPABASE_URL and SUPABASE_SERVICE_KEY in .env.local');
+  process.exit(1);
+}
 
 const module = await import('../api/telegram.js');
 const handler = module.default;

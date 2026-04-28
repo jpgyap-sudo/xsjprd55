@@ -15,7 +15,7 @@ Should return JSON with status.
 --- 3. CHECK WEBHOOK IS SET ---
 curl "https://api.telegram.org/botYOUR_BOT_TOKEN/getWebhookInfo"
 
-Should show: "url":"https://165.22.110.111/api/bot"
+Should show: "url":"https://165.22.110.111/api/telegram"
 
 --- 4. TEST TELEGRAM BOT ---
 Open Telegram, message your bot:

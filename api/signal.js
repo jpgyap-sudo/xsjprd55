@@ -89,8 +89,8 @@ export default async function handler(req, res) {
               .insert(raw)
               .select()
               .single();
-            if (saveErr) {
-              results.errors.push({ pair, tf, strategy: raw.strategy, errors: [saveErr.message] });
+            if (saveErr || !saved) {
+              results.errors.push({ pair, tf, strategy: raw.strategy, errors: [saveErr?.message || 'Insert returned null'] });
               continue;
             }
 

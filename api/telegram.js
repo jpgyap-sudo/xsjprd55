@@ -176,7 +176,7 @@ async function cmdStatus(chatId) {
 async function cmdScan(chatId) {
   await sendTelegram(chatId, '🔍 Triggering signal scan...');
   try {
-    const base = process.env.VERCEL_PRODUCTION_URL || '';
+    const base = process.env.APP_URL || process.env.VERCEL_PRODUCTION_URL || `http://localhost:${process.env.PORT || 3000}`;
     const res = await fetch(`${base}/api/signal`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     const data = await res.json();
     return sendTelegram(chatId, `🔔 Scan done. Signals: ${data.signals?.length || 0} | Errors: ${data.errors?.length || 0}`);
@@ -277,7 +277,7 @@ async function cmdNews(chatId) {
 async function cmdNewsScan(chatId) {
   try {
     await sendTelegram(chatId, '🔍 Scanning news for trade signals...');
-    const base = process.env.VERCEL_PRODUCTION_URL || '';
+    const base = process.env.APP_URL || process.env.VERCEL_PRODUCTION_URL || `http://localhost:${process.env.PORT || 3000}`;
     const res = await fetch(`${base}/api/news-signal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
@@ -312,7 +312,7 @@ async function cmdNewsScan(chatId) {
 
 async function cmdCatalysts(chatId) {
   try {
-    const base = process.env.VERCEL_PRODUCTION_URL || '';
+    const base = process.env.APP_URL || process.env.VERCEL_PRODUCTION_URL || `http://localhost:${process.env.PORT || 3000}`;
     const res = await fetch(`${base}/api/catalyst`);
     const data = await res.json();
     if (!data.ok) throw new Error(data.error);
@@ -594,18 +594,22 @@ export default async function handler(req, res) {
 
   try {
     switch (cmd) {
-      case '/signal':    await cmdSignal(args, chatId, userId, sender); break;
-      case '/market':    await cmdMarket(args, chatId); break;
-      case '/status':    await cmdStatus(chatId); break;
-      case '/scan':      await cmdScan(chatId); break;
-      case '/news':      await cmdNews(chatId); break;
-      case '/newsscan':  await cmdNewsScan(chatId); break;
-      case '/catalysts': await cmdCatalysts(chatId); break;
-      case '/close':     await cmdClose(args, chatId); break;
-      case '/test':      await cmdTest(chatId); break;
-      case '/help':      await cmdHelp(chatId); break;
-      case '/start':     await cmdHelp(chatId); break;
-      case '/ask':       await cmdAsk(args, chatId, userId, sender); break;
+      case '/signal':       await cmdSignal(args, chatId, userId, sender); break;
+      case '/market':       await cmdMarket(args, chatId); break;
+      case '/status':       await cmdStatus(chatId); break;
+      case '/scan':         await cmdScan(chatId); break;
+      case '/news':         await cmdNews(chatId); break;
+      case '/newsscan':     await cmdNewsScan(chatId); break;
+      case '/catalysts':    await cmdCatalysts(chatId); break;
+      case '/close':        await cmdClose(args, chatId); break;
+      case '/test':         await cmdTest(chatId); break;
+      case '/help':         await cmdHelp(chatId); break;
+      case '/start':        await cmdHelp(chatId); break;
+      case '/ask':          await cmdAsk(args, chatId, userId, sender); break;
+      case '/suggestions':  await cmdSuggestions(chatId); break;
+      case '/learn':        await cmdLearn(chatId); break;
+      case '/sources':      await cmdSources(chatId); break;
+      case '/patterns':     await cmdPatterns(args, chatId); break;
       default:
         if (chatId) await sendTelegram(chatId, `Unknown command: ${cmd}\nTry /help`);
     }

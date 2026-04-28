@@ -49,7 +49,7 @@ WHY VPS IS SUPERIOR FOR TRADING BOTS:
    pm2 startup
 
 4. SET TELEGRAM WEBHOOK TO VPS
-   curl "https://api.telegram.org/botYOUR_TOKEN/setWebhook?url=https://165.22.110.111/api/bot&secret_token=YOUR_SECRET"
+   curl "https://api.telegram.org/botYOUR_TOKEN/setWebhook?url=https://165.22.110.111/api/telegram&secret_token=YOUR_SECRET"
 
 5. OPEN FIREWALL
    ufw allow 3000/tcp
@@ -76,7 +76,7 @@ Then use free Let's Encrypt SSL:
    certbot --nginx -d bot.yourdomain.com
 
 Then webhook becomes:
-   https://bot.yourdomain.com/api/bot
+   https://bot.yourdomain.com/api/telegram
 
 --- COST COMPARISON ---
 
