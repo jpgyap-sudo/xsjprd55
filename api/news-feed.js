@@ -18,7 +18,13 @@ export default async function handler(req, res) {
 
   try {
     const assets = asset ? [asset.toUpperCase()] : [];
-    const newsItems = await queryNews({ assets, hours, limit, minFreshness: 0.05 });
+    let newsItems = [];
+    try {
+      newsItems = await queryNews({ assets, hours, limit, minFreshness: 0.05 });
+    } catch (queryErr) {
+      // Table may not exist or be empty — return graceful empty response
+      console.warn('[news-feed] query warning:', queryErr.message);
+    }
 
     // Format for dashboard
     const items = newsItems.slice(0, limit).map(item => ({

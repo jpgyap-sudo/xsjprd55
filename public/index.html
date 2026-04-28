@@ -922,7 +922,17 @@ async function loadNewsFeed() {
   try {
     const res = await fetch('/api/news-feed?limit=15&hours=12');
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error);
+    if (!data.ok) throw new Error(data.error || 'News API error');
+
+    // Handle empty but valid response gracefully
+    if (!data.items || data.items.length === 0) {
+      loading.style.display = 'none';
+      error.style.display = 'none';
+      content.style.display = 'block';
+      overall.innerHTML = '<div style="color:var(--fg2);">Market Sentiment: <span style="font-weight:700;">No Data</span></div>';
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--fg2);font-size:0.85rem;">No news articles yet. The news crawler will populate this soon.</div>';
+      return;
+    }
 
     loading.style.display = 'none';
     error.style.display = 'none';
