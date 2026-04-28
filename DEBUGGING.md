@@ -64,3 +64,57 @@ Prevention: Add schema validation gate in signal pipeline.
 Cause: `mode` field not checked before executing action.
 Fix: Always default to `paper`; require explicit user config for `live`.
 Prevention: Add mode gate at every action point; log mode on every signal.
+
+---
+
+## Bug Log (with dates)
+
+### Execution-worker: `Cannot read properties of null (reading 'current_balance')`
+**Found:** 2026-04-28 04:15 UTC
+**Status:** IN PROGRESS
+**Problem:** `getOrCreateExecutionAccount()` returns `null` on VPS, causing worker crash on every tick.
+**Cause hypotheses:**
+1. Supabase `mock_accounts` table missing `peak_balance` / `metadata` columns → INSERT fails silently.
+2. RLS policy blocks INSERT from service role key.
+3. `data` array is empty after INSERT (Supabase sometimes returns `[null]` on schema mismatch).
+**Fix attempts:**
+- Removed unknown columns (`peak_balance`, `metadata`) from SELECT and INSERT.
+- Switched to minimal column set: `id, name, starting_balance, current_balance, created_at`.
+**Still failing:** Need to run diagnostic Node script on VPS to inspect exact Supabase response.
+**Prevention:** Add schema version check at worker startup; validate all columns exist before INSERT.
+
+### Market Snapshot only shows 3-5 pairs (BTC, ETH, SOL)
+**Found:** 2026-04-28 20:45 UTC
+**Status:** FIX APPLIED, pending deploy
+**Problem:** Browser CORS blocks direct `fetch('https://api.binance.com/api/v3/ticker/24hr')`, so frontend falls back to CoinGecko which only returns 3 coins.
+**Fix:** Created backend proxy [`api/binance-ticker.js`](api/binance-ticker.js) and updated frontend `loadMarketData()` to call `/api/binance-ticker?limit=70&sort=absChange`.
+**Deploy status:** Committed, needs VPS pull + PM2 restart.
+**Prevention:** Never fetch third-party APIs directly from browser; always route through backend proxy.
+
+### Proposal detail modal missing in App Dev tab
+**Found:** 2026-04-28 19:30 UTC
+**Status:** FIXED
+**Problem:** Clicking a proposal in Capability Proposals table did nothing — no detail view existed.
+**Fix:** Added rich proposal detail modal (~130 lines CSS + HTML + JS) with lifecycle timeline, impact bar, metadata JSON display, and `openAdModal()` / `closeAdModal()` handlers.
+**Prevention:** Every table row with data should have an onclick detail handler from day one.
+
+### server.js crash: `apiFiles is not defined`
+**Found:** 2026-04-28 16:00 UTC
+**Status:** FIXED
+**Problem:** After adding nested API route discovery, `apiFiles.map(...)` referenced `apiFiles` which was renamed to `apiRoutes` earlier.
+**Fix:** Changed `apiFiles.map((r) => r.route)` to `apiRoutes.map((r) => r.route)`.
+**Prevention:** Run `node server.js` locally before committing; add a pre-commit lint step.
+
+### ML model shows "No model · 0 models loaded"
+**Found:** 2026-04-28 15:00 UTC
+**Status:** FIXED
+**Problem:** RandomForest model requires ≥100 labeled samples but `signal_snapshots` table was empty.
+**Fix:** Created `lib/ml/auto-train.js` with synthetic data bootstrapper (`generateSyntheticSamples`) that creates 200 heuristic-based labeled rows when <100 exist, then trains the model.
+**Prevention:** Always ship a bootstrap path for ML models; never require real labeled data to initialize.
+
+### SSH deploy key mismatch (`id_ed25519` vs `id_ed25519_roo`)
+**Found:** 2026-04-28 14:00 UTC
+**Status:** FIXED
+**Problem:** `ssh -i ~/.ssh/id_ed25519` rejected; `id_ed25519_roo` works.
+**Fix:** Updated all deploy scripts to use `id_ed25519_roo`.
+**Prevention:** Document the correct key filename in DEPLOY-ARCHITECTURE.txt and pin it in scripts.

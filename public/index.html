@@ -877,6 +877,7 @@
       <div class="card-header">
         <span>🔴 Catalyst Watch</span>
         <span class="badge live" id="catalyst-updated" style="font-size:0.6rem;padding:2px 8px;">Live</span>
+        <span id="catalyst-timestamp" style="font-size:0.6rem;color:var(--fg2);margin-left:auto;">Updating...</span>
       </div>
       <div class="card-body" style="padding:0;">
         <div id="catalyst-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading catalysts...</div>
@@ -1296,43 +1297,29 @@ tabBtns.forEach(btn => {
 async function loadMarketData() {
   const grid = document.getElementById('stats-grid');
   try {
-    const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
-    const data = await res.json();
-    const perps = data
-      .filter(t => t.symbol.endsWith('USDT') && !t.symbol.includes('_'))
-      .sort((a, b) => Math.abs(Number(b.priceChangePercent)) - Math.abs(Number(a.priceChangePercent)))
-      .slice(0, 18);
+    const res = await fetch('/api/binance-ticker?limit=70&sort=absChange');
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error);
+    const perps = json.data;
 
     grid.innerHTML = perps.map(t => {
-      const chg = Number(t.priceChangePercent);
+      const chg = t.changePct;
       const color = chg >= 0 ? 'var(--accent)' : 'var(--accent3)';
       const arrow = chg >= 0 ? '▲' : '▼';
       return `
         <div class="stat-item" style="min-width:110px;">
           <div class="stat-label">${t.symbol.replace('USDT','')}</div>
-          <div class="stat-value" style="font-size:0.95rem;">$${Number(t.lastPrice).toLocaleString(undefined,{maximumFractionDigits:t.lastPrice<1?6:2})}</div>
+          <div class="stat-value" style="font-size:0.95rem;">$${Number(t.price).toLocaleString(undefined,{maximumFractionDigits:t.price<1?6:2})}</div>
           <div class="stat-change" style="color:${color};font-size:0.78rem;">${arrow} ${Math.abs(chg).toFixed(2)}%</div>
         </div>`;
-    }).join('');
+    }).join('') +
+    `<div class="stat-item" style="min-width:140px;align-self:center;">
+      <div class="stat-label" style="font-size:0.65rem;color:var(--fg2);">Updated</div>
+      <div class="stat-value" style="font-size:0.78rem;color:var(--fg2);">${new Date(json.fetchedAt).toLocaleTimeString()}</div>
+      <div class="stat-change" style="font-size:0.65rem;color:var(--fg2);">${json.totalPairs} pairs tracked</div>
+    </div>`;
   } catch (e) {
-    // Fallback to CoinGecko
-    try {
-      const res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana&price_change_percentage=24h');
-      const data = await res.json();
-      grid.innerHTML = data.map(c => {
-        const chg = c.price_change_percentage_24h;
-        const color = chg >= 0 ? 'var(--accent)' : 'var(--accent3)';
-        return `
-          <div class="stat-item">
-            <div class="stat-label">${c.symbol.toUpperCase()}</div>
-            <div class="stat-value">$${c.current_price.toLocaleString()}</div>
-            <div class="stat-change" style="color:${color};">${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%</div>
-          </div>`;
-      }).join('') + `
-        <div class="stat-item"><div class="stat-label">Global Market Cap</div><div class="stat-value">—</div></div>
-        <div class="stat-item"><div class="stat-label">24h Volume</div><div class="stat-value">—</div></div>
-        <div class="stat-item"><div class="stat-label">BTC Dominance</div><div class="stat-value">—</div></div>`;
-    } catch (e2) {}
+    grid.innerHTML = '<div class="stat-item" style="color:var(--accent3);">Market data unavailable</div>';
   }
 }
 loadMarketData();
@@ -1679,6 +1666,8 @@ async function loadCatalysts() {
     loading.style.display = 'none';
     error.style.display = 'none';
     content.style.display = 'block';
+    const ts = document.getElementById('catalyst-timestamp');
+    if (ts) ts.textContent = 'Updated ' + new Date().toLocaleTimeString();
 
     if (data.high?.length) {
       highDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--accent3);font-weight:700;margin-bottom:10px;">🔴 HIGH IMPACT CATALYSTS</div>' +
