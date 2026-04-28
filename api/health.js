@@ -51,7 +51,7 @@ async function checkKimi() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: config.KIMI_MODEL || 'kimi-k2-6',
+        model: config.KIMI_MODEL || 'kimi-latest',
         messages: [{ role: 'user', content: 'Hi' }],
         max_tokens: 1
       })
