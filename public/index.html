@@ -305,6 +305,171 @@
       color: var(--fg2);
       border: 1px solid var(--border);
     }
+
+    /* Proposal Detail Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.2s ease;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-content {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      max-width: 720px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      background: var(--bg2);
+      border-radius: 16px 16px 0 0;
+      z-index: 2;
+    }
+    .modal-title-wrap { flex: 1; min-width: 0; }
+    .modal-title { font-size: 1.15rem; font-weight: 700; line-height: 1.3; margin-bottom: 8px; }
+    .modal-status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .modal-close {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--fg2);
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+    .modal-close:hover { background: var(--border); color: var(--fg); }
+    .modal-body { padding: 24px; }
+    .modal-section { margin-bottom: 20px; }
+    .modal-section:last-child { margin-bottom: 0; }
+    .modal-section-title {
+      font-size: 0.7rem;
+      color: var(--fg2);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .modal-description {
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: var(--fg);
+      background: var(--bg3);
+      padding: 16px;
+      border-radius: 10px;
+      border-left: 3px solid var(--accent);
+    }
+    .modal-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .modal-meta-item {
+      background: var(--bg3);
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .modal-meta-label {
+      font-size: 0.7rem;
+      color: var(--fg2);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+    .modal-meta-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .impact-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .impact-bar {
+      flex: 1;
+      height: 8px;
+      background: var(--bg3);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .impact-bar-inner {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+    .modal-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .timeline-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .timeline-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+    .timeline-dot.done { background: var(--accent); box-shadow: 0 0 8px rgba(34,197,94,0.4); }
+    .timeline-dot.current { background: var(--accent2); box-shadow: 0 0 8px rgba(234,179,8,0.4); }
+    .timeline-content { font-size: 0.85rem; }
+    .timeline-label { font-weight: 600; }
+    .timeline-time { color: var(--fg2); font-size: 0.78rem; margin-top: 2px; }
+    .modal-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .modal-tag {
+      background: rgba(37,99,235,0.12);
+      color: #60a5fa;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    @media (max-width: 768px) {
+      .modal-meta-grid { grid-template-columns: 1fr; }
+      .modal-content { max-height: 90vh; }
+      .modal-header { padding: 16px; }
+      .modal-body { padding: 16px; }
+    }
   </style>
 </head>
 <body>
@@ -2177,8 +2342,93 @@ function renderAdTags(rows) {
   ).join('');
 }
 
+function openAdModal(id) {
+  const p = adAllProposals.find(x => String(x.id) === String(id));
+  if (!p) return;
+
+  const statusColors = {
+    pending: { bg: 'rgba(234,179,8,0.15)', color: 'var(--accent2)' },
+    approved: { bg: 'rgba(34,197,94,0.15)', color: 'var(--accent)' },
+    rejected: { bg: 'rgba(239,68,68,0.15)', color: 'var(--accent3)' },
+    in_progress: { bg: 'rgba(167,139,250,0.15)', color: '#a78bfa' },
+    implemented: { bg: 'rgba(34,197,94,0.15)', color: 'var(--accent)' }
+  };
+  const st = statusColors[p.status] || statusColors.pending;
+
+  document.getElementById('ad-modal-title').textContent = p.title;
+  document.getElementById('ad-modal-id').textContent = '#' + p.id;
+
+  const badge = document.getElementById('ad-modal-status');
+  badge.textContent = p.status;
+  badge.style.background = st.bg;
+  badge.style.color = st.color;
+  badge.style.border = '1px solid ' + st.color;
+
+  document.getElementById('ad-modal-desc').textContent = p.description || 'No description available.';
+  document.getElementById('ad-modal-category').textContent = p.category || '—';
+  document.getElementById('ad-modal-capability').textContent = p.capabilityArea || '—';
+
+  const impact = (p.impactScore || 0) * 10;
+  document.getElementById('ad-modal-impact').textContent = (p.impactScore || 0).toFixed(1);
+  const impactBar = document.getElementById('ad-modal-impact-bar');
+  impactBar.style.width = impact + '%';
+  impactBar.style.background = impact >= 80 ? 'var(--accent)' : impact >= 50 ? 'var(--accent2)' : 'var(--accent3)';
+
+  document.getElementById('ad-modal-effort').textContent = p.effortEstimate || '—';
+  document.getElementById('ad-modal-proposed').textContent = p.proposedBy || 'System';
+
+  const tagsDiv = document.getElementById('ad-modal-tags');
+  if (p.tags && p.tags.length) {
+    tagsDiv.innerHTML = p.tags.map(t => '<span class="modal-tag">' + t + '</span>').join('');
+  } else {
+    tagsDiv.innerHTML = '<span style="color:var(--fg2);font-size:0.8rem;">No tags</span>';
+  }
+
+  const timelineDiv = document.getElementById('ad-modal-timeline');
+  const steps = [
+    { label: 'Proposed', time: p.createdAt, done: true },
+    { label: 'Reviewed', time: p.reviewedAt, done: !!p.reviewedAt },
+    { label: 'Approved', time: p.approvedAt, done: !!p.approvedAt },
+    { label: 'Implemented', time: p.implementedAt, done: !!p.implementedAt }
+  ];
+  let currentIdx = 0;
+  for (let i = steps.length - 1; i >= 0; i--) {
+    if (steps[i].done) { currentIdx = i + 1; break; }
+  }
+  timelineDiv.innerHTML = steps.map((s, i) => {
+    const dotClass = s.done ? 'done' : (i === currentIdx ? 'current' : '');
+    const timeStr = s.time ? new Date(s.time).toLocaleString() : 'Pending';
+    return '<div class="timeline-item"><div class="timeline-dot ' + dotClass + '"></div><div class="timeline-content"><div class="timeline-label">' + s.label + '</div><div class="timeline-time">' + timeStr + '</div></div></div>';
+  }).join('');
+
+  const reviewSection = document.getElementById('ad-modal-review-section');
+  if (p.reviewNotes) {
+    reviewSection.style.display = 'block';
+    document.getElementById('ad-modal-review').textContent = p.reviewNotes;
+  } else {
+    reviewSection.style.display = 'none';
+  }
+
+  const metaSection = document.getElementById('ad-modal-meta-section');
+  if (p.metadata && Object.keys(p.metadata).length > 0) {
+    metaSection.style.display = 'block';
+    document.getElementById('ad-modal-meta').textContent = JSON.stringify(p.metadata, null, 2);
+  } else {
+    metaSection.style.display = 'none';
+  }
+
+  document.getElementById('ad-modal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAdModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('ad-modal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
 function renderAdDetail(id) {
-  const p = adAllProposals.find(x => x.id === id);
+  const p = adAllProposals.find(x => String(x.id) === String(id));
   if (!p) return;
   const el = document.getElementById('ad-detail');
   const statusColors = {
@@ -2188,22 +2438,24 @@ function renderAdDetail(id) {
     in_progress: '#a78bfa',
     implemented: 'var(--accent)'
   };
-  const effortStars = '⭐'.repeat(p.effortEstimate || 1) + '☆'.repeat(Math.max(0, 5 - (p.effortEstimate || 1)));
-  el.innerHTML = `
-    <div style="margin-bottom:8px;font-weight:700;font-size:0.95rem;">${p.title}</div>
-    <div style="margin-bottom:8px;color:${statusColors[p.status] || 'var(--fg2)'};font-weight:600;text-transform:uppercase;font-size:0.75rem;">${p.status}</div>
-    <div style="margin-bottom:10px;line-height:1.5;">${p.description}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.8rem;margin-bottom:10px;">
-      <div><span style="color:var(--fg2);">Category:</span> <span style="font-weight:600;">${p.category}</span></div>
-      <div><span style="color:var(--fg2);">Capability:</span> <span style="font-weight:600;">${p.capabilityArea}</span></div>
-      <div><span style="color:var(--fg2);">Impact Score:</span> <span style="font-weight:600;">${p.impactScore}/10</span></div>
-      <div><span style="color:var(--fg2);">Effort:</span> <span style="font-weight:600;">${effortStars}</span></div>
-    </div>
-    ${p.reviewNotes ? `<div style="background:var(--bg3);padding:10px;border-radius:6px;font-size:0.8rem;margin-bottom:10px;"><strong>Review Notes:</strong> ${p.reviewNotes}</div>` : ''}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      ${(p.tags || []).map(t => `<span style="background:rgba(37,99,235,0.12);color:#60a5fa;padding:2px 8px;border-radius:4px;font-size:0.7rem;">${t}</span>`).join('')}
-    </div>
-  `;
+  const effortVal = p.effortEstimate === 'high' ? 4 : p.effortEstimate === 'medium' ? 2 : 1;
+  const effortStars = '⭐'.repeat(effortVal) + '☆'.repeat(Math.max(0, 5 - effortVal));
+  el.innerHTML = '<div style="margin-bottom:8px;font-weight:700;font-size:0.95rem;">' + p.title + '</div>' +
+    '<div style="margin-bottom:8px;color:' + (statusColors[p.status] || 'var(--fg2)') + ';font-weight:600;text-transform:uppercase;font-size:0.75rem;">' + p.status + '</div>' +
+    '<div style="margin-bottom:10px;line-height:1.5;">' + p.description + '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.8rem;margin-bottom:10px;">' +
+      '<div><span style="color:var(--fg2);">Category:</span> <span style="font-weight:600;">' + p.category + '</span></div>' +
+      '<div><span style="color:var(--fg2);">Capability:</span> <span style="font-weight:600;">' + p.capabilityArea + '</span></div>' +
+      '<div><span style="color:var(--fg2);">Impact Score:</span> <span style="font-weight:600;">' + p.impactScore + '/10</span></div>' +
+      '<div><span style="color:var(--fg2);">Effort:</span> <span style="font-weight:600;">' + effortStars + '</span></div>' +
+    '</div>' +
+    (p.reviewNotes ? '<div style="background:var(--bg3);padding:10px;border-radius:6px;font-size:0.8rem;margin-bottom:10px;"><strong>Review Notes:</strong> ' + p.reviewNotes + '</div>' : '') +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+      (p.tags || []).map(t => '<span style="background:rgba(37,99,235,0.12);color:#60a5fa;padding:2px 8px;border-radius:4px;font-size:0.7rem;">' + t + '</span>').join('') +
+    '</div>' +
+    '<div style="margin-top:12px;">' +
+      '<button onclick="openAdModal(\'' + p.id + '\')" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:600;cursor:pointer;">View Full Details →</button>' +
+    '</div>';
 }
 
 function renderAdTable(rows) {
@@ -2221,7 +2473,7 @@ function renderAdTable(rows) {
   };
   tbody.innerHTML = rows.map(p => {
     const st = statusColors[p.status] || statusColors.pending;
-    return `<tr style="cursor:pointer" onclick="renderAdDetail('${p.id}')">
+    return `<tr style="cursor:pointer" onclick="openAdModal('${p.id}')">
       <td style="font-weight:600;font-size:0.85rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.title}">${p.title}</td>
       <td style="font-size:0.8rem;color:var(--fg2);">${p.category}</td>
       <td style="font-size:0.8rem;font-weight:700;">${p.impactScore}/10</td>
