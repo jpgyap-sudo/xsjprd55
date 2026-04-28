@@ -487,6 +487,7 @@
     <span class="badge paper" id="mode-badge">Paper Mode</span>
     <div class="status-dot"></div>
     <span style="font-size:0.8rem;color:var(--fg2);">Bot Active</span>
+    <button id="install-btn" onclick="triggerInstall()" style="display:none;margin-left:8px;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:0.7rem;cursor:pointer;">📲 Add to Home</button>
   </div>
 </header>
 
@@ -2589,9 +2590,15 @@ window.addEventListener('beforeinstallprompt', (e) => {
   if (banner && !localStorage.getItem('pwa-install-dismissed')) {
     banner.classList.add('show');
   }
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'inline-block';
 });
 function triggerInstall() {
-  if (!deferredPrompt) return;
+  if (!deferredPrompt) {
+    // Fallback for browsers that don't support beforeinstallprompt (iOS Safari, in-app browsers)
+    alert('To add to home screen:\n1. Tap the share button (or ⋮ menu)\n2. Select "Add to Home Screen"');
+    return;
+  }
   deferredPrompt.prompt();
   deferredPrompt.userChoice.then((choice) => {
     if (choice.outcome === 'accepted') {

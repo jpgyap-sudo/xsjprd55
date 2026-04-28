@@ -14,6 +14,18 @@ bot.abcx124.xyz {
         X-Frame-Options DENY
         X-XSS-Protection "1; mode=block"
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # Required for PWA service worker scope
+        Service-Worker-Allowed "/"
+    }
+
+    # Serve manifest and service worker with correct MIME types
+    @manifest path /manifest.json
+    handle @manifest {
+        header Content-Type application/json
+    }
+    @sw path /sw.js
+    handle @sw {
+        header Content-Type application/javascript
     }
 
     # Logging
