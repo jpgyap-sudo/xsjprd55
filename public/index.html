@@ -348,21 +348,48 @@
   <!-- ════════════════════════════════════════════════════ -->
   <div class="tab-panel active" id="tab-overview">
 
-    <!-- Ticker Tape -->
+    <!-- Ticker Tape — All Binance Perpetuals -->
     <div style="margin-bottom:20px;border-radius:12px;overflow:hidden;">
       <div class="tradingview-widget-container">
         <div class="tradingview-widget-container__widget"></div>
         <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
         {
           "symbols": [
-            {"proName": "BINANCE:BTCUSDT","title": "BTC"},
-            {"proName": "BINANCE:ETHUSDT","title": "ETH"},
-            {"proName": "BINANCE:SOLUSDT","title": "SOL"},
-            {"proName": "BINANCE:BNBUSDT","title": "BNB"},
-            {"proName": "BINANCE:XRPUSDT","title": "XRP"},
-            {"proName": "BINANCE:DOGEUSDT","title": "DOGE"},
-            {"proName": "BINANCE:ADAUSDT","title": "ADA"},
-            {"proName": "BINANCE:AVAXUSDT","title": "AVAX"}
+            {"proName": "BINANCE:BTCUSDT","title": "BTC"},{"proName": "BINANCE:ETHUSDT","title": "ETH"},
+            {"proName": "BINANCE:SOLUSDT","title": "SOL"},{"proName": "BINANCE:BNBUSDT","title": "BNB"},
+            {"proName": "BINANCE:XRPUSDT","title": "XRP"},{"proName": "BINANCE:DOGEUSDT","title": "DOGE"},
+            {"proName": "BINANCE:ADAUSDT","title": "ADA"},{"proName": "BINANCE:AVAXUSDT","title": "AVAX"},
+            {"proName": "BINANCE:LINKUSDT","title": "LINK"},{"proName": "BINANCE:LTCUSDT","title": "LTC"},
+            {"proName": "BINANCE:DOTUSDT","title": "DOT"},{"proName": "BINANCE:UNIUSDT","title": "UNI"},
+            {"proName": "BINANCE:AAVEUSDT","title": "AAVE"},{"proName": "BINANCE:SUIUSDT","title": "SUI"},
+            {"proName": "BINANCE:SEIUSDT","title": "SEI"},{"proName": "BINANCE:INJUSDT","title": "INJ"},
+            {"proName": "BINANCE:RNDRUSDT","title": "RNDR"},{"proName": "BINANCE:ARBUSDT","title": "ARB"},
+            {"proName": "BINANCE:OPUSDT","title": "OP"},{"proName": "BINANCE:STRKUSDT","title": "STRK"},
+            {"proName": "BINANCE:TIAUSDT","title": "TIA"},{"proName": "BINANCE:FETUSDT","title": "FET"},
+            {"proName": "BINANCE:WLDUSDT","title": "WLD"},{"proName": "BINANCE:PYTHUSDT","title": "PYTH"},
+            {"proName": "BINANCE:JUPUSDT","title": "JUP"},{"proName": "BINANCE:JTOUSDT","title": "JTO"},
+            {"proName": "BINANCE:BONKUSDT","title": "BONK"},{"proName": "BINANCE:PEPEUSDT","title": "PEPE"},
+            {"proName": "BINANCE:WIFUSDT","title": "WIF"},{"proName": "BINANCE:SHIBUSDT","title": "SHIB"},
+            {"proName": "BINANCE:FLOKIUSDT","title": "FLOKI"},{"proName": "BINANCE:ENAUSDT","title": "ENA"},
+            {"proName": "BINANCE:WUSDT","title": "W"},{"proName": "BINANCE:TAOUSDT","title": "TAO"},
+            {"proName": "BINANCE:ARKMUSDT","title": "ARKM"},{"proName": "BINANCE:MEMEUSDT","title": "MEME"},
+            {"proName": "BINANCE:BEAMUSDT","title": "BEAM"},{"proName": "BINANCE:RUNEUSDT","title": "RUNE"},
+            {"proName": "BINANCE:NEARUSDT","title": "NEAR"},{"proName": "BINANCE:APTUSDT","title": "APT"},
+            {"proName": "BINANCE:TRXUSDT","title": "TRX"},{"proName": "BINANCE:ETCUSDT","title": "ETC"},
+            {"proName": "BINANCE:XLMUSDT","title": "XLM"},{"proName": "BINANCE:FILUSDT","title": "FIL"},
+            {"proName": "BINANCE:ALGOUSDT","title": "ALGO"},{"proName": "BINANCE:ATOMUSDT","title": "ATOM"},
+            {"proName": "BINANCE:IMXUSDT","title": "IMX"},{"proName": "BINANCE:GRTUSDT","title": "GRT"},
+            {"proName": "BINANCE:STXUSDT","title": "STX"},{"proName": "BINANCE:FLOWUSDT","title": "FLOW"},
+            {"proName": "BINANCE:SANDUSDT","title": "SAND"},{"proName": "BINANCE:MANAUSDT","title": "MANA"},
+            {"proName": "BINANCE:AXSUSDT","title": "AXS"},{"proName": "BINANCE:CHZUSDT","title": "CHZ"},
+            {"proName": "BINANCE:CRVUSDT","title": "CRV"},{"proName": "BINANCE:DYDXUSDT","title": "DYDX"},
+            {"proName": "BINANCE:GMXUSDT","title": "GMX"},{"proName": "BINANCE:SNXUSDT","title": "SNX"},
+            {"proName": "BINANCE:COMPUSDT","title": "COMP"},{"proName": "BINANCE:MKRUSDT","title": "MKR"},
+            {"proName": "BINANCE:YFIUSDT","title": "YFI"},{"proName": "BINANCE:BALUSDT","title": "BAL"},
+            {"proName": "BINANCE:1INCHUSDT","title": "1INCH"},{"proName": "BINANCE:ZRXUSDT","title": "ZRX"},
+            {"proName": "BINANCE:LDOUSDT","title": "LDO"},{"proName": "BINANCE:PENDLEUSDT","title": "PENDLE"},
+            {"proName": "BINANCE:EIGENUSDT","title": "EIGEN"},{"proName": "BINANCE:ZROUSDT","title": "ZRO"},
+            {"proName": "BINANCE:LISTAUSDT","title": "LISTA"},{"proName": "BINANCE:NOTUSDT","title": "NOT"}
           ],
           "showSymbolLogo": true,
           "colorTheme": "dark",
@@ -374,17 +401,12 @@
       </div>
     </div>
 
-    <!-- Market Snapshot -->
+    <!-- Market Snapshot — Dynamic Binance Perpetuals -->
     <div class="card" style="margin-bottom:20px;">
-      <div class="card-header">Market Snapshot</div>
+      <div class="card-header">Market Snapshot · Top Movers</div>
       <div class="card-body">
-        <div class="stat-grid" id="stats-grid">
-          <div class="stat-item"><div class="stat-label">BTC Price</div><div class="stat-value" id="btc-price">—</div><div class="stat-change" id="btc-change">—</div></div>
-          <div class="stat-item"><div class="stat-label">ETH Price</div><div class="stat-value" id="eth-price">—</div><div class="stat-change" id="eth-change">—</div></div>
-          <div class="stat-item"><div class="stat-label">SOL Price</div><div class="stat-value" id="sol-price">—</div><div class="stat-change" id="sol-change">—</div></div>
-          <div class="stat-item"><div class="stat-label">Global Market Cap</div><div class="stat-value" id="global-mcap">—</div></div>
-          <div class="stat-item"><div class="stat-label">24h Volume</div><div class="stat-value" id="global-vol">—</div></div>
-          <div class="stat-item"><div class="stat-label">BTC Dominance</div><div class="stat-value" id="btc-dom">—</div></div>
+        <div class="stat-grid" id="stats-grid" style="max-height:260px;overflow:auto;">
+          <!-- Populated dynamically from Binance 24h ticker -->
         </div>
       </div>
     </div>
@@ -394,12 +416,77 @@
       <div class="card">
         <div class="card-header">
           <span>📊 BTC/USDT Technical Chart</span>
-          <select id="chart-symbol" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;cursor:pointer;">
+          <select id="chart-symbol" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;cursor:pointer;max-width:160px;">
             <option value="BINANCE:BTCUSDT">BTC/USDT</option>
             <option value="BINANCE:ETHUSDT">ETH/USDT</option>
             <option value="BINANCE:SOLUSDT">SOL/USDT</option>
             <option value="BINANCE:BNBUSDT">BNB/USDT</option>
             <option value="BINANCE:XRPUSDT">XRP/USDT</option>
+            <option value="BINANCE:DOGEUSDT">DOGE/USDT</option>
+            <option value="BINANCE:ADAUSDT">ADA/USDT</option>
+            <option value="BINANCE:AVAXUSDT">AVAX/USDT</option>
+            <option value="BINANCE:LINKUSDT">LINK/USDT</option>
+            <option value="BINANCE:LTCUSDT">LTC/USDT</option>
+            <option value="BINANCE:DOTUSDT">DOT/USDT</option>
+            <option value="BINANCE:UNIUSDT">UNI/USDT</option>
+            <option value="BINANCE:AAVEUSDT">AAVE/USDT</option>
+            <option value="BINANCE:SUIUSDT">SUI/USDT</option>
+            <option value="BINANCE:SEIUSDT">SEI/USDT</option>
+            <option value="BINANCE:INJUSDT">INJ/USDT</option>
+            <option value="BINANCE:RNDRUSDT">RNDR/USDT</option>
+            <option value="BINANCE:ARBUSDT">ARB/USDT</option>
+            <option value="BINANCE:OPUSDT">OP/USDT</option>
+            <option value="BINANCE:STRKUSDT">STRK/USDT</option>
+            <option value="BINANCE:TIAUSDT">TIA/USDT</option>
+            <option value="BINANCE:FETUSDT">FET/USDT</option>
+            <option value="BINANCE:WLDUSDT">WLD/USDT</option>
+            <option value="BINANCE:PYTHUSDT">PYTH/USDT</option>
+            <option value="BINANCE:JUPUSDT">JUP/USDT</option>
+            <option value="BINANCE:JTOUSDT">JTO/USDT</option>
+            <option value="BINANCE:BONKUSDT">BONK/USDT</option>
+            <option value="BINANCE:PEPEUSDT">PEPE/USDT</option>
+            <option value="BINANCE:WIFUSDT">WIF/USDT</option>
+            <option value="BINANCE:SHIBUSDT">SHIB/USDT</option>
+            <option value="BINANCE:FLOKIUSDT">FLOKI/USDT</option>
+            <option value="BINANCE:ENAUSDT">ENA/USDT</option>
+            <option value="BINANCE:WUSDT">W/USDT</option>
+            <option value="BINANCE:TAOUSDT">TAO/USDT</option>
+            <option value="BINANCE:ARKMUSDT">ARKM/USDT</option>
+            <option value="BINANCE:MEMEUSDT">MEME/USDT</option>
+            <option value="BINANCE:BEAMUSDT">BEAM/USDT</option>
+            <option value="BINANCE:RUNEUSDT">RUNE/USDT</option>
+            <option value="BINANCE:NEARUSDT">NEAR/USDT</option>
+            <option value="BINANCE:APTUSDT">APT/USDT</option>
+            <option value="BINANCE:TRXUSDT">TRX/USDT</option>
+            <option value="BINANCE:ETCUSDT">ETC/USDT</option>
+            <option value="BINANCE:XLMUSDT">XLM/USDT</option>
+            <option value="BINANCE:FILUSDT">FIL/USDT</option>
+            <option value="BINANCE:ALGOUSDT">ALGO/USDT</option>
+            <option value="BINANCE:ATOMUSDT">ATOM/USDT</option>
+            <option value="BINANCE:IMXUSDT">IMX/USDT</option>
+            <option value="BINANCE:GRTUSDT">GRT/USDT</option>
+            <option value="BINANCE:STXUSDT">STX/USDT</option>
+            <option value="BINANCE:FLOWUSDT">FLOW/USDT</option>
+            <option value="BINANCE:SANDUSDT">SAND/USDT</option>
+            <option value="BINANCE:MANAUSDT">MANA/USDT</option>
+            <option value="BINANCE:AXSUSDT">AXS/USDT</option>
+            <option value="BINANCE:CHZUSDT">CHZ/USDT</option>
+            <option value="BINANCE:CRVUSDT">CRV/USDT</option>
+            <option value="BINANCE:DYDXUSDT">DYDX/USDT</option>
+            <option value="BINANCE:GMXUSDT">GMX/USDT</option>
+            <option value="BINANCE:SNXUSDT">SNX/USDT</option>
+            <option value="BINANCE:COMPUSDT">COMP/USDT</option>
+            <option value="BINANCE:MKRUSDT">MKR/USDT</option>
+            <option value="BINANCE:YFIUSDT">YFI/USDT</option>
+            <option value="BINANCE:BALUSDT">BAL/USDT</option>
+            <option value="BINANCE:1INCHUSDT">1INCH/USDT</option>
+            <option value="BINANCE:ZRXUSDT">ZRX/USDT</option>
+            <option value="BINANCE:LDOUSDT">LDO/USDT</option>
+            <option value="BINANCE:PENDLEUSDT">PENDLE/USDT</option>
+            <option value="BINANCE:EIGENUSDT">EIGEN/USDT</option>
+            <option value="BINANCE:ZROUSDT">ZRO/USDT</option>
+            <option value="BINANCE:LISTAUSDT">LISTA/USDT</option>
+            <option value="BINANCE:NOTUSDT">NOT/USDT</option>
           </select>
         </div>
         <div class="tradingview-widget-container" id="tv-chart" style="height:460px;">
@@ -570,7 +657,7 @@
         <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
           <div id="mt-closed-content" style="display:none;">
             <table class="signal-table">
-              <thead><tr><th>Symbol</th><th>Side</th><th>PnL $</th><th>PnL %</th></tr></thead>
+              <thead><tr><th>Symbol</th><th>Side</th><th>Lev</th><th>PnL $</th><th>PnL %</th></tr></thead>
               <tbody id="mt-closed-body"></tbody>
             </table>
           </div>
@@ -1040,46 +1127,51 @@ tabBtns.forEach(btn => {
   });
 });
 
-// ── Market Data ──────────────────────────────────────
+// ── Market Data — Binance 24h Top Movers ─────────────
 async function loadMarketData() {
+  const grid = document.getElementById('stats-grid');
   try {
-    const res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana&price_change_percentage=24h');
+    const res = await fetch('https://api.binance.com/api/v3/ticker/24hr');
     const data = await res.json();
-    const btc = data.find(c => c.id === 'bitcoin');
-    const eth = data.find(c => c.id === 'ethereum');
-    const sol = data.find(c => c.id === 'solana');
-    if (btc) {
-      document.getElementById('btc-price').textContent = '$' + btc.current_price.toLocaleString();
-      const el = document.getElementById('btc-change');
-      el.textContent = (btc.price_change_percentage_24h >= 0 ? '+' : '') + btc.price_change_percentage_24h.toFixed(2) + '%';
-      el.className = 'stat-change ' + (btc.price_change_percentage_24h >= 0 ? 'up' : 'down');
-    }
-    if (eth) {
-      document.getElementById('eth-price').textContent = '$' + eth.current_price.toLocaleString();
-      const el = document.getElementById('eth-change');
-      el.textContent = (eth.price_change_percentage_24h >= 0 ? '+' : '') + eth.price_change_percentage_24h.toFixed(2) + '%';
-      el.className = 'stat-change ' + (eth.price_change_percentage_24h >= 0 ? 'up' : 'down');
-    }
-    if (sol) {
-      document.getElementById('sol-price').textContent = '$' + sol.current_price.toLocaleString();
-      const el = document.getElementById('sol-change');
-      el.textContent = (sol.price_change_percentage_24h >= 0 ? '+' : '') + sol.price_change_percentage_24h.toFixed(2) + '%';
-      el.className = 'stat-change ' + (sol.price_change_percentage_24h >= 0 ? 'up' : 'down');
-    }
-  } catch (e) {}
+    const perps = data
+      .filter(t => t.symbol.endsWith('USDT') && !t.symbol.includes('_'))
+      .sort((a, b) => Math.abs(Number(b.priceChangePercent)) - Math.abs(Number(a.priceChangePercent)))
+      .slice(0, 18);
 
-  try {
-    const res = await fetch('https://api.coingecko.com/api/v3/global');
-    const data = await res.json();
-    const g = data.data;
-    if (g) {
-      document.getElementById('global-mcap').textContent = '$' + (g.total_market_cap.usd / 1e12).toFixed(2) + 'T';
-      document.getElementById('global-vol').textContent = '$' + (g.total_volume.usd / 1e9).toFixed(1) + 'B';
-      document.getElementById('btc-dom').textContent = g.market_cap_percentage.btc.toFixed(1) + '%';
-    }
-  } catch (e) {}
+    grid.innerHTML = perps.map(t => {
+      const chg = Number(t.priceChangePercent);
+      const color = chg >= 0 ? 'var(--accent)' : 'var(--accent3)';
+      const arrow = chg >= 0 ? '▲' : '▼';
+      return `
+        <div class="stat-item" style="min-width:110px;">
+          <div class="stat-label">${t.symbol.replace('USDT','')}</div>
+          <div class="stat-value" style="font-size:0.95rem;">$${Number(t.lastPrice).toLocaleString(undefined,{maximumFractionDigits:t.lastPrice<1?6:2})}</div>
+          <div class="stat-change" style="color:${color};font-size:0.78rem;">${arrow} ${Math.abs(chg).toFixed(2)}%</div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    // Fallback to CoinGecko
+    try {
+      const res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,solana&price_change_percentage=24h');
+      const data = await res.json();
+      grid.innerHTML = data.map(c => {
+        const chg = c.price_change_percentage_24h;
+        const color = chg >= 0 ? 'var(--accent)' : 'var(--accent3)';
+        return `
+          <div class="stat-item">
+            <div class="stat-label">${c.symbol.toUpperCase()}</div>
+            <div class="stat-value">$${c.current_price.toLocaleString()}</div>
+            <div class="stat-change" style="color:${color};">${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%</div>
+          </div>`;
+      }).join('') + `
+        <div class="stat-item"><div class="stat-label">Global Market Cap</div><div class="stat-value">—</div></div>
+        <div class="stat-item"><div class="stat-label">24h Volume</div><div class="stat-value">—</div></div>
+        <div class="stat-item"><div class="stat-label">BTC Dominance</div><div class="stat-value">—</div></div>`;
+    } catch (e2) {}
+  }
 }
 loadMarketData();
+setInterval(loadMarketData, 30000);
 
 // ── Signals ──────────────────────────────────────────
 async function loadSignals() {
@@ -1657,13 +1749,14 @@ async function loadMockTrading() {
         return `<tr>
           <td><strong>${t.symbol}</strong><br><span style="font-size:0.75rem;color:var(--fg2);">${t.strategy}</span></td>
           <td><span class="side-badge ${t.side === 'LONG' ? 'side-long' : 'side-short'}">${t.side}</span></td>
+          <td style="font-size:0.85rem;font-weight:700;">${t.leverage}x</td>
           <td style="color:${pnlColor};font-weight:700;">$${Number(t.pnlUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
           <td style="color:${pnlColor};font-weight:700;">${t.pnlPct?.toFixed(2) ?? '—'}%</td>
         </tr>`;
       }).join('');
       closedContent.style.display = 'block';
     } else {
-      closedBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:16px;">No closed trades yet.</td></tr>';
+      closedBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--fg2);padding:16px;">No closed trades yet.</td></tr>';
       closedContent.style.display = 'block';
     }
 

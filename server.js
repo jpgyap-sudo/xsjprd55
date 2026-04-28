@@ -66,28 +66,39 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ── API routing ────────────────────────────────────────────
 const apiDir = path.join(__dirname, 'api');
 
-async function loadHandler(routeName) {
-  const filePath = path.join(apiDir, `${routeName}.js`);
-  if (!fs.existsSync(filePath)) return null;
-  const mod = await import(filePath);
+async function loadHandler(routePath) {
+  if (!fs.existsSync(routePath)) return null;
+  const mod = await import(routePath);
   return mod.default || null;
 }
 
-// Auto-discover API routes
-const apiFiles = fs.readdirSync(apiDir).filter((f) => f.endsWith('.js'));
-for (const file of apiFiles) {
-  const routeName = file.replace(/\.js$/, '');
-  const routePath = `/api/${routeName}`;
+function discoverRoutes(dir, prefix = '') {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  const routes = [];
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      routes.push(...discoverRoutes(fullPath, `${prefix}/${entry.name}`));
+    } else if (entry.name.endsWith('.js')) {
+      const name = entry.name.replace(/\.js$/, '');
+      routes.push({ route: `/api${prefix}/${name}`, file: fullPath });
+    }
+  }
+  return routes;
+}
 
-  app.all(routePath, async (req, res) => {
+// Auto-discover API routes (flat + nested)
+const apiRoutes = discoverRoutes(apiDir);
+for (const { route, file } of apiRoutes) {
+  app.all(route, async (req, res) => {
     try {
-      const handler = await loadHandler(routeName);
+      const handler = await loadHandler(file);
       if (!handler) {
         return res.status(404).json({ error: 'Handler not found' });
       }
       await handler(req, res);
     } catch (e) {
-      console.error(`[server] Error in ${routePath}:`, e);
+      console.error(`[server] Error in ${route}:`, e);
       if (!res.headersSent) {
         res.status(500).json({ error: 'Internal server error', message: e.message });
       }
@@ -97,7 +108,7 @@ for (const file of apiFiles) {
 
 // Health check at root (optional)
 app.get('/api', (req, res) => {
-  res.json({ ok: true, routes: apiFiles.map((f) => f.replace(/\.js$/, '')) });
+  res.json({ ok: true, routes: apiRoutes.map((r) => r.route) });
 });
 
 // Fallback to index.html for SPA behavior
@@ -108,5 +119,5 @@ app.get('*', (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`[server] xsjprd55 running on port ${PORT}`);
-  console.log(`[server] API routes:`, apiFiles.map((f) => f.replace(/\.js$/, '')));
+  console.log(`[server] API routes:`, apiRoutes.map((r) => r.route));
 });

@@ -6,8 +6,9 @@
 
 import { supabase } from '../lib/supabase.js';
 import { fetchOHLCV } from '../lib/exchange.js';
+import { config } from '../lib/config.js';
 
-const DEFAULT_PAIRS = ['BTC/USDT','ETH/USDT','SOL/USDT','BNB/USDT','XRP/USDT'];
+const DEFAULT_PAIRS = config.DEFAULT_PAIRS || ['BTC/USDT','ETH/USDT','SOL/USDT','BNB/USDT','XRP/USDT'];
 const TIMEFRAMES = ['1h'];
 const DEFAULT_EXCHANGE = process.env.DEFAULT_EXCHANGE || 'binance';
 

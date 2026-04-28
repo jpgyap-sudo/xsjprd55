@@ -5,11 +5,13 @@
 // ============================================================
 
 import { initMlDb } from '../lib/ml/db.js';
+import { autoTrainIfNeeded } from '../lib/ml/auto-train.js';
 import { researchCycle } from '../lib/ml/researchAgent.js';
 import { crawlAllSources } from '../lib/ml/sourceCrawler.js';
 import { extractAndSaveFromResearch } from '../lib/ml/strategyExtractor.js';
 import { runBacktestOnProposals } from '../lib/ml/backtestEngine.js';
 import { recordMockFeedback } from '../lib/ml/feedbackLoop.js';
+import { crawlTradingViewForAllPairs } from '../lib/research/tv-crawler.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
 
@@ -89,12 +91,30 @@ export async function runResearchAgentWorker() {
   initMlDb();
 
   try {
+    // 0. Auto-train ML model if needed (bootstrap on first run)
+    try {
+      const autoTrain = await autoTrainIfNeeded();
+      if (autoTrain.trained) {
+        logger.info(`[RESEARCH-WORKER] Auto-trained ML model — seeded=${autoTrain.seeded}, accuracy=${autoTrain.metrics?.accuracy}`);
+      }
+    } catch (e) {
+      logger.warn(`[RESEARCH-WORKER] Auto-train check failed: ${e.message}`);
+    }
+
     // 1. Seed data on first run
     await seedDemoData();
 
     // 2. Crawl live sources
     const crawlResult = await crawlAllSources();
     logger.info(`[RESEARCH-WORKER] Crawled ${crawlResult.stored || 0} sources`);
+
+    // 2b. Crawl TradingView TA for all pairs
+    try {
+      const tvResult = await crawlTradingViewForAllPairs();
+      logger.info(`[RESEARCH-WORKER] TV crawler scanned=${tvResult.scanned}, stored=${tvResult.stored}`);
+    } catch (e) {
+      logger.warn(`[RESEARCH-WORKER] TV crawl failed: ${e.message}`);
+    }
 
     // 3. Extract strategies from new research
     const extracted = extractAndSaveFromResearch();
