@@ -20,13 +20,105 @@
     body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; }
 
     /* Header */
-    header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-    header h1 { font-size: 1.3rem; display: flex; align-items: center; gap: 10px; }
-    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+    header {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, var(--accent), #2563eb);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+    .header-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .header-subtitle {
+      font-size: 0.72rem;
+      color: var(--fg2);
+      font-weight: 500;
+    }
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
-    .badge { padding: 4px 12px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+    .badge {
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
     .badge.paper { background: rgba(234,179,8,0.15); color: var(--accent2); border: 1px solid rgba(234,179,8,0.3); }
     .badge.live { background: rgba(34,197,94,0.15); color: var(--accent); border: 1px solid rgba(34,197,94,0.3); }
+
+    /* Tab Navigation */
+    .tab-nav {
+      display: flex;
+      gap: 8px;
+      padding: 12px 24px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 63px;
+      z-index: 99;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .tab-nav::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--fg2);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .tab-btn:hover {
+      background: var(--bg3);
+      color: var(--fg);
+      border-color: #2e3650;
+    }
+    .tab-btn.active {
+      background: rgba(34,197,94,0.12);
+      color: var(--accent);
+      border-color: rgba(34,197,94,0.35);
+      font-weight: 600;
+    }
 
     /* Layout */
     .container { max-width: 1440px; margin: 0 auto; padding: 20px; }
@@ -38,6 +130,11 @@
     .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
     .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 0.9rem; }
     .card-body { padding: 18px; }
+
+    /* Tab Panels */
+    .tab-panel { display: none; animation: fadeIn 0.25s ease; }
+    .tab-panel.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
     /* Mini stats */
     .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
@@ -60,14 +157,19 @@
     .conf-bar { height: 6px; border-radius: 3px; background: var(--bg3); overflow: hidden; width: 60px; }
     .conf-bar-inner { height: 100%; border-radius: 3px; }
 
-    /* AI Chat */
-    .chat-widget { position: fixed; bottom: 24px; right: 24px; width: 400px; max-height: 600px; background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; display: flex; flex-direction: column; z-index: 200; box-shadow: 0 20px 60px rgba(0,0,0,0.5); transition: transform 0.2s, opacity 0.2s; }
-    .chat-widget.hidden { transform: translateY(20px); opacity: 0; pointer-events: none; }
-    .chat-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(59,130,246,0.1)); border-radius: 16px 16px 0 0; }
-    .chat-title { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
-    .chat-close { cursor: pointer; padding: 4px; opacity: 0.6; transition: opacity 0.2s; }
-    .chat-close:hover { opacity: 1; }
-    .chat-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 300px; max-height: 420px; }
+    /* AI Chat inline */
+    .chat-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; height: calc(100vh - 220px); min-height: 500px; }
+    .chat-panel-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(59,130,246,0.08));
+      border-radius: 12px 12px 0 0;
+    }
+    .chat-panel-title { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+    .chat-panel-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
     .msg { max-width: 92%; padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; line-height: 1.5; word-break: break-word; }
     .msg.user { align-self: flex-end; background: #2563eb; color: white; border-bottom-right-radius: 4px; }
     .msg.ai { align-self: flex-start; background: var(--bg3); border-bottom-left-radius: 4px; }
@@ -81,19 +183,18 @@
     .chat-send { background: #2563eb; color: white; border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: background 0.2s; }
     .chat-send:hover { background: #1d4ed8; }
     .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
-    .chat-toggle { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; border: none; font-size: 1.5rem; cursor: pointer; z-index: 200; box-shadow: 0 8px 30px rgba(37,99,235,0.4); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
-    .chat-toggle:hover { transform: scale(1.05); }
-    .chat-toggle.hidden { display: none; }
     .typing { display: flex; gap: 4px; align-items: center; padding: 8px 0; }
     .typing span { width: 8px; height: 8px; background: var(--fg2); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
     .typing span:nth-child(1) { animation-delay: -0.32s; }
     .typing span:nth-child(2) { animation-delay: -0.16s; }
     @keyframes bounce { 0%,80%,100% { transform: scale(0); } 40% { transform: scale(1); } }
-
-    /* Suggestions */
     .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
     .suggestion-chip { background: rgba(37,99,235,0.15); border: 1px solid rgba(37,99,235,0.3); color: #60a5fa; padding: 6px 12px; border-radius: 999px; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; }
     .suggestion-chip:hover { background: rgba(37,99,235,0.25); }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--fg2); font-size: 0.9rem; }
+    .empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
 
     /* Footer */
     footer { text-align: center; padding: 30px; color: var(--fg2); font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 30px; }
@@ -107,157 +208,238 @@
 </head>
 <body>
 
+<!-- Header -->
 <header>
-  <h1>📈 xsjprd55 <span style="color:var(--fg2);font-size:0.85rem;font-weight:400;">Crypto Trading Signal Dashboard</span></h1>
-  <div style="display:flex;align-items:center;gap:12px;">
+  <div class="header-brand">
+    <div class="header-logo">📈</div>
+    <div>
+      <div class="header-title">xsjprd55</div>
+      <div class="header-subtitle">Crypto Trading Signal Dashboard</div>
+    </div>
+  </div>
+  <div class="header-status">
     <span class="badge paper" id="mode-badge">Paper Mode</span>
     <div class="status-dot"></div>
     <span style="font-size:0.8rem;color:var(--fg2);">Bot Active</span>
   </div>
 </header>
 
+<!-- Tab Navigation -->
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="overview">📊 Overview</button>
+  <button class="tab-btn" data-tab="signals">🚨 Signals</button>
+  <button class="tab-btn" data-tab="strategy-labs">🧪 Strategy Labs</button>
+  <button class="tab-btn" data-tab="catalyst">🔴 Catalyst</button>
+  <button class="tab-btn" data-tab="news">📰 News & Intel</button>
+  <button class="tab-btn" data-tab="ai">🤖 AI Chat</button>
+</nav>
+
 <div class="container">
-  <!-- Ticker Tape -->
-  <div style="margin-bottom:20px;border-radius:12px;overflow:hidden;">
-    <div class="tradingview-widget-container">
-      <div class="tradingview-widget-container__widget"></div>
-      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-      {
-        "symbols": [
-          {"proName": "BINANCE:BTCUSDT","title": "BTC"},
-          {"proName": "BINANCE:ETHUSDT","title": "ETH"},
-          {"proName": "BINANCE:SOLUSDT","title": "SOL"},
-          {"proName": "BINANCE:BNBUSDT","title": "BNB"},
-          {"proName": "BINANCE:XRPUSDT","title": "XRP"},
-          {"proName": "BINANCE:DOGEUSDT","title": "DOGE"},
-          {"proName": "BINANCE:ADAUSDT","title": "ADA"},
-          {"proName": "BINANCE:AVAXUSDT","title": "AVAX"}
-        ],
-        "showSymbolLogo": true,
-        "colorTheme": "dark",
-        "isTransparent": false,
-        "displayMode": "adaptive",
-        "locale": "en"
-      }
-      </script>
-    </div>
-  </div>
 
-  <!-- Top Stats -->
-  <div class="card" style="margin-bottom:20px;">
-    <div class="card-header">Market Snapshot</div>
-    <div class="card-body">
-      <div class="stat-grid" id="stats-grid">
-        <div class="stat-item"><div class="stat-label">BTC Price</div><div class="stat-value" id="btc-price">—</div><div class="stat-change" id="btc-change">—</div></div>
-        <div class="stat-item"><div class="stat-label">ETH Price</div><div class="stat-value" id="eth-price">—</div><div class="stat-change" id="eth-change">—</div></div>
-        <div class="stat-item"><div class="stat-label">SOL Price</div><div class="stat-value" id="sol-price">—</div><div class="stat-change" id="sol-change">—</div></div>
-        <div class="stat-item"><div class="stat-label">Global Market Cap</div><div class="stat-value" id="global-mcap">—</div></div>
-        <div class="stat-item"><div class="stat-label">24h Volume</div><div class="stat-value" id="global-vol">—</div></div>
-        <div class="stat-item"><div class="stat-label">BTC Dominance</div><div class="stat-value" id="btc-dom">—</div></div>
-      </div>
-    </div>
-  </div>
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- OVERVIEW TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel active" id="tab-overview">
 
-  <!-- Catalyst Watch Panel -->
-  <div class="card" style="margin-bottom:20px;">
-    <div class="card-header">
-      <span>🔴 Catalyst Watch</span>
-      <span class="badge live" id="catalyst-updated" style="font-size:0.6rem;padding:2px 8px;">Live</span>
-    </div>
-    <div class="card-body" style="padding:0;">
-      <div id="catalyst-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading catalysts...</div>
-      <div id="catalyst-content" style="display:none;">
-        <!-- High Impact Catalysts -->
-        <div id="catalyst-high" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
-        <!-- Market Readings -->
-        <div id="catalyst-readings" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
-        <!-- Key Levels -->
-        <div id="catalyst-levels" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
-        <!-- Bottom Line -->
-        <div id="catalyst-bottom" style="padding:14px 18px;background:rgba(234,179,8,0.05);"></div>
-      </div>
-      <div id="catalyst-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load catalysts</div>
-    </div>
-  </div>
-
-  <div class="grid grid-2">
-    <!-- Main Chart -->
-    <div class="card">
-      <div class="card-header">
-        <span>📊 BTC/USDT Technical Chart</span>
-        <select id="chart-symbol" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;cursor:pointer;">
-          <option value="BINANCE:BTCUSDT">BTC/USDT</option>
-          <option value="BINANCE:ETHUSDT">ETH/USDT</option>
-          <option value="BINANCE:SOLUSDT">SOL/USDT</option>
-          <option value="BINANCE:BNBUSDT">BNB/USDT</option>
-          <option value="BINANCE:XRPUSDT">XRP/USDT</option>
-        </select>
-      </div>
-      <div class="tradingview-widget-container" id="tv-chart" style="height:460px;">
-        <div class="tradingview-widget-container__widget" style="height:460px;"></div>
-        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+    <!-- Ticker Tape -->
+    <div style="margin-bottom:20px;border-radius:12px;overflow:hidden;">
+      <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container__widget"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
         {
-          "autosize": true,
-          "symbol": "BINANCE:BTCUSDT",
-          "interval": "15",
-          "timezone": "Etc/UTC",
-          "theme": "dark",
-          "style": "1",
-          "locale": "en",
-          "enable_publishing": false,
-          "backgroundColor": "rgba(18, 22, 32, 1)",
-          "gridColor": "rgba(30, 37, 56, 0.5)",
-          "allow_symbol_change": false,
-          "calendar": false,
-          "support_host": "https://www.tradingview.com"
+          "symbols": [
+            {"proName": "BINANCE:BTCUSDT","title": "BTC"},
+            {"proName": "BINANCE:ETHUSDT","title": "ETH"},
+            {"proName": "BINANCE:SOLUSDT","title": "SOL"},
+            {"proName": "BINANCE:BNBUSDT","title": "BNB"},
+            {"proName": "BINANCE:XRPUSDT","title": "XRP"},
+            {"proName": "BINANCE:DOGEUSDT","title": "DOGE"},
+            {"proName": "BINANCE:ADAUSDT","title": "ADA"},
+            {"proName": "BINANCE:AVAXUSDT","title": "AVAX"}
+          ],
+          "showSymbolLogo": true,
+          "colorTheme": "dark",
+          "isTransparent": false,
+          "displayMode": "adaptive",
+          "locale": "en"
         }
         </script>
       </div>
     </div>
 
-    <!-- Side Panel: Signals + Analysis -->
-    <div style="display:flex;flex-direction:column;gap:20px;">
-      <!-- Recent Signals -->
-      <div class="card">
-        <div class="card-header">
-          <span>🚨 Recent Signals</span>
-          <select id="signal-filter" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:0.75rem;">
-            <option value="all">All</option>
-            <option value="News_Event">News Only</option>
-            <option value="EMA_Cross">Technical</option>
-          </select>
-        </div>
-        <div class="card-body" style="padding:0;">
-          <table class="signal-table" id="signals-table">
-            <thead>
-              <tr><th>Pair</th><th>Side</th><th>Conf</th><th>Time</th></tr>
-            </thead>
-            <tbody id="signals-tbody">
-              <tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:20px;">Loading signals...</td></tr>
-            </tbody>
-          </table>
+    <!-- Market Snapshot -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">Market Snapshot</div>
+      <div class="card-body">
+        <div class="stat-grid" id="stats-grid">
+          <div class="stat-item"><div class="stat-label">BTC Price</div><div class="stat-value" id="btc-price">—</div><div class="stat-change" id="btc-change">—</div></div>
+          <div class="stat-item"><div class="stat-label">ETH Price</div><div class="stat-value" id="eth-price">—</div><div class="stat-change" id="eth-change">—</div></div>
+          <div class="stat-item"><div class="stat-label">SOL Price</div><div class="stat-value" id="sol-price">—</div><div class="stat-change" id="sol-change">—</div></div>
+          <div class="stat-item"><div class="stat-label">Global Market Cap</div><div class="stat-value" id="global-mcap">—</div></div>
+          <div class="stat-item"><div class="stat-label">24h Volume</div><div class="stat-value" id="global-vol">—</div></div>
+          <div class="stat-item"><div class="stat-label">BTC Dominance</div><div class="stat-value" id="btc-dom">—</div></div>
         </div>
       </div>
+    </div>
 
-      <!-- Market Overview Heatmap -->
+    <div class="grid grid-2">
+      <!-- Main Chart -->
       <div class="card">
-        <div class="card-header">🌡️ Market Heatmap</div>
-        <div class="tradingview-widget-container" style="height:200px;">
-          <div class="tradingview-widget-container__widget" style="height:200px;"></div>
-          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-crypto-coins-heatmap.js" async>
+        <div class="card-header">
+          <span>📊 BTC/USDT Technical Chart</span>
+          <select id="chart-symbol" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;cursor:pointer;">
+            <option value="BINANCE:BTCUSDT">BTC/USDT</option>
+            <option value="BINANCE:ETHUSDT">ETH/USDT</option>
+            <option value="BINANCE:SOLUSDT">SOL/USDT</option>
+            <option value="BINANCE:BNBUSDT">BNB/USDT</option>
+            <option value="BINANCE:XRPUSDT">XRP/USDT</option>
+          </select>
+        </div>
+        <div class="tradingview-widget-container" id="tv-chart" style="height:460px;">
+          <div class="tradingview-widget-container__widget" style="height:460px;"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
           {
-            "dataSource": "Crypto",
-            "blockColor": "change",
-            "blockSize": "market_cap_basic",
+            "autosize": true,
+            "symbol": "BINANCE:BTCUSDT",
+            "interval": "15",
+            "timezone": "Etc/UTC",
+            "theme": "dark",
+            "style": "1",
             "locale": "en",
-            "colorTheme": "dark",
-            "width": "100%",
-            "height": "100%"
+            "enable_publishing": false,
+            "backgroundColor": "rgba(18, 22, 32, 1)",
+            "gridColor": "rgba(30, 37, 56, 0.5)",
+            "allow_symbol_change": false,
+            "calendar": false,
+            "support_host": "https://www.tradingview.com"
           }
           </script>
         </div>
       </div>
 
+      <!-- Side Panel -->
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <div class="card">
+          <div class="card-header">🌡️ Market Heatmap</div>
+          <div class="tradingview-widget-container" style="height:200px;">
+            <div class="tradingview-widget-container__widget" style="height:200px;"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-crypto-coins-heatmap.js" async>
+            {
+              "dataSource": "Crypto",
+              "blockColor": "change",
+              "blockSize": "market_cap_basic",
+              "locale": "en",
+              "colorTheme": "dark",
+              "width": "100%",
+              "height": "100%"
+            }
+            </script>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- SIGNALS TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-signals">
+    <div class="card">
+      <div class="card-header">
+        <span>🚨 Recent Signals</span>
+        <select id="signal-filter" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:0.75rem;">
+          <option value="all">All</option>
+          <option value="News_Event">News Only</option>
+          <option value="EMA_Cross">Technical</option>
+        </select>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <table class="signal-table" id="signals-table">
+          <thead>
+            <tr><th>Pair</th><th>Side</th><th>Conf</th><th>Time</th></tr>
+          </thead>
+          <tbody id="signals-tbody">
+            <tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:20px;">Loading signals...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- STRATEGY LABS TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-strategy-labs">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <span>🧪 Strategy Labs</span>
+        <span class="badge paper" style="font-size:0.6rem;padding:2px 8px;">ML + Mock</span>
+      </div>
+      <div class="card-body">
+        <div id="sl-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading strategy lab data...</div>
+        <div id="sl-content" style="display:none;">
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+            <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
+              <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Mock Balance</div>
+              <div id="sl-balance" style="font-size:1.4rem;font-weight:700;color:var(--accent);margin-top:4px;">—</div>
+            </div>
+            <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
+              <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Peak Balance</div>
+              <div id="sl-peak" style="font-size:1.4rem;font-weight:700;color:var(--accent);margin-top:4px;">—</div>
+            </div>
+            <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
+              <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Open Trades</div>
+              <div id="sl-open" style="font-size:1.4rem;font-weight:700;color:var(--accent);margin-top:4px;">—</div>
+            </div>
+            <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
+              <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">ML Model</div>
+              <div id="sl-model" style="font-size:0.9rem;font-weight:600;color:var(--fg);margin-top:4px;">—</div>
+            </div>
+          </div>
+          <div style="margin-bottom:12px;font-weight:600;font-size:0.85rem;">📊 Strategy Performance</div>
+          <div id="sl-stats" style="overflow-x:auto;">
+            <table class="signal-table" style="min-width:500px;">
+              <thead>
+                <tr><th>Strategy</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Total PnL</th><th>Avg Return</th></tr>
+              </thead>
+              <tbody id="sl-stats-body"></tbody>
+            </table>
+          </div>
+          <div style="margin-top:16px;margin-bottom:12px;font-weight:600;font-size:0.85rem;">🏆 Promoted Strategies</div>
+          <div id="sl-promoted"></div>
+        </div>
+        <div id="sl-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load strategy labs. Retrying...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- CATALYST TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-catalyst">
+    <div class="card">
+      <div class="card-header">
+        <span>🔴 Catalyst Watch</span>
+        <span class="badge live" id="catalyst-updated" style="font-size:0.6rem;padding:2px 8px;">Live</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div id="catalyst-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading catalysts...</div>
+        <div id="catalyst-content" style="display:none;">
+          <div id="catalyst-high" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+          <div id="catalyst-readings" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+          <div id="catalyst-levels" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+          <div id="catalyst-bottom" style="padding:14px 18px;background:rgba(234,179,8,0.05);"></div>
+        </div>
+        <div id="catalyst-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load catalysts</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- NEWS & INTEL TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-news">
+    <div class="grid grid-2">
       <!-- News Feed -->
       <div class="card">
         <div class="card-header">
@@ -268,13 +450,13 @@
           <div id="news-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading news...</div>
           <div id="news-content" style="display:none;">
             <div id="news-overall" style="padding:12px 18px;border-bottom:1px solid var(--border);font-size:0.85rem;font-weight:600;"></div>
-            <div id="news-list" style="max-height:300px;overflow-y:auto;"></div>
+            <div id="news-list" style="max-height:600px;overflow-y:auto;"></div>
           </div>
           <div id="news-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load news</div>
         </div>
       </div>
 
-      <!-- Liquidation Intelligence -->
+      <!-- Liquidation Intel -->
       <div class="card">
         <div class="card-header">
           <span>💥 Liquidation Intel</span>
@@ -293,83 +475,42 @@
     </div>
   </div>
 
-  <!-- Strategy Labs -->
-  <div class="card" style="margin-bottom:20px;">
-    <div class="card-header">
-      <span>🧪 Strategy Labs</span>
-      <span class="badge paper" style="font-size:0.6rem;padding:2px 8px;">ML + Mock</span>
-    </div>
-    <div class="card-body">
-      <div id="sl-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading strategy lab data...</div>
-      <div id="sl-content" style="display:none;">
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
-          <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
-            <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Mock Balance</div>
-            <div id="sl-balance" style="font-size:1.4rem;font-weight:700;color:var(--accent1);margin-top:4px;">—</div>
-          </div>
-          <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
-            <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Peak Balance</div>
-            <div id="sl-peak" style="font-size:1.4rem;font-weight:700;color:var(--accent1);margin-top:4px;">—</div>
-          </div>
-          <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
-            <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Open Trades</div>
-            <div id="sl-open" style="font-size:1.4rem;font-weight:700;color:var(--accent1);margin-top:4px;">—</div>
-          </div>
-          <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
-            <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">ML Model</div>
-            <div id="sl-model" style="font-size:0.9rem;font-weight:600;color:var(--fg);margin-top:4px;">—</div>
-          </div>
-        </div>
-        <div style="margin-bottom:12px;font-weight:600;font-size:0.85rem;">📊 Strategy Performance</div>
-        <div id="sl-stats" style="overflow-x:auto;">
-          <table class="signal-table" style="min-width:500px;">
-            <thead>
-              <tr><th>Strategy</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Total PnL</th><th>Avg Return</th></tr>
-            </thead>
-            <tbody id="sl-stats-body"></tbody>
-          </table>
-        </div>
-        <div style="margin-top:16px;margin-bottom:12px;font-weight:600;font-size:0.85rem;">🏆 Promoted Strategies</div>
-        <div id="sl-promoted"></div>
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- AI CHAT TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-ai">
+    <div class="chat-panel">
+      <div class="chat-panel-header">
+        <div class="chat-panel-title">🤖 Crypto Strategist</div>
+        <span style="font-size:0.75rem;color:var(--fg2);">Powered by Claude</span>
       </div>
-      <div id="sl-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load strategy labs. Retrying...</div>
+      <div class="chat-panel-body" id="chat-body">
+        <div class="msg ai">
+          <strong>Crypto Trading Strategist</strong> at your service.<br><br>
+          I analyze market trends, token strength, liquidity pools, and social momentum. I can help with:
+          <ul style="margin:8px 0 0 18px;">
+            <li>Spot & swing trading opportunities</li>
+            <li>LP opportunities on Meteora</li>
+            <li>Bear-market accumulation picks</li>
+            <li>Organic meme coin research</li>
+            <li>Risk assessment & red flags</li>
+          </ul>
+          <div class="suggestions">
+            <span class="suggestion-chip" data-q="What is a good short today?">📉 Good short today?</span>
+            <span class="suggestion-chip" data-q="What is a good buy today?">📈 Good buy today?</span>
+            <span class="suggestion-chip" data-q="Which coin has the most crowded longs?">🎯 Most crowded longs?</span>
+            <span class="suggestion-chip" data-q="Analyze BTC trend and support levels">🔍 Analyze BTC</span>
+            <span class="suggestion-chip" data-q="Any undervalued altcoins for accumulation?">💎 Undervalued alts</span>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask me anything about crypto..."></textarea>
+        <button class="chat-send" id="chat-send">Send</button>
+      </div>
     </div>
   </div>
 
-  <!-- AI Chat Widget -->
-  <div class="chat-widget hidden" id="chat-widget">
-    <div class="chat-header">
-      <div class="chat-title">🤖 Crypto Strategist</div>
-      <div class="chat-close" id="chat-close">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
-      </div>
-    </div>
-    <div class="chat-body" id="chat-body">
-      <div class="msg ai">
-        <strong>Crypto Trading Strategist</strong> at your service.<br><br>
-        I analyze market trends, token strength, liquidity pools, and social momentum. I can help with:
-        <ul style="margin:8px 0 0 18px;">
-          <li>Spot & swing trading opportunities</li>
-          <li>LP opportunities on Meteora</li>
-          <li>Bear-market accumulation picks</li>
-          <li>Organic meme coin research</li>
-          <li>Risk assessment & red flags</li>
-        </ul>
-        <div class="suggestions">
-          <span class="suggestion-chip" data-q="What is a good short today?">📉 Good short today?</span>
-          <span class="suggestion-chip" data-q="What is a good buy today?">📈 Good buy today?</span>
-          <span class="suggestion-chip" data-q="Which coin has the most crowded longs?">🎯 Most crowded longs?</span>
-          <span class="suggestion-chip" data-q="Analyze BTC trend and support levels">🔍 Analyze BTC</span>
-          <span class="suggestion-chip" data-q="Any undervalued altcoins for accumulation?">💎 Undervalued alts</span>
-        </div>
-      </div>
-    </div>
-    <div class="chat-input-area">
-      <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask me anything about crypto..."></textarea>
-      <button class="chat-send" id="chat-send">Send</button>
-    </div>
-  </div>
-  <button class="chat-toggle" id="chat-toggle">💬</button>
 </div>
 
 <footer>
@@ -377,6 +518,22 @@
 </footer>
 
 <script>
+// ── Tab Switching ────────────────────────────────────
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabPanels = document.querySelectorAll('.tab-panel');
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    tabBtns.forEach(b => b.classList.remove('active'));
+    tabPanels.forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+    // Scroll to top of content
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
 // ── Market Data ──────────────────────────────────────
 async function loadMarketData() {
   try {
@@ -425,9 +582,6 @@ async function loadSignals() {
     const data = await res.json();
     const tbody = document.getElementById('signals-tbody');
     tbody.innerHTML = '';
-
-    // Also try to fetch from Supabase via a simple query approach
-    // Since we don't have direct Supabase client on frontend, we'll show scan results
     if (data.signals && data.signals.length > 0) {
       data.signals.forEach(s => renderSignal(tbody, s));
     } else {
@@ -459,7 +613,7 @@ function renderSignal(tbody, s) {
 loadSignals();
 setInterval(loadSignals, 30000);
 
-// ── Liquidation Intelligence Panel ───────────────────
+// ── Liquidation Intelligence ─────────────────────────
 async function loadLiquidationIntel() {
   const loading = document.getElementById('liq-loading');
   const content = document.getElementById('liq-content');
@@ -482,7 +636,7 @@ async function loadLiquidationIntel() {
         <div style="font-size:0.75rem;color:var(--accent3);font-weight:700;margin-bottom:4px;">🔴 BEST SHORT</div>
         <div style="font-size:1.05rem;font-weight:700;">${data.bestShort.symbol} @ $${data.bestShort.price.toLocaleString()}</div>
         <div style="font-size:0.8rem;color:var(--fg2);margin-top:4px;">
-          Funding: <span style="color:${data.bestShort.fundingAnnualized > 100 ? 'var(--accent3)' : 'var(--accent)'};">${data.bestShort.fundingAnnualized.toFixed(1)}%</span> ann. ·
+          Funding: <span style="color:${data.bestShort.fundingAnnualized > 100 ? 'var(--accent3)' : 'var(--accent)'}">${data.bestShort.fundingAnnualized.toFixed(1)}%</span> ann. ·
           OI: $${(data.bestShort.openInterestUsd/1e6).toFixed(1)}M ·
           Risk: ${data.bestShort.riskScore}/100
         </div>
@@ -495,7 +649,7 @@ async function loadLiquidationIntel() {
         <div style="font-size:0.75rem;color:var(--accent);font-weight:700;margin-bottom:4px;">🟢 BEST LONG</div>
         <div style="font-size:1.05rem;font-weight:700;">${data.bestLong.symbol} @ $${data.bestLong.price.toLocaleString()}</div>
         <div style="font-size:0.8rem;color:var(--fg2);margin-top:4px;">
-          Funding: <span style="color:${data.bestLong.fundingAnnualized < -100 ? 'var(--accent)' : 'var(--accent3)'};">${data.bestLong.fundingAnnualized.toFixed(1)}%</span> ann. ·
+          Funding: <span style="color:${data.bestLong.fundingAnnualized < -100 ? 'var(--accent)' : 'var(--accent3)'}">${data.bestLong.fundingAnnualized.toFixed(1)}%</span> ann. ·
           OI: $${(data.bestLong.openInterestUsd/1e6).toFixed(1)}M ·
           Risk: ${data.bestLong.riskScore}/100
         </div>
@@ -505,7 +659,7 @@ async function loadLiquidationIntel() {
 
     if (data.alerts?.length) {
       alerts.innerHTML = data.alerts.slice(0,4).map(a =>
-        `<div style="font-size:0.78rem;padding:6px 0;border-bottom:1px solid rgba(30,37,56,0.4);color:${a.severity==='high'?'var(--accent3)':'var(--accent2)'};">
+        `<div style="font-size:0.78rem;padding:6px 0;border-bottom:1px solid rgba(30,37,56,0.4);color:${a.severity==='high'?'var(--accent3)':'var(--accent2)'}">
           <span style="font-weight:700;">${a.type === 'overleveraged_longs' ? '🔴' : a.type === 'overleveraged_shorts' ? '🟢' : '⚡'}</span> ${a.message}
         </div>`
       ).join('');
@@ -519,7 +673,7 @@ async function loadLiquidationIntel() {
 loadLiquidationIntel();
 setInterval(loadLiquidationIntel, 60000);
 
-// ── News Feed Panel ──────────────────────────────────
+// ── News Feed ────────────────────────────────────────
 async function loadNewsFeed() {
   const loading = document.getElementById('news-loading');
   const content = document.getElementById('news-content');
@@ -536,7 +690,6 @@ async function loadNewsFeed() {
     error.style.display = 'none';
     content.style.display = 'block';
 
-    // Overall sentiment bar
     const score = data.overallScore || 0;
     const sentColor = score > 0.2 ? 'var(--accent)' : score < -0.2 ? 'var(--accent3)' : 'var(--accent2)';
     const sentLabel = score > 0.2 ? 'Bullish' : score < -0.2 ? 'Bearish' : 'Neutral';
@@ -548,7 +701,6 @@ async function loadNewsFeed() {
         <span style="margin-left:auto;color:var(--fg2);font-weight:400;">${data.itemCount} articles</span>
       </div>`;
 
-    // News items
     list.innerHTML = data.items.map(item => {
       const impactColor = item.impact === 'bullish' ? 'var(--accent)' : item.impact === 'bearish' ? 'var(--accent3)' : 'var(--fg2)';
       const impactIcon = item.impact === 'bullish' ? '📈' : item.impact === 'bearish' ? '📉' : '➡️';
@@ -573,7 +725,7 @@ async function loadNewsFeed() {
   }
 }
 loadNewsFeed();
-setInterval(loadNewsFeed, 120000); // refresh every 2 min
+setInterval(loadNewsFeed, 120000);
 
 // ── Chart symbol switcher ────────────────────────────
 document.getElementById('chart-symbol').addEventListener('change', function() {
@@ -593,24 +745,11 @@ document.getElementById('chart-symbol').addEventListener('change', function() {
 });
 
 // ── AI Chat ──────────────────────────────────────────
-const chatWidget = document.getElementById('chat-widget');
-const chatToggle = document.getElementById('chat-toggle');
-const chatClose = document.getElementById('chat-close');
 const chatBody = document.getElementById('chat-body');
 const chatInput = document.getElementById('chat-input');
 const chatSend = document.getElementById('chat-send');
-
 let chatHistory = [];
 
-function toggleChat() {
-  chatWidget.classList.toggle('hidden');
-  chatToggle.classList.toggle('hidden');
-}
-
-chatToggle.addEventListener('click', toggleChat);
-chatClose.addEventListener('click', toggleChat);
-
-// Auto-resize textarea
 chatInput.addEventListener('input', function() {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 120) + 'px';
@@ -622,11 +761,9 @@ chatInput.addEventListener('keydown', function(e) {
 
 chatSend.addEventListener('click', sendMessage);
 
-// Suggestion chips
 document.addEventListener('click', function(e) {
   if (e.target.classList.contains('suggestion-chip')) {
-    const q = e.target.dataset.q;
-    chatInput.value = q;
+    chatInput.value = e.target.dataset.q;
     sendMessage();
   }
 });
@@ -635,7 +772,6 @@ async function sendMessage() {
   const text = chatInput.value.trim();
   if (!text) return;
 
-  // Add user message
   const userMsg = document.createElement('div');
   userMsg.className = 'msg user';
   userMsg.textContent = text;
@@ -644,7 +780,6 @@ async function sendMessage() {
   chatInput.style.height = 'auto';
   chatBody.scrollTop = chatBody.scrollHeight;
 
-  // Typing indicator
   const typing = document.createElement('div');
   typing.className = 'typing';
   typing.innerHTML = '<span></span><span></span><span></span>';
@@ -665,7 +800,6 @@ async function sendMessage() {
     const aiMsg = document.createElement('div');
     aiMsg.className = 'msg ai';
     if (data.ok) {
-      // Simple markdown-like parsing
       let html = data.answer
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
@@ -697,7 +831,7 @@ async function sendMessage() {
   }
 }
 
-// ── Catalyst Watch Panel ─────────────────────────────
+// ── Catalyst Watch ───────────────────────────────────
 async function loadCatalysts() {
   const loading = document.getElementById('catalyst-loading');
   const content = document.getElementById('catalyst-content');
@@ -716,7 +850,6 @@ async function loadCatalysts() {
     error.style.display = 'none';
     content.style.display = 'block';
 
-    // High impact catalysts
     if (data.high?.length) {
       highDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--accent3);font-weight:700;margin-bottom:10px;">🔴 HIGH IMPACT CATALYSTS</div>' +
         data.high.map(c => {
@@ -741,7 +874,6 @@ async function loadCatalysts() {
         }).join('');
     } else { highDiv.innerHTML = '<div style="padding:8px;color:var(--fg2);font-size:0.85rem;">No high-impact catalysts</div>'; }
 
-    // Market readings
     if (data.readings?.length) {
       readingsDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--accent2);font-weight:700;margin-bottom:10px;">📊 WHAT THE DATA IS TELLING YOU</div>' +
         '<table style="width:100%;font-size:0.8rem;border-collapse:collapse;">' +
@@ -753,7 +885,6 @@ async function loadCatalysts() {
         }).join('') + '</tbody></table>';
     } else { readingsDiv.style.display = 'none'; }
 
-    // Key levels
     if (data.levels) {
       levelsDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--fg2);font-weight:700;margin-bottom:10px;">⚡ KEY PRICE LEVELS TO WATCH</div>' +
         Object.entries(data.levels).map(([sym, lvl]) =>
@@ -761,7 +892,6 @@ async function loadCatalysts() {
         ).join('');
     } else { levelsDiv.style.display = 'none'; }
 
-    // Bottom line
     if (data.bottomLine) {
       bottomDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--accent2);font-weight:700;margin-bottom:8px;">🧠 BOTTOM LINE</div>' +
         `<div style="font-size:0.85rem;line-height:1.6;color:var(--fg);">${data.bottomLine}</div>`;
@@ -776,7 +906,7 @@ async function loadCatalysts() {
 loadCatalysts();
 setInterval(loadCatalysts, 300000);
 
-// ── Strategy Labs Panel ──────────────────────────────
+// ── Strategy Labs ────────────────────────────────────
 async function loadStrategyLabs() {
   const loading = document.getElementById('sl-loading');
   const content = document.getElementById('sl-content');
@@ -790,7 +920,6 @@ async function loadStrategyLabs() {
     error.style.display = 'none';
     content.style.display = 'block';
 
-    // Mock account
     document.getElementById('sl-balance').textContent = data.mock?.balance != null
       ? '$' + data.mock.balance.toLocaleString(undefined, { maximumFractionDigits: 0 })
       : '—';
@@ -799,12 +928,10 @@ async function loadStrategyLabs() {
       : '—';
     document.getElementById('sl-open').textContent = data.mock?.openTrades?.length ?? 0;
 
-    // ML model
     document.getElementById('sl-model').textContent = data.mlModel
       ? `${data.mlModel.name} (acc ${data.mlModel.metrics?.accuracy ?? '?'})`
       : 'No model trained yet';
 
-    // Stats table
     const statsBody = document.getElementById('sl-stats-body');
     if (data.mock?.closedStats?.length) {
       statsBody.innerHTML = data.mock.closedStats.map(s => {
@@ -822,7 +949,6 @@ async function loadStrategyLabs() {
       statsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg2);padding:16px;">No closed trades yet. Strategies are being tested.</td></tr>';
     }
 
-    // Promoted strategies
     const promotedDiv = document.getElementById('sl-promoted');
     if (data.promotedStrategies?.length) {
       promotedDiv.innerHTML = data.promotedStrategies.map(p =>
