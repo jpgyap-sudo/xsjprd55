@@ -47,6 +47,22 @@ services:
     networks:
       - botnet
 
+  # Python ML Service (Phase 1 + RL)
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: xsjprd55-ml-service
+    restart: unless-stopped
+    ports:
+      - "8010:8010"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./ml-service/models:/app/models
+    networks:
+      - botnet
+
 networks:
   botnet:
     driver: bridge

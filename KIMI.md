@@ -34,14 +34,21 @@ At the start of every coding session, read these files in this order:
 4. `WORKFLOW.md`
 5. `PERMISSIONS.md`
 6. `SECURITY.md`
-7. Project-specific local files such as `README.md`, `.env.example`, `.mcp.json`, `package.json`, `vercel.json`, `supabase/`, and API route files
+7. `C:/Users/User/.roo/MEMORY.md` — read global memory to recall the last session and task
+8. Project-specific local files such as `README.md`, `.env.example`, `.mcp.json`, `package.json`, `vercel.json`, `supabase/`, and API route files
 
 Then report:
 - Current project goal
 - Detected tech stack
 - Available tools and MCPs
 - Missing access or missing environment variables
+- **Last task from global memory (if any)**
 - Safest next action
+
+### If the user asks "what was the last task" or "go back to last task"
+1. Read `C:/Users/User/.roo/MEMORY.md`
+2. Report the recorded last task, project, files modified, and blockers/TODOs
+3. Ask: "Resume from there?" and proceed if confirmed
 
 ## Default Tech Stack
 
@@ -100,8 +107,13 @@ Before ending a coding session:
 2. List files modified
 3. List tests run and results
 4. List remaining risks
-5. Update relevant `.md` guides if new workflow knowledge was learned
-6. Commit updates when allowed
+5. **Update `C:/Users/User/.roo/MEMORY.md`** with:
+   - Date, project, task summary
+   - Files modified
+   - Blockers / TODOs
+   - How to resume
+6. Update relevant `.md` guides if new workflow knowledge was learned
+7. Commit updates when allowed
 
 Recommended commit message format:
 `Update Kimi guides — <short description>`

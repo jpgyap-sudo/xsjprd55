@@ -23,14 +23,35 @@ export default async function handler(req, res) {
 
   const isManual = req.method === 'POST';
 
-  // Cron protection: GET requests require x-cron-secret header
+  // ── GET : return active signals from DB (for frontend dashboard) ──
   if (!isManual) {
-    const cronSecret = process.env.CRON_SECRET;
-    const provided = req.headers['x-cron-secret'];
-    if (cronSecret && provided !== cronSecret) {
-      return res.status(401).json({ error: 'Unauthorized cron request' });
+    try {
+      const { data: activeSignals, error } = await supabase
+        .from('signals')
+        .select('*')
+        .eq('status', 'active')
+        .order('generated_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return res.status(200).json({
+        ok: true,
+        signals: activeSignals || [],
+        count: (activeSignals || []).length,
+        ts: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error('Signal fetch error:', err);
+      return res.status(500).json({ ok: false, error: err.message });
     }
   }
+
+  // ── POST : manual scan (also used by cron with x-cron-secret) ──
+  const cronSecret = process.env.CRON_SECRET;
+  const provided = req.headers['x-cron-secret'];
+  if (cronSecret && provided !== cronSecret) {
+    return res.status(401).json({ error: 'Unauthorized cron request' });
+  }
+
   const pairs    = req.body?.pairs || DEFAULT_PAIRS;
   const tfs      = req.body?.timeframes || TIMEFRAMES;
   const mode     = (req.body?.mode || process.env.TRADING_MODE || 'paper').trim();

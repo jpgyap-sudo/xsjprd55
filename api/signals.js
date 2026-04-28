@@ -207,6 +207,7 @@ export default async function handler(req, res) {
 
             // Extract pattern for learning (non-blocking)
             try {
+              const closes = ohlcv.map(c => c[4]);
               const close = closes[closes.length - 1];
               const marketCtx = {
                 price: close,

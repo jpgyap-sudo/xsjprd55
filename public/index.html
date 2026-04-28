@@ -259,7 +259,8 @@
 <nav class="tab-nav">
   <button class="tab-btn active" data-tab="overview">📊 Overview</button>
   <button class="tab-btn" data-tab="signals">🚨 Signals</button>
-  <button class="tab-btn" data-tab="strategy-labs">🧪 Strategy Labs</button>
+  <button class="tab-btn" data-tab="research-agent">🔬 Research Agent</button>
+  <button class="tab-btn" data-tab="mock-trading">💰 Mock Trading</button>
   <button class="tab-btn" data-tab="catalyst">🔴 Catalyst</button>
   <button class="tab-btn" data-tab="news">📰 News & Intel</button>
   <button class="tab-btn" data-tab="ai">🤖 AI Chat</button>
@@ -402,48 +403,145 @@
   </div>
 
   <!-- ════════════════════════════════════════════════════ -->
-  <!-- STRATEGY LABS TAB -->
+  <!-- RESEARCH AGENT TAB -->
   <!-- ════════════════════════════════════════════════════ -->
-  <div class="tab-panel" id="tab-strategy-labs">
-    <div class="card" style="margin-bottom:20px;">
-      <div class="card-header">
-        <span>🧪 Strategy Labs</span>
-        <span class="badge paper" style="font-size:0.6rem;padding:2px 8px;">ML + Mock</span>
-      </div>
-      <div class="card-body">
-        <div id="sl-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading strategy lab data...</div>
-        <div id="sl-content" style="display:none;">
-          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
-            <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
-              <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Mock Balance</div>
-              <div id="sl-balance" style="font-size:1.4rem;font-weight:700;color:var(--accent);margin-top:4px;">—</div>
-            </div>
-            <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
-              <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Peak Balance</div>
-              <div id="sl-peak" style="font-size:1.4rem;font-weight:700;color:var(--accent);margin-top:4px;">—</div>
-            </div>
-            <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
-              <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Open Trades</div>
-              <div id="sl-open" style="font-size:1.4rem;font-weight:700;color:var(--accent);margin-top:4px;">—</div>
-            </div>
-            <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
-              <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">ML Model</div>
-              <div id="sl-model" style="font-size:0.9rem;font-weight:600;color:var(--fg);margin-top:4px;">—</div>
-            </div>
-          </div>
-          <div style="margin-bottom:12px;font-weight:600;font-size:0.85rem;">📊 Strategy Performance</div>
-          <div id="sl-stats" style="overflow-x:auto;">
+  <div class="tab-panel" id="tab-research-agent">
+    <!-- Stats Row -->
+    <div class="stat-grid" style="margin-bottom:20px;" id="ra-stats">
+      <div class="stat-item"><div class="stat-label">Sources Ingested</div><div class="stat-value" id="ra-stat-sources">—</div></div>
+      <div class="stat-item"><div class="stat-label">Proposals</div><div class="stat-value" id="ra-stat-proposals">—</div></div>
+      <div class="stat-item"><div class="stat-label">Backtests</div><div class="stat-value" id="ra-stat-backtests">—</div></div>
+      <div class="stat-item"><div class="stat-label">Promoted</div><div class="stat-value" id="ra-stat-promoted" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">ML Model</div><div class="stat-value" id="ra-stat-model" style="font-size:1rem">—</div></div>
+    </div>
+
+    <div class="grid grid-2">
+      <!-- Strategy Proposals -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><span>🔬 Strategy Proposals</span></div>
+        <div class="card-body" style="padding:0;max-height:400px;overflow:auto;">
+          <div id="ra-loading" style="text-align:center;padding:20px;color:var(--fg2);">Loading research data...</div>
+          <div id="ra-proposals-content" style="display:none;">
             <table class="signal-table" style="min-width:500px;">
-              <thead>
-                <tr><th>Strategy</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Total PnL</th><th>Avg Return</th></tr>
-              </thead>
-              <tbody id="sl-stats-body"></tbody>
+              <thead><tr><th>Name</th><th>Conf</th><th>Rules</th><th>Status</th></tr></thead>
+              <tbody id="ra-proposals-body"></tbody>
             </table>
           </div>
-          <div style="margin-top:16px;margin-bottom:12px;font-weight:600;font-size:0.85rem;">🏆 Promoted Strategies</div>
-          <div id="sl-promoted"></div>
         </div>
-        <div id="sl-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load strategy labs. Retrying...</div>
+      </div>
+      <!-- Backtest Results -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><span>📊 Research Backtests</span></div>
+        <div class="card-body" style="padding:0;max-height:400px;overflow:auto;">
+          <div id="ra-backtests-content" style="display:none;">
+            <table class="signal-table" style="min-width:500px;">
+              <thead><tr><th>Strategy</th><th>Trades</th><th>Return</th><th>WR</th><th>Sharpe</th></tr></thead>
+              <tbody id="ra-backtests-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Promoted Strategies -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span>🏆 Promoted Strategies</span></div>
+      <div class="card-body">
+        <div id="ra-promoted"></div>
+      </div>
+    </div>
+
+    <!-- Recent Research Sources -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span>📚 Recent Research Sources</span></div>
+      <div class="card-body" style="padding:0;max-height:300px;overflow:auto;">
+        <div id="ra-sources-content" style="display:none;">
+          <table class="signal-table">
+            <thead><tr><th>Source</th><th>Hints</th><th>Used</th><th>Time</th></tr></thead>
+            <tbody id="ra-sources-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- MOCK TRADING TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-mock-trading">
+    <!-- Account Stats -->
+    <div class="stat-grid" style="margin-bottom:20px;" id="mt-stats">
+      <div class="stat-item"><div class="stat-label">Account Balance</div><div class="stat-value" id="mt-balance">—</div></div>
+      <div class="stat-item"><div class="stat-label">Peak Balance</div><div class="stat-value" id="mt-peak">—</div></div>
+      <div class="stat-item"><div class="stat-label">Total Return</div><div class="stat-value" id="mt-return">—</div></div>
+      <div class="stat-item"><div class="stat-label">Win Rate</div><div class="stat-value" id="mt-winrate">—</div></div>
+      <div class="stat-item"><div class="stat-label">Total Trades</div><div class="stat-value" id="mt-trades">—</div></div>
+      <div class="stat-item"><div class="stat-label">Open Positions</div><div class="stat-value" id="mt-open">—</div></div>
+    </div>
+
+    <div class="grid grid-2">
+      <!-- Open Trades -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><span>📈 Open Positions</span></div>
+        <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
+          <div id="mt-open-loading" style="text-align:center;padding:20px;color:var(--fg2);">Loading...</div>
+          <div id="mt-open-content" style="display:none;">
+            <table class="signal-table">
+              <thead><tr><th>Symbol</th><th>Side</th><th>Entry</th><th>Size</th><th>Lev</th></tr></thead>
+              <tbody id="mt-open-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- Recent Closed Trades -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><span>📉 Recent Closed Trades</span></div>
+        <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
+          <div id="mt-closed-content" style="display:none;">
+            <table class="signal-table">
+              <thead><tr><th>Symbol</th><th>Side</th><th>PnL $</th><th>PnL %</th></tr></thead>
+              <tbody id="mt-closed-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Strategy Performance -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span>📊 Strategy Performance</span></div>
+      <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
+        <div id="mt-strat-content" style="display:none;">
+          <table class="signal-table" style="min-width:600px;">
+            <thead><tr><th>Strategy</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>Total PnL</th><th>Avg Return</th></tr></thead>
+            <tbody id="mt-strat-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trading Analysis -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span>🧠 Trading Analysis</span></div>
+      <div class="card-body">
+        <div class="grid grid-2" id="mt-analysis">
+          <div>
+            <div style="font-size:0.75rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Best Trade</div>
+            <div id="mt-best" style="font-size:1.1rem;font-weight:700;color:var(--accent);">—</div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Worst Trade</div>
+            <div id="mt-worst" style="font-size:1.1rem;font-weight:700;color:var(--accent3);">—</div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Max Drawdown</div>
+            <div id="mt-drawdown" style="font-size:1.1rem;font-weight:700;color:var(--accent2);">—</div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Avg Return / Trade</div>
+            <div id="mt-avg" style="font-size:1.1rem;font-weight:700;">—</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -954,15 +1052,20 @@ async function loadNewsFeed() {
       const impactIcon = item.impact === 'bullish' ? '📈' : item.impact === 'bearish' ? '📉' : '➡️';
       const assetTags = item.detectedAssets.map(a => `<span style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.7rem;color:var(--fg2);">${a.symbol.replace('USDT','')}</span>`).join(' ');
       const urgency = item.hasUrgency ? '<span style="color:var(--accent3);font-size:0.7rem;font-weight:700;">BREAKING</span>' : '';
+      const pubDate = item.publishedAt || item.ingestedAt || item.created_at;
+      const timeStr = pubDate ? new Date(pubDate).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
       return `
         <div style="padding:10px 18px;border-bottom:1px solid rgba(30,37,56,0.4);">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
             <span style="font-size:0.75rem;color:var(--fg2);">${item.source}</span>
             ${urgency}
-            <span style="margin-left:auto;font-size:0.75rem;color:${impactColor};">${impactIcon} ${(item.sentimentScore || 0).toFixed(2)}</span>
+            <span style="margin-left:auto;font-size:0.7rem;color:var(--fg2);">${timeStr}</span>
           </div>
           <a href="${item.url}" target="_blank" style="color:var(--fg);text-decoration:none;font-size:0.82rem;font-weight:500;line-height:1.4;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${item.title}</a>
-          <div style="margin-top:4px;">${assetTags}</div>
+          <div style="margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            ${assetTags}
+            <span style="margin-left:auto;font-size:0.75rem;color:${impactColor};">${impactIcon} ${(item.sentimentScore || 0).toFixed(2)}</span>
+          </div>
         </div>`;
     }).join('');
 
@@ -1154,67 +1257,264 @@ async function loadCatalysts() {
 loadCatalysts();
 setInterval(loadCatalysts, 300000);
 
-// ── Strategy Labs ────────────────────────────────────
-async function loadStrategyLabs() {
-  const loading = document.getElementById('sl-loading');
-  const content = document.getElementById('sl-content');
-  const error = document.getElementById('sl-error');
+// ── Research Agent ───────────────────────────────────
+async function loadResearchAgent() {
+  const loading = document.getElementById('ra-loading');
+  const proposalsContent = document.getElementById('ra-proposals-content');
+  const backtestsContent = document.getElementById('ra-backtests-content');
+  const sourcesContent = document.getElementById('ra-sources-content');
 
   try {
-    const res = await fetch('/api/strategy-labs');
+    const res = await fetch('/api/research-agent-dashboard');
     const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
 
-    loading.style.display = 'none';
-    error.style.display = 'none';
-    content.style.display = 'block';
+    if (loading) loading.style.display = 'none';
 
-    document.getElementById('sl-balance').textContent = data.mock?.balance != null
-      ? '$' + data.mock.balance.toLocaleString(undefined, { maximumFractionDigits: 0 })
-      : '—';
-    document.getElementById('sl-peak').textContent = data.mock?.peak != null
-      ? '$' + data.mock.peak.toLocaleString(undefined, { maximumFractionDigits: 0 })
-      : '—';
-    document.getElementById('sl-open').textContent = data.mock?.openTrades?.length ?? 0;
+    // Stats
+    document.getElementById('ra-stat-sources').textContent = data.recentSources?.length ?? '—';
+    document.getElementById('ra-stat-proposals').textContent = data.proposals?.length ?? '—';
+    document.getElementById('ra-stat-backtests').textContent = data.backtests?.length ?? '—';
+    document.getElementById('ra-stat-promoted').textContent = data.promotedStrategies?.length ?? '—';
 
-    document.getElementById('sl-model').textContent = data.mlModel
-      ? `${data.mlModel.name} (acc ${data.mlModel.metrics?.accuracy ?? '?'})`
-      : 'No model trained yet';
-
-    const statsBody = document.getElementById('sl-stats-body');
-    if (data.mock?.closedStats?.length) {
-      statsBody.innerHTML = data.mock.closedStats.map(s => {
-        const pnlColor = s.total_pnl > 0 ? 'var(--accent)' : s.total_pnl < 0 ? 'var(--accent3)' : 'var(--fg2)';
-        return `<tr>
-          <td style="font-weight:600;">${s.strategy_name}</td>
-          <td>${s.trades}</td>
-          <td style="color:var(--accent);">${s.wins}</td>
-          <td style="color:var(--accent3);">${s.losses}</td>
-          <td style="color:${pnlColor};font-weight:700;">$${Number(s.total_pnl).toLocaleString(undefined,{maximumFractionDigits:0})}</td>
-          <td>${Number(s.avg_return).toFixed(2)}%</td>
-        </tr>`;
-      }).join('');
+    // ML Model status
+    const modelEl = document.getElementById('ra-stat-model');
+    if (data.mlModel) {
+      const acc = data.mlModel.metrics?.accuracy != null ? (data.mlModel.metrics.accuracy * 100).toFixed(1) + '%' : '?';
+      modelEl.textContent = `${data.mlModel.name} · acc ${acc}`;
+      modelEl.style.color = 'var(--accent)';
     } else {
-      statsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg2);padding:16px;">No closed trades yet. Strategies are being tested.</td></tr>';
+      modelEl.textContent = 'No model';
+      modelEl.style.color = 'var(--fg2)';
     }
 
-    const promotedDiv = document.getElementById('sl-promoted');
+    // Proposals
+    const propBody = document.getElementById('ra-proposals-body');
+    if (data.proposals?.length) {
+      propBody.innerHTML = data.proposals.map(p => {
+        const status = p.promoted ? '🏆 Promoted' : p.rejected ? '❌ Rejected' : p.tested ? '✅ Tested' : '⏳ Pending';
+        const statusColor = p.promoted ? 'var(--accent)' : p.rejected ? 'var(--accent3)' : 'var(--accent2)';
+        return `<tr>
+          <td style="font-weight:600;font-size:0.85rem;">${p.name}</td>
+          <td style="font-size:0.8rem;">${(p.confidence * 100).toFixed(0)}%</td>
+          <td style="font-size:0.75rem;color:var(--fg2);">${(p.rules || []).slice(0,2).join(', ')}${(p.rules || []).length > 2 ? '…' : ''}</td>
+          <td style="font-size:0.75rem;color:${statusColor};font-weight:600;">${status}</td>
+        </tr>`;
+      }).join('');
+      proposalsContent.style.display = 'block';
+    } else {
+      propBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:16px;">No proposals yet.</td></tr>';
+      proposalsContent.style.display = 'block';
+    }
+
+    // Backtests
+    const btBody = document.getElementById('ra-backtests-body');
+    if (data.backtests?.length) {
+      btBody.innerHTML = data.backtests.map(b => {
+        const retColor = b.totalReturnPct > 0 ? 'var(--accent)' : b.totalReturnPct < 0 ? 'var(--accent3)' : 'var(--fg2)';
+        return `<tr>
+          <td style="font-weight:600;font-size:0.85rem;">${b.strategyName}</td>
+          <td>${b.totalTrades}</td>
+          <td style="color:${retColor};font-weight:700;">${b.totalReturnPct?.toFixed(2) ?? 0}%</td>
+          <td>${((b.winRate || 0) * 100).toFixed(1)}%</td>
+          <td>${b.sharpeRatio?.toFixed(2) ?? '—'}</td>
+        </tr>`;
+      }).join('');
+      backtestsContent.style.display = 'block';
+    } else {
+      btBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--fg2);padding:16px;">No backtests yet.</td></tr>';
+      backtestsContent.style.display = 'block';
+    }
+
+    // Promoted
+    const promotedDiv = document.getElementById('ra-promoted');
     if (data.promotedStrategies?.length) {
       promotedDiv.innerHTML = data.promotedStrategies.map(p =>
         `<span style="display:inline-block;background:rgba(16,185,129,0.12);color:var(--accent);padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;margin:0 6px 6px 0;">
-          🏆 ${p.name} · ${(p.winRate*100).toFixed(0)}% WR · $${Number(p.totalPnl).toLocaleString(undefined,{maximumFractionDigits:0})}
+          🏆 ${p.name} · ${(p.winRate * 100).toFixed(0)}% WR · $${Number(p.totalPnl).toLocaleString(undefined, { maximumFractionDigits: 0 })}
         </span>`
       ).join('');
     } else {
       promotedDiv.innerHTML = '<span style="color:var(--fg2);font-size:0.8rem;">No strategies promoted yet. Need ≥30 trades with ≥54% win rate.</span>';
     }
 
+    // Sources
+    const srcBody = document.getElementById('ra-sources-body');
+    if (data.recentSources?.length) {
+      srcBody.innerHTML = data.recentSources.map(s => {
+        const hints = (s.hints || []).slice(0, 3).join(', ');
+        const usedBadge = s.used
+          ? '<span style="background:rgba(16,185,129,0.12);color:var(--accent);padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:600;">USED</span>'
+          : '<span style="background:var(--bg3);color:var(--fg2);padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:600;">NEW</span>';
+        return `<tr>
+          <td style="font-weight:600;font-size:0.85rem;">${s.sourceName}</td>
+          <td style="font-size:0.75rem;color:var(--fg2);">${hints || '—'}</td>
+          <td>${usedBadge}</td>
+          <td style="font-size:0.75rem;color:var(--fg2);">${new Date(s.createdAt).toLocaleString()}</td>
+        </tr>`;
+      }).join('');
+      sourcesContent.style.display = 'block';
+    } else {
+      srcBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:16px;">No research sources yet.</td></tr>';
+      sourcesContent.style.display = 'block';
+    }
+
+    // ML Health (async, non-blocking)
+    try {
+      const mlRes = await fetch('/api/ml-health');
+      const mlData = await mlRes.json();
+      if (mlData.ok && mlData.model_count != null) {
+        modelEl.textContent += ` · ${mlData.model_count} model${mlData.model_count !== 1 ? 's' : ''} loaded`;
+      }
+    } catch (e) {}
+
   } catch (e) {
-    loading.style.display = 'none';
-    error.style.display = 'block';
+    if (loading) loading.style.display = 'none';
+    console.error('Research Agent load error:', e);
   }
 }
-loadStrategyLabs();
-setInterval(loadStrategyLabs, 60000);
+loadResearchAgent();
+setInterval(loadResearchAgent, 60000);
+
+// ── Mock Trading ─────────────────────────────────────
+async function loadMockTrading() {
+  try {
+    const res = await fetch('/api/mock-trading-dashboard');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    // Account stats
+    const acc = data.account || {};
+    const bal = acc.balance != null ? '$' + Number(acc.balance).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
+    const peak = acc.peak != null ? '$' + Number(acc.peak).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
+    const ret = acc.totalReturnPct != null ? (acc.totalReturnPct >= 0 ? '+' : '') + acc.totalReturnPct.toFixed(2) + '%' : '—';
+    const retColor = acc.totalReturnPct > 0 ? 'var(--accent)' : acc.totalReturnPct < 0 ? 'var(--accent3)' : 'var(--fg2)';
+
+    document.getElementById('mt-balance').textContent = bal;
+    document.getElementById('mt-peak').textContent = peak;
+    const retEl = document.getElementById('mt-return');
+    retEl.textContent = ret;
+    retEl.style.color = retColor;
+
+    const summary = data.summary || {};
+    const wr = summary.winRate != null ? (summary.winRate * 100).toFixed(1) + '%' : '—';
+    const wrColor = summary.winRate >= 0.54 ? 'var(--accent)' : summary.winRate >= 0.45 ? 'var(--accent2)' : 'var(--accent3)';
+    const wrEl = document.getElementById('mt-winrate');
+    wrEl.textContent = wr;
+    wrEl.style.color = wrColor;
+    document.getElementById('mt-trades').textContent = summary.totalTrades ?? '—';
+    document.getElementById('mt-open').textContent = summary.openTradeCount ?? '—';
+
+    // Open trades
+    const openLoading = document.getElementById('mt-open-loading');
+    const openContent = document.getElementById('mt-open-content');
+    const openBody = document.getElementById('mt-open-body');
+    if (openLoading) openLoading.style.display = 'none';
+    if (data.openTrades?.length) {
+      openBody.innerHTML = data.openTrades.map(t => `
+        <tr>
+          <td><strong>${t.symbol}</strong><br><span style="font-size:0.75rem;color:var(--fg2);">${t.strategy}</span></td>
+          <td><span class="side-badge ${t.side === 'LONG' ? 'side-long' : 'side-short'}">${t.side}</span></td>
+          <td style="font-size:0.85rem;">$${Number(t.entryPrice).toLocaleString(undefined, { maximumFractionDigits: 1 })}</td>
+          <td style="font-size:0.85rem;">$${Number(t.sizeUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+          <td style="font-size:0.85rem;">${t.leverage}x</td>
+        </tr>
+      `).join('');
+      openContent.style.display = 'block';
+    } else {
+      openBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--fg2);padding:16px;">No open positions.</td></tr>';
+      openContent.style.display = 'block';
+    }
+
+    // Closed trades
+    const closedContent = document.getElementById('mt-closed-content');
+    const closedBody = document.getElementById('mt-closed-body');
+    if (data.closedTrades?.length) {
+      closedBody.innerHTML = data.closedTrades.slice(0, 20).map(t => {
+        const pnlColor = t.pnlUsd > 0 ? 'var(--accent)' : t.pnlUsd < 0 ? 'var(--accent3)' : 'var(--fg2)';
+        return `<tr>
+          <td><strong>${t.symbol}</strong><br><span style="font-size:0.75rem;color:var(--fg2);">${t.strategy}</span></td>
+          <td><span class="side-badge ${t.side === 'LONG' ? 'side-long' : 'side-short'}">${t.side}</span></td>
+          <td style="color:${pnlColor};font-weight:700;">$${Number(t.pnlUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+          <td style="color:${pnlColor};font-weight:700;">${t.pnlPct?.toFixed(2) ?? '—'}%</td>
+        </tr>`;
+      }).join('');
+      closedContent.style.display = 'block';
+    } else {
+      closedBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:16px;">No closed trades yet.</td></tr>';
+      closedContent.style.display = 'block';
+    }
+
+    // Strategy stats
+    const stratContent = document.getElementById('mt-strat-content');
+    const stratBody = document.getElementById('mt-strat-body');
+    if (data.strategyStats?.length) {
+      stratBody.innerHTML = data.strategyStats.map(s => {
+        const pnlColor = s.totalPnl > 0 ? 'var(--accent)' : s.totalPnl < 0 ? 'var(--accent3)' : 'var(--fg2)';
+        return `<tr>
+          <td style="font-weight:600;font-size:0.85rem;">${s.strategy}</td>
+          <td>${s.trades}</td>
+          <td style="color:var(--accent);">${s.wins}</td>
+          <td style="color:var(--accent3);">${s.losses}</td>
+          <td style="font-weight:700;">${(s.winRate * 100).toFixed(1)}%</td>
+          <td style="color:${pnlColor};font-weight:700;">$${Number(s.totalPnl).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+          <td>${s.avgReturn?.toFixed(2) ?? '—'}%</td>
+        </tr>`;
+      }).join('');
+      stratContent.style.display = 'block';
+    } else {
+      stratBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg2);padding:16px;">No strategy stats yet.</td></tr>';
+      stratContent.style.display = 'block';
+    }
+
+    // Analysis
+    const best = summary.bestTrade || 0;
+    const worst = summary.worstTrade || 0;
+    const dd = summary.maxDrawdown || 0;
+    const avg = summary.avgReturn || 0;
+
+    document.getElementById('mt-best').textContent = best > 0 ? '+$' + Number(best).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
+    document.getElementById('mt-worst').textContent = worst < 0 ? '-$' + Math.abs(Number(worst)).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
+    document.getElementById('mt-drawdown').textContent = dd > 0 ? '-$' + Number(dd).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
+    const avgEl = document.getElementById('mt-avg');
+    avgEl.textContent = avg != null ? avg.toFixed(2) + '%' : '—';
+    avgEl.style.color = avg > 0 ? 'var(--accent)' : avg < 0 ? 'var(--accent3)' : 'var(--fg2)';
+
+    // RL Decision (async, non-blocking)
+    try {
+      const rlRes = await fetch('/api/ml-rl', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          marketFeatures: { close: acc.balance || 10000, rsi: 50, atr: 100 },
+          portfolioState: { cash: acc.balance || 10000, position: summary.openTradeCount || 0, drawdown: dd }
+        })
+      });
+      const rlData = await rlRes.json();
+      if (rlData.ok && rlData.decision) {
+        const d = rlData.decision;
+        const actionColor = d.action === 'LONG' ? 'var(--accent)' : d.action === 'SHORT' ? 'var(--accent3)' : 'var(--fg2)';
+        const rlDiv = document.createElement('div');
+        rlDiv.style.cssText = 'margin-top:12px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:0.8rem;';
+        rlDiv.innerHTML = `
+          <div style="font-weight:700;margin-bottom:4px;">🤖 RL Agent Suggestion</div>
+          <div>Action: <span style="color:${actionColor};font-weight:700;">${d.action}</span> · Size: ${d.size_pct ?? '—'}% · Confidence: ${d.confidence ?? '—'}</div>
+          ${d.reason ? `<div style="color:var(--fg2);margin-top:4px;">${d.reason}</div>` : ''}
+        `;
+        const analysisDiv = document.getElementById('mt-analysis');
+        if (analysisDiv && !analysisDiv.querySelector('.rl-decision')) {
+          rlDiv.classList.add('rl-decision');
+          analysisDiv.appendChild(rlDiv);
+        }
+      }
+    } catch (e) {}
+
+  } catch (e) {
+    console.error('Mock Trading load error:', e);
+  }
+}
+loadMockTrading();
+setInterval(loadMockTrading, 60000);
 
 // ── API Status ───────────────────────────────────────
 async function loadApiStatus() {
