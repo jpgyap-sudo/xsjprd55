@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#121620">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="xsjprd55">
+  <meta name="description" content="Crypto trading signal bot dashboard with liquidation intel, research agent, and mock trading">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon-192.svg">
   <title>xsjprd55 — Crypto Trading Signal Dashboard</title>
   <style>
     :root {
@@ -235,6 +242,69 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: #2e3650; }
+
+    /* ─── Mobile / PWA ─── */
+    @media (max-width: 768px) {
+      header { padding: 10px 14px; }
+      .header-title { font-size: 0.9rem; }
+      .header-subtitle { font-size: 0.65rem; }
+      .header-status { gap: 8px; }
+      .badge { padding: 3px 8px; font-size: 0.6rem; }
+      .tab-nav { padding: 10px 12px; gap: 6px; top: 56px; }
+      .tab-btn { padding: 6px 12px; font-size: 0.72rem; }
+      .container { padding: 12px; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; gap: 14px; }
+      .card-header { padding: 12px 14px; font-size: 0.82rem; }
+      .card-body { padding: 14px; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .stat-value { font-size: 1.1rem; }
+      .signal-table th, .signal-table td { padding: 8px; font-size: 0.78rem; }
+      .chat-panel { height: calc(100vh - 190px); min-height: 360px; }
+      .msg { max-width: 96%; font-size: 0.8rem; }
+      .chat-input-area { padding: 10px 12px; }
+      .chat-input { padding: 8px 12px; font-size: 0.85rem; }
+      .chat-send { padding: 8px 12px; font-size: 0.8rem; }
+      .diag-grid { grid-template-columns: 1fr; gap: 14px; }
+      .status-grid { grid-template-columns: 1fr; gap: 12px; }
+      .suggestions { gap: 6px; }
+      .suggestion-chip { padding: 5px 10px; font-size: 0.72rem; }
+    }
+    @media (max-width: 480px) {
+      .header-logo { width: 32px; height: 32px; font-size: 1.1rem; }
+      .tab-btn { padding: 5px 10px; font-size: 0.68rem; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+      .signal-table { font-size: 0.72rem; }
+      .signal-table th, .signal-table td { padding: 6px; }
+    }
+    /* Install prompt banner */
+    #install-banner {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      z-index: 200;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    #install-banner.show { display: flex; }
+    #install-banner button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    #install-banner .dismiss {
+      background: transparent;
+      color: var(--fg2);
+      border: 1px solid var(--border);
+    }
   </style>
 </head>
 <body>
@@ -268,6 +338,7 @@
   <button class="tab-btn" data-tab="diagnostics">🩺 Diagnostics</button>
   <button class="tab-btn" data-tab="bugs">🐞 Bugs</button>
   <button class="tab-btn" data-tab="api-debugger">🔧 API Debugger</button>
+  <button class="tab-btn" data-tab="app-dev">💡 App Dev Proposals</button>
 </nav>
 
 <div class="container">
@@ -600,7 +671,26 @@
           <div id="liq-content" style="display:none;">
             <div id="liq-best-short" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
             <div id="liq-best-long" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+            <!-- Top 10 Shorts Table -->
+            <div style="padding:14px 18px;border-bottom:1px solid var(--border);">
+              <div style="font-size:0.75rem;color:var(--accent3);font-weight:700;margin-bottom:10px;">🔴 TOP 10 SHORT RECOMMENDATIONS</div>
+              <div style="font-size:0.7rem;color:var(--fg2);margin-bottom:8px;">High funding + large OI = crowded longs ripe for liquidation</div>
+              <table class="signal-table" style="font-size:0.8rem;">
+                <thead><tr><th>#</th><th>Symbol</th><th>Price</th><th>Funding</th><th>OI</th><th>Score</th><th>Exchanges</th></tr></thead>
+                <tbody id="liq-top-shorts-body"></tbody>
+              </table>
+            </div>
+            <!-- Top 10 Longs Table -->
+            <div style="padding:14px 18px;border-bottom:1px solid var(--border);">
+              <div style="font-size:0.75rem;color:var(--accent);font-weight:700;margin-bottom:10px;">🟢 TOP 10 LONG RECOMMENDATIONS</div>
+              <div style="font-size:0.7rem;color:var(--fg2);margin-bottom:8px;">Negative funding + large OI = crowded shorts ripe for squeeze</div>
+              <table class="signal-table" style="font-size:0.8rem;">
+                <thead><tr><th>#</th><th>Symbol</th><th>Price</th><th>Funding</th><th>OI</th><th>Score</th><th>Exchanges</th></tr></thead>
+                <tbody id="liq-top-longs-body"></tbody>
+              </table>
+            </div>
             <div id="liq-alerts" style="padding:14px 18px;"></div>
+            <div id="liq-timestamp" style="padding:8px 18px;font-size:0.7rem;color:var(--fg2);text-align:right;border-top:1px solid var(--border);"></div>
           </div>
           <div id="liq-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load. Retrying...</div>
         </div>
@@ -847,6 +937,86 @@
     </div>
   </div>
 
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- APP DEVELOPMENT PROPOSALS TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-app-dev">
+    <!-- Stats Row -->
+    <div class="stat-grid" style="margin-bottom:20px;" id="ad-stats">
+      <div class="stat-item"><div class="stat-label">Total Proposals</div><div class="stat-value" id="ad-stat-total">—</div></div>
+      <div class="stat-item"><div class="stat-label">Pending Review</div><div class="stat-value" id="ad-stat-pending" style="color:var(--accent2)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Approved</div><div class="stat-value" id="ad-stat-approved" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">In Progress</div><div class="stat-value" id="ad-stat-inprogress" style="color:#a78bfa">—</div></div>
+      <div class="stat-item"><div class="stat-label">Implemented</div><div class="stat-value" id="ad-stat-implemented" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Avg Impact Score</div><div class="stat-value" id="ad-stat-impact">—</div></div>
+    </div>
+
+    <!-- Toolbar -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">
+      <select id="ad-filter-status" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.9rem;cursor:pointer;">
+        <option value="">All Statuses</option>
+        <option value="pending">⏳ Pending</option>
+        <option value="approved">✅ Approved</option>
+        <option value="rejected">❌ Rejected</option>
+        <option value="in_progress">🚧 In Progress</option>
+        <option value="implemented">🚀 Implemented</option>
+      </select>
+      <select id="ad-filter-category" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.9rem;cursor:pointer;">
+        <option value="">All Categories</option>
+        <option value="strategy">Strategy</option>
+        <option value="infrastructure">Infrastructure</option>
+        <option value="ui">UI / UX</option>
+        <option value="data">Data / Feeds</option>
+        <option value="risk">Risk / Safety</option>
+        <option value="automation">Automation</option>
+      </select>
+      <button onclick="loadAppDevProposals()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:600;cursor:pointer;">Refresh</button>
+      <button onclick="triggerConsolidation()" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:0.85rem;cursor:pointer;">Run Consolidation</button>
+      <span style="font-size:0.75rem;color:var(--fg2);margin-left:auto;" id="ad-time">Loading…</span>
+    </div>
+
+    <!-- Proposals Table -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">💡 Capability Proposals</div>
+      <div class="card-body" style="padding:0;max-height:600px;overflow:auto;">
+        <div id="ad-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading proposals…</div>
+        <div id="ad-content" style="display:none;">
+          <table class="signal-table" style="min-width:900px;">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Impact</th>
+                <th>Effort</th>
+                <th>Status</th>
+                <th>Capability Area</th>
+                <th>Created</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="ad-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail Panel -->
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="card-header">📋 Proposal Detail</div>
+        <div class="card-body">
+          <div id="ad-detail" style="color:var(--fg2);font-size:0.85rem;">Click a proposal row to view details and review notes.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">🏷️ Tag Cloud</div>
+        <div class="card-body">
+          <div id="ad-tags" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <footer>
@@ -950,13 +1120,23 @@ loadSignals();
 setInterval(loadSignals, 30000);
 
 // ── Liquidation Intelligence ─────────────────────────
+function fmtM(usd) {
+  if (usd >= 1e9) return '$' + (usd / 1e9).toFixed(2) + 'B';
+  if (usd >= 1e6) return '$' + (usd / 1e6).toFixed(1) + 'M';
+  if (usd >= 1e3) return '$' + (usd / 1e3).toFixed(1) + 'K';
+  return '$' + usd.toFixed(0);
+}
+
 async function loadLiquidationIntel() {
   const loading = document.getElementById('liq-loading');
   const content = document.getElementById('liq-content');
   const error = document.getElementById('liq-error');
   const bestShort = document.getElementById('liq-best-short');
   const bestLong = document.getElementById('liq-best-long');
+  const topShortsBody = document.getElementById('liq-top-shorts-body');
+  const topLongsBody = document.getElementById('liq-top-longs-body');
   const alerts = document.getElementById('liq-alerts');
+  const timestamp = document.getElementById('liq-timestamp');
 
   try {
     const res = await fetch('/api/liquidation');
@@ -967,38 +1147,80 @@ async function loadLiquidationIntel() {
     error.style.display = 'none';
     content.style.display = 'block';
 
+    const ts = data.timestamp ? new Date(data.timestamp).toLocaleString() : new Date().toLocaleString();
+    if (timestamp) timestamp.textContent = 'Last updated: ' + ts;
+
     if (data.bestShort) {
+      const s = data.bestShort;
       bestShort.innerHTML = `
         <div style="font-size:0.75rem;color:var(--accent3);font-weight:700;margin-bottom:4px;">🔴 BEST SHORT</div>
-        <div style="font-size:1.05rem;font-weight:700;">${data.bestShort.symbol} @ $${data.bestShort.price.toLocaleString()}</div>
+        <div style="font-size:1.05rem;font-weight:700;">${s.symbol} @ $${Number(s.price).toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
         <div style="font-size:0.8rem;color:var(--fg2);margin-top:4px;">
-          Funding: <span style="color:${data.bestShort.fundingAnnualized > 100 ? 'var(--accent3)' : 'var(--accent)'}">${data.bestShort.fundingAnnualized.toFixed(1)}%</span> ann. ·
-          OI: $${(data.bestShort.openInterestUsd/1e6).toFixed(1)}M ·
-          Risk: ${data.bestShort.riskScore}/100
+          Funding: <span style="color:${s.fundingAnnualized > 100 ? 'var(--accent3)' : 'var(--accent)'}">${s.fundingAnnualized.toFixed(1)}%</span> ann. ·
+          OI: ${fmtM(s.openInterestUsd)} ·
+          Risk: ${s.riskScore}/100 · Score: ${s.shortScore?.toFixed(1) || '—'}
         </div>
-        <div style="font-size:0.78rem;color:var(--fg2);margin-top:6px;">${data.bestShort.reason}</div>
+        <div style="font-size:0.78rem;color:var(--fg2);margin-top:6px;">${s.reason}</div>
       `;
     } else { bestShort.innerHTML = '<div style="padding:8px;color:var(--fg2);font-size:0.85rem;">No clear short setup</div>'; }
 
     if (data.bestLong) {
+      const s = data.bestLong;
       bestLong.innerHTML = `
         <div style="font-size:0.75rem;color:var(--accent);font-weight:700;margin-bottom:4px;">🟢 BEST LONG</div>
-        <div style="font-size:1.05rem;font-weight:700;">${data.bestLong.symbol} @ $${data.bestLong.price.toLocaleString()}</div>
+        <div style="font-size:1.05rem;font-weight:700;">${s.symbol} @ $${Number(s.price).toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
         <div style="font-size:0.8rem;color:var(--fg2);margin-top:4px;">
-          Funding: <span style="color:${data.bestLong.fundingAnnualized < -100 ? 'var(--accent)' : 'var(--accent3)'}">${data.bestLong.fundingAnnualized.toFixed(1)}%</span> ann. ·
-          OI: $${(data.bestLong.openInterestUsd/1e6).toFixed(1)}M ·
-          Risk: ${data.bestLong.riskScore}/100
+          Funding: <span style="color:${s.fundingAnnualized < -100 ? 'var(--accent)' : 'var(--accent3)'}">${s.fundingAnnualized.toFixed(1)}%</span> ann. ·
+          OI: ${fmtM(s.openInterestUsd)} ·
+          Risk: ${s.riskScore}/100 · Score: ${s.longScore?.toFixed(1) || '—'}
         </div>
-        <div style="font-size:0.78rem;color:var(--fg2);margin-top:6px;">${data.bestLong.reason}</div>
+        <div style="font-size:0.78rem;color:var(--fg2);margin-top:6px;">${s.reason}</div>
       `;
     } else { bestLong.innerHTML = '<div style="padding:8px;color:var(--fg2);font-size:0.85rem;">No clear long setup</div>'; }
 
+    if (data.topShorts?.length) {
+      topShortsBody.innerHTML = data.topShorts.map((s, i) => {
+        const fundColor = s.fundingAnnualized > 100 ? 'var(--accent3)' : s.fundingAnnualized > 50 ? 'var(--accent2)' : 'var(--fg2)';
+        const exchanges = (s.exchanges || []).map(e => e.slice(0,3)).join(', ');
+        return `<tr>
+          <td style="font-weight:700;color:var(--accent3);font-size:0.8rem;">${i + 1}</td>
+          <td style="font-weight:600;">${s.symbol}</td>
+          <td>$${Number(s.price).toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>
+          <td style="color:${fundColor};font-weight:600;">${s.fundingAnnualized.toFixed(1)}%</td>
+          <td>${fmtM(s.openInterestUsd)}</td>
+          <td style="font-weight:700;">${s.shortScore?.toFixed(1) || '—'}</td>
+          <td style="font-size:0.72rem;color:var(--fg2);">${exchanges}</td>
+        </tr>`;
+      }).join('');
+    } else {
+      topShortsBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg2);padding:12px;">No short recommendations</td></tr>';
+    }
+
+    if (data.topLongs?.length) {
+      topLongsBody.innerHTML = data.topLongs.map((s, i) => {
+        const fundColor = s.fundingAnnualized < -100 ? 'var(--accent)' : s.fundingAnnualized < -50 ? 'var(--accent2)' : 'var(--fg2)';
+        const exchanges = (s.exchanges || []).map(e => e.slice(0,3)).join(', ');
+        return `<tr>
+          <td style="font-weight:700;color:var(--accent);font-size:0.8rem;">${i + 1}</td>
+          <td style="font-weight:600;">${s.symbol}</td>
+          <td>$${Number(s.price).toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>
+          <td style="color:${fundColor};font-weight:600;">${s.fundingAnnualized.toFixed(1)}%</td>
+          <td>${fmtM(s.openInterestUsd)}</td>
+          <td style="font-weight:700;">${s.longScore?.toFixed(1) || '—'}</td>
+          <td style="font-size:0.72rem;color:var(--fg2);">${exchanges}</td>
+        </tr>`;
+      }).join('');
+    } else {
+      topLongsBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg2);padding:12px;">No long recommendations</td></tr>';
+    }
+
     if (data.alerts?.length) {
-      alerts.innerHTML = data.alerts.slice(0,4).map(a =>
-        `<div style="font-size:0.78rem;padding:6px 0;border-bottom:1px solid rgba(30,37,56,0.4);color:${a.severity==='high'?'var(--accent3)':'var(--accent2)'}">
-          <span style="font-weight:700;">${a.type === 'overleveraged_longs' ? '🔴' : a.type === 'overleveraged_shorts' ? '🟢' : '⚡'}</span> ${a.message}
-        </div>`
-      ).join('');
+      alerts.innerHTML = '<div style="font-size:0.75rem;color:var(--accent2);font-weight:700;margin-bottom:8px;">⚡ LIQUIDATION ALERTS</div>' +
+        data.alerts.slice(0, 6).map(a =>
+          `<div style="font-size:0.78rem;padding:6px 0;border-bottom:1px solid rgba(30,37,56,0.4);color:${a.severity==='high'?'var(--accent3)':'var(--accent2)'}">
+            <span style="font-weight:700;">${a.type === 'overleveraged_longs' ? '🔴' : a.type === 'overleveraged_shorts' ? '🟢' : '⚡'}</span> ${a.message}
+          </div>`
+        ).join('');
     } else { alerts.innerHTML = '<div style="font-size:0.78rem;color:var(--fg2);">No active liquidation alerts</div>'; }
   } catch (e) {
     loading.style.display = 'none';
@@ -1826,6 +2048,234 @@ setInterval(loadApiDebugger, 60000);
 // Attach filter listeners
 document.getElementById('api-dbg-filter-provider').addEventListener('change', applyApiDbgFilters);
 document.getElementById('api-dbg-filter-status').addEventListener('change', applyApiDbgFilters);
+
+// ── App Development Proposals ────────────────────────
+let adAllProposals = [];
+
+function renderAdStats(rows) {
+  const total = rows.length;
+  const pending = rows.filter(r => r.status === 'pending').length;
+  const approved = rows.filter(r => r.status === 'approved').length;
+  const inprogress = rows.filter(r => r.status === 'in_progress').length;
+  const implemented = rows.filter(r => r.status === 'implemented').length;
+  const avgImpact = total > 0 ? (rows.reduce((s, r) => s + (r.impactScore || 0), 0) / total).toFixed(1) : '—';
+
+  document.getElementById('ad-stat-total').textContent = total;
+  document.getElementById('ad-stat-pending').textContent = pending;
+  document.getElementById('ad-stat-approved').textContent = approved;
+  document.getElementById('ad-stat-inprogress').textContent = inprogress;
+  document.getElementById('ad-stat-implemented').textContent = implemented;
+  document.getElementById('ad-stat-impact').textContent = avgImpact;
+}
+
+function renderAdTags(rows) {
+  const tagCounts = {};
+  rows.forEach(r => {
+    (r.tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; });
+  });
+  const tagsDiv = document.getElementById('ad-tags');
+  const sorted = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+  if (!sorted.length) {
+    tagsDiv.innerHTML = '<span style="color:var(--fg2);font-size:0.8rem;">No tags yet.</span>';
+    return;
+  }
+  tagsDiv.innerHTML = sorted.map(([tag, count]) =>
+    `<span style="background:var(--bg3);padding:4px 10px;border-radius:999px;font-size:0.75rem;color:var(--fg2);border:1px solid var(--border);">${tag} · ${count}</span>`
+  ).join('');
+}
+
+function renderAdDetail(id) {
+  const p = adAllProposals.find(x => x.id === id);
+  if (!p) return;
+  const el = document.getElementById('ad-detail');
+  const statusColors = {
+    pending: 'var(--accent2)',
+    approved: 'var(--accent)',
+    rejected: 'var(--accent3)',
+    in_progress: '#a78bfa',
+    implemented: 'var(--accent)'
+  };
+  const effortStars = '⭐'.repeat(p.effortEstimate || 1) + '☆'.repeat(Math.max(0, 5 - (p.effortEstimate || 1)));
+  el.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:700;font-size:0.95rem;">${p.title}</div>
+    <div style="margin-bottom:8px;color:${statusColors[p.status] || 'var(--fg2)'};font-weight:600;text-transform:uppercase;font-size:0.75rem;">${p.status}</div>
+    <div style="margin-bottom:10px;line-height:1.5;">${p.description}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.8rem;margin-bottom:10px;">
+      <div><span style="color:var(--fg2);">Category:</span> <span style="font-weight:600;">${p.category}</span></div>
+      <div><span style="color:var(--fg2);">Capability:</span> <span style="font-weight:600;">${p.capabilityArea}</span></div>
+      <div><span style="color:var(--fg2);">Impact Score:</span> <span style="font-weight:600;">${p.impactScore}/10</span></div>
+      <div><span style="color:var(--fg2);">Effort:</span> <span style="font-weight:600;">${effortStars}</span></div>
+    </div>
+    ${p.reviewNotes ? `<div style="background:var(--bg3);padding:10px;border-radius:6px;font-size:0.8rem;margin-bottom:10px;"><strong>Review Notes:</strong> ${p.reviewNotes}</div>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${(p.tags || []).map(t => `<span style="background:rgba(37,99,235,0.12);color:#60a5fa;padding:2px 8px;border-radius:4px;font-size:0.7rem;">${t}</span>`).join('')}
+    </div>
+  `;
+}
+
+function renderAdTable(rows) {
+  const tbody = document.getElementById('ad-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--fg2);">No proposals found.</td></tr>';
+    return;
+  }
+  const statusColors = {
+    pending: { color: 'var(--accent2)', label: '⏳ Pending' },
+    approved: { color: 'var(--accent)', label: '✅ Approved' },
+    rejected: { color: 'var(--accent3)', label: '❌ Rejected' },
+    in_progress: { color: '#a78bfa', label: '🚧 In Progress' },
+    implemented: { color: 'var(--accent)', label: '🚀 Implemented' }
+  };
+  tbody.innerHTML = rows.map(p => {
+    const st = statusColors[p.status] || statusColors.pending;
+    return `<tr style="cursor:pointer" onclick="renderAdDetail('${p.id}')">
+      <td style="font-weight:600;font-size:0.85rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.title}">${p.title}</td>
+      <td style="font-size:0.8rem;color:var(--fg2);">${p.category}</td>
+      <td style="font-size:0.8rem;font-weight:700;">${p.impactScore}/10</td>
+      <td style="font-size:0.8rem;">${p.effortEstimate || '—'}</td>
+      <td style="font-size:0.75rem;color:${st.color};font-weight:600;">${st.label}</td>
+      <td style="font-size:0.75rem;color:var(--fg2);">${p.capabilityArea}</td>
+      <td style="font-size:0.75rem;color:var(--fg2);">${p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—'}</td>
+      <td style="font-size:0.75rem;">
+        <select onchange="updateProposalStatus('${p.id}', this.value); event.stopPropagation();" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:0.7rem;cursor:pointer;" onclick="event.stopPropagation();">
+          <option value="" disabled selected>Update…</option>
+          <option value="pending">⏳ Pending</option>
+          <option value="approved">✅ Approved</option>
+          <option value="rejected">❌ Rejected</option>
+          <option value="in_progress">🚧 In Progress</option>
+          <option value="implemented">🚀 Implemented</option>
+        </select>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function updateProposalStatus(id, status) {
+  try {
+    const res = await fetch('/api/app-development-proposals', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      setTimeout(loadAppDevProposals, 500);
+    } else {
+      alert('Failed to update: ' + (data.error || 'Unknown error'));
+    }
+  } catch (e) {
+    alert('Network error updating proposal');
+  }
+}
+
+async function triggerConsolidation() {
+  const btn = document.querySelector('button[onclick="triggerConsolidation()"]');
+  const originalText = btn.textContent;
+  btn.textContent = 'Running…';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/app-development-proposals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trigger: 1 }) });
+    const data = await res.json();
+    if (data.ok) {
+      btn.textContent = 'Consolidation started!';
+      setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+      setTimeout(loadAppDevProposals, 4000);
+    } else {
+      btn.textContent = 'Error';
+      setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+    }
+  } catch (e) {
+    btn.textContent = 'Error';
+    setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+  }
+}
+
+function applyAdFilters() {
+  const status = document.getElementById('ad-filter-status').value;
+  const category = document.getElementById('ad-filter-category').value;
+  let rows = adAllProposals;
+  if (status) rows = rows.filter(r => r.status === status);
+  if (category) rows = rows.filter(r => r.category === category);
+  renderAdStats(rows);
+  renderAdTable(rows);
+}
+
+async function loadAppDevProposals() {
+  const loading = document.getElementById('ad-loading');
+  const content = document.getElementById('ad-content');
+  const timeEl = document.getElementById('ad-time');
+  try {
+    const res = await fetch('/api/app-development-proposals?limit=200');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    adAllProposals = data.proposals || [];
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+    applyAdFilters();
+    renderAdTags(adAllProposals);
+  } catch (e) {
+    loading.style.display = 'none';
+    timeEl.textContent = 'Failed to load';
+    console.error('App Dev Proposals load error:', e);
+  }
+}
+
+// Attach AD filter listeners
+document.getElementById('ad-filter-status').addEventListener('change', applyAdFilters);
+document.getElementById('ad-filter-category').addEventListener('change', applyAdFilters);
+</script>
+
+<!-- PWA Install Banner -->
+<div id="install-banner">
+  <span style="font-size:0.85rem;font-weight:600;">📈 Add xsjprd55 to Home Screen</span>
+  <div style="display:flex;gap:8px;">
+    <button class="dismiss" onclick="dismissInstall()">Dismiss</button>
+    <button onclick="triggerInstall()">Install</button>
+  </div>
+</div>
+
+<script>
+// Service Worker Registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW registration failed:', err));
+  });
+}
+
+// PWA Install Prompt
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const banner = document.getElementById('install-banner');
+  if (banner && !localStorage.getItem('pwa-install-dismissed')) {
+    banner.classList.add('show');
+  }
+});
+function triggerInstall() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then((choice) => {
+    if (choice.outcome === 'accepted') {
+      localStorage.setItem('pwa-install-dismissed', '1');
+      document.getElementById('install-banner').classList.remove('show');
+    }
+    deferredPrompt = null;
+  });
+}
+function dismissInstall() {
+  localStorage.setItem('pwa-install-dismissed', '1');
+  document.getElementById('install-banner').classList.remove('show');
+}
+window.addEventListener('appinstalled', () => {
+  localStorage.setItem('pwa-install-dismissed', '1');
+  document.getElementById('install-banner').classList.remove('show');
+  deferredPrompt = null;
+});
 </script>
 
 </body>

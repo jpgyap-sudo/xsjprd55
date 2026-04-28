@@ -1,7 +1,7 @@
 // ============================================================
 // GET /api/liquidation
-// Multi-exchange liquidation intelligence endpoint
-// Returns aggregated OI, funding, and squeeze signals
+// Multi-exchange liquidation intelligence endpoint v2
+// Returns TOP 10 long/short recommendations + squeeze alerts
 // Cache: 60s stale-while-revalidate
 // ============================================================
 

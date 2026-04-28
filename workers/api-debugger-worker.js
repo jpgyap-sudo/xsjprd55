@@ -121,14 +121,14 @@ export async function runApiDebuggerCycle() {
     };
   } catch (err) {
     console.error('[api-debugger-worker] Cycle error:', err.message);
-    if (run.id) {
+    if (run?.id) {
       await updateApiDebuggerRun(run.id, {
         status: 'failed',
         finished_at: new Date().toISOString(),
         metadata: { error: err.message, stack: err.stack }
       });
     }
-    return { runId: run.id, error: err.message };
+    return { runId: run?.id || null, error: err.message };
   }
 }
 

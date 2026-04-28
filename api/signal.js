@@ -3,6 +3,7 @@
 // GET  : cron-triggered auto-scan
 // POST : manual trigger with optional overrides
 // Now integrates Neural Social Intelligence boost.
+// Scans multiple exchanges: Binance, Bybit, OKX, Hyperliquid.
 // ============================================================
 
 import { supabase } from '../lib/supabase.js';
@@ -11,10 +12,13 @@ import { runAllStrategiesWithIntel } from '../lib/signal-engine.js';
 import { validateSignal, checkRiskGates, logAudit } from '../lib/risk.js';
 import { sendTelegram, formatSignalMessage, signalKeyboard } from '../lib/telegram.js';
 import { extractPattern } from '../lib/pattern-learner.js';
+import { config } from '../lib/config.js';
+import { storeResearchItem } from '../lib/ml/researchAgent.js';
 
-const DEFAULT_PAIRS = ['BTC/USDT','ETH/USDT','SOL/USDT','BNB/USDT','XRP/USDT'];
-const TIMEFRAMES = ['15m','1h','4h'];
+const DEFAULT_PAIRS = config.DEFAULT_PAIRS;
+const TIMEFRAMES = config.TIMEFRAMES;
 const DEFAULT_EXCHANGE = (process.env.DEFAULT_EXCHANGE || 'binance').trim();
+const SCAN_EXCHANGES = config.SCAN_EXCHANGES || ['binance'];
 
 export default async function handler(req, res) {
   if (!['GET','POST'].includes(req.method)) {

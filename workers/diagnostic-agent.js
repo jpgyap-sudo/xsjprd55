@@ -7,7 +7,7 @@
 import { config } from '../lib/config.js';
 import { logger } from '../lib/logger.js';
 import { supabase } from '../lib/supabase.js';
-import { sendTelegramMessage } from '../lib/telegram.js';
+import { sendTelegram } from '../lib/telegram.js';
 
 const INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const ALERT_COOLDOWN_MS = 30 * 60 * 1000; // 30 min between same alert
@@ -203,7 +203,7 @@ async function sendAdminAlert(message) {
     return;
   }
   try {
-    await sendTelegramMessage(chatId, `🚨 *Diagnostic Alert*\n${message}`, { parse_mode: 'Markdown' });
+    await sendTelegram(chatId, `🚨 *Diagnostic Alert*\n${message}`, { parse_mode: 'Markdown' });
     logger.info(`[DIAG-AGENT] Alert sent: ${message.slice(0, 80)}`);
   } catch (e) {
     logger.error(`[DIAG-AGENT] Failed to send alert: ${e.message}`);

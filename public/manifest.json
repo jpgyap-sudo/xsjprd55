@@ -1,0 +1,26 @@
+{
+  "name": "xsjprd55 Trading Dashboard",
+  "short_name": "xsjprd55",
+  "description": "Crypto trading signal bot dashboard with liquidation intel, research agent, and mock trading",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0e14",
+  "theme_color": "#121620",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "productivity"],
+  "lang": "en"
+}

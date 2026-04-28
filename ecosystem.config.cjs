@@ -113,6 +113,66 @@ module.exports = {
       restart_delay: 3000,
       max_restarts: 10,
       min_uptime: '10s'
+    },
+    {
+      name: 'research-agent-worker',
+      script: './workers/research-agent-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/research-agent-combined.log',
+      out_file: './logs/research-agent-out.log',
+      error_file: './logs/research-agent-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
+    },
+    {
+      name: 'capability-consolidator',
+      script: './workers/capability-consolidator-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/capability-consolidator-combined.log',
+      out_file: './logs/capability-consolidator-out.log',
+      error_file: './logs/capability-consolidator-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
+    },
+    {
+      name: 'liquidation-intel-worker',
+      script: './workers/liquidation-intel-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/liq-intel-combined.log',
+      out_file: './logs/liq-intel-out.log',
+      error_file: './logs/liq-intel-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
     }
   ]
 };
