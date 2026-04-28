@@ -1400,49 +1400,122 @@ loadBugs();
 setInterval(loadBugs, 120000);
 
 // ── API Debugger ─────────────────────────────────────
+let apiDbgAllRows = [];
+
+function renderApiDbgStats(rows) {
+  document.getElementById('api-dbg-stat-total').textContent = rows.length;
+  document.getElementById('api-dbg-stat-healthy').textContent = rows.filter(r => r.status === 'healthy').length;
+  document.getElementById('api-dbg-stat-down').textContent = rows.filter(r => r.status === 'down').length;
+  document.getElementById('api-dbg-stat-timeout').textContent = rows.filter(r => r.status === 'timeout').length;
+  document.getElementById('api-dbg-stat-critical').textContent = rows.filter(r => r.severity === 'critical').length;
+}
+
+function renderApiDbgTable(rows) {
+  const tbody = document.getElementById('api-dbg-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--fg2);">No API test results yet.</td></tr>';
+    return;
+  }
+  const statusBadge = s => {
+    const colors = { healthy: '#34d399', degraded: '#fbbf24', down: '#f87171', timeout: '#a78bfa', error: '#f87171' };
+    return `<span style="color:${colors[s] || colors.error};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${s}</span>`;
+  };
+  const sevBadge = s => {
+    const colors = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
+    return `<span style="color:${colors[s] || colors.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${s}</span>`;
+  };
+  tbody.innerHTML = rows.map(r => `
+    <tr style="cursor:pointer" onclick="showApiDbgDetail('${r.id}')">
+      <td style="font-size:0.85rem;">${r.provider}</td>
+      <td style="font-size:0.8rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.endpoint}">${r.endpoint}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td style="font-size:0.8rem;">${r.http_code || '-'}</td>
+      <td style="font-size:0.8rem;">${r.response_time_ms ? r.response_time_ms + 'ms' : '-'}</td>
+      <td style="font-size:0.8rem;">${r.error_category || '-'}</td>
+      <td>${sevBadge(r.severity)}</td>
+      <td style="font-size:0.8rem;color:var(--fg2);">${new Date(r.created_at).toLocaleString()}</td>
+    </tr>
+  `).join('');
+}
+
+function showApiDbgDetail(id) {
+  const r = apiDbgAllRows.find(x => x.id === id);
+  if (!r) return;
+  const el = document.getElementById('api-dbg-detail');
+  const statusBadge = s => {
+    const colors = { healthy: '#34d399', degraded: '#fbbf24', down: '#f87171', timeout: '#a78bfa', error: '#f87171' };
+    return `<span style="color:${colors[s] || colors.error};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${s}</span>`;
+  };
+  const sevBadge = s => {
+    const colors = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
+    return `<span style="color:${colors[s] || colors.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${s}</span>`;
+  };
+  el.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:600;">${r.endpoint}</div>
+    <div style="margin-bottom:8px;">${statusBadge(r.status)} ${sevBadge(r.severity)}</div>
+    ${r.error_message ? `<pre style="background:var(--bg3);padding:10px;border-radius:6px;overflow-x:auto;font-size:0.8rem;color:var(--fg2);">${r.error_message}</pre>` : ''}
+    ${r.request_safe ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--fg2);">Request:</div><pre style="background:var(--bg3);padding:10px;border-radius:6px;overflow-x:auto;font-size:0.8rem;color:var(--fg2);">${JSON.stringify(r.request_safe, null, 2)}</pre>` : ''}
+    ${r.response_safe ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--fg2);">Response:</div><pre style="background:var(--bg3);padding:10px;border-radius:6px;overflow-x:auto;font-size:0.8rem;color:var(--fg2);">${JSON.stringify(r.response_safe, null, 2)}</pre>` : ''}
+  `;
+}
+
+function applyApiDbgFilters() {
+  const provider = document.getElementById('api-dbg-filter-provider').value;
+  const status = document.getElementById('api-dbg-filter-status').value;
+  let rows = apiDbgAllRows;
+  if (provider) rows = rows.filter(r => r.provider === provider);
+  if (status) rows = rows.filter(r => r.status === status);
+  renderApiDbgStats(rows);
+  renderApiDbgTable(rows);
+}
+
+async function triggerApiDebuggerScan() {
+  const btn = document.querySelector('button[onclick="triggerApiDebuggerScan()"]');
+  const originalText = btn.textContent;
+  btn.textContent = 'Scanning…';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/api-debugger?run=1', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      btn.textContent = 'Scan started!';
+      setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+      setTimeout(loadApiDebugger, 3000);
+    } else {
+      btn.textContent = 'Auth required';
+      setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+    }
+  } catch (e) {
+    btn.textContent = 'Error';
+    setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+  }
+}
+
 async function loadApiDebugger() {
   const loading = document.getElementById('api-dbg-loading');
   const content = document.getElementById('api-dbg-content');
   const timeEl = document.getElementById('api-dbg-time');
   try {
-    const res = await fetch('/api/api-debugger?limit=50');
+    const res = await fetch('/api/api-debugger?limit=100');
     const data = await res.json();
     if (!data.ok) throw new Error(data.error);
-    const rows = data.results || [];
+    apiDbgAllRows = data.results || [];
     loading.style.display = 'none';
     content.style.display = 'block';
     timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
-    const tbody = document.getElementById('api-dbg-tbody');
-    if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--fg2);">No API test results yet.</td></tr>';
-      return;
-    }
-    const statusBadge = s => {
-      const colors = { healthy: '#34d399', degraded: '#fbbf24', down: '#f87171', timeout: '#a78bfa', error: '#f87171' };
-      return `<span style="color:${colors[s] || colors.error};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${s}</span>`;
-    };
-    const sevBadge = s => {
-      const colors = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
-      return `<span style="color:${colors[s] || colors.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${s}</span>`;
-    };
-    tbody.innerHTML = rows.map(r => `
-      <tr>
-        <td style="font-size:0.85rem;">${r.provider}</td>
-        <td style="font-size:0.8rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.endpoint}">${r.endpoint}</td>
-        <td>${statusBadge(r.status)}</td>
-        <td style="font-size:0.8rem;">${r.http_code || '-'}</td>
-        <td style="font-size:0.8rem;">${r.response_time_ms ? r.response_time_ms + 'ms' : '-'}</td>
-        <td>${sevBadge(r.severity)}</td>
-        <td style="font-size:0.8rem;color:var(--fg2);">${new Date(r.created_at).toLocaleString()}</td>
-      </tr>
-    `).join('');
+    applyApiDbgFilters();
   } catch (e) {
     loading.style.display = 'none';
     timeEl.textContent = 'Failed to load';
   }
 }
+
 loadApiDebugger();
 setInterval(loadApiDebugger, 60000);
+
+// Attach filter listeners
+document.getElementById('api-dbg-filter-provider').addEventListener('change', applyApiDbgFilters);
+document.getElementById('api-dbg-filter-status').addEventListener('change', applyApiDbgFilters);
 </script>
 
 </body>
