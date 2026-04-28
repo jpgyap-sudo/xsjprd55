@@ -8,7 +8,11 @@
     "dev": "node server.js",
     "build": "echo 'No build step required'",
     "test": "node --test",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "debug-crawler": "node workers/debug-crawler-worker.js --once",
+    "debug-crawler:watch": "node workers/debug-crawler-worker.js",
+    "api-debugger": "node workers/api-debugger-worker.js --once",
+    "api-debugger:watch": "node workers/api-debugger-worker.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

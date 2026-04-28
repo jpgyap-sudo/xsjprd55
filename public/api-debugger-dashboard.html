@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Debugger Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --bg2: #111827;
+      --bg3: #1f2937;
+      --fg: #e5e7eb;
+      --fg2: #9ca3af;
+      --accent: #10b981;
+      --accent2: #3b82f6;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --border: #374151;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    h1 { margin: 0 0 16px; font-size: 1.5rem; }
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    select, button {
+      background: var(--bg3);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    button:hover { opacity: 0.9; }
+    button.primary { background: var(--accent2); border-color: var(--accent2); }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-body { padding: 16px 18px; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .badge-healthy { background: rgba(16,185,129,0.15); color: #34d399; }
+    .badge-degraded { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .badge-down { background: rgba(239,68,68,0.15); color: #f87171; }
+    .badge-timeout { background: rgba(139,92,246,0.15); color: #a78bfa; }
+    .badge-error { background: rgba(239,68,68,0.15); color: #f87171; }
+    .badge-critical { background: rgba(239,68,68,0.2); color: #f87171; }
+    .badge-high { background: rgba(245,158,11,0.2); color: #fbbf24; }
+    .badge-medium { background: rgba(59,130,246,0.2); color: #60a5fa; }
+    .badge-low { background: rgba(16,185,129,0.2); color: #34d399; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { color: var(--fg2); font-weight: 500; position: sticky; top: 0; background: var(--bg2); }
+    tr:hover { background: rgba(255,255,255,0.03); }
+    .empty { text-align: center; padding: 40px; color: var(--fg2); }
+    .loading { text-align: center; padding: 40px; color: var(--fg2); }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .stat-box { background: var(--bg3); border-radius: 10px; padding: 14px; text-align: center; }
+    .stat-value { font-size: 1.6rem; font-weight: 700; }
+    .stat-label { font-size: 0.8rem; color: var(--fg2); margin-top: 4px; }
+    pre { background: var(--bg3); padding: 12px; border-radius: 8px; overflow-x: auto; font-size: 0.8rem; color: var(--fg2); }
+    .toast {
+      position: fixed; bottom: 20px; right: 20px;
+      background: var(--bg3); color: var(--fg); padding: 12px 18px;
+      border-radius: 10px; border: 1px solid var(--border);
+      display: none; z-index: 999;
+    }
+    .toast.show { display: block; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>API Debugger Dashboard</h1>
+
+  <div class="stats" id="stats">
+    <div class="stat-box">
+      <div class="stat-value" id="stat-total">-</div>
+      <div class="stat-label">Total Tests</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-healthy" style="color:var(--accent)">-</div>
+      <div class="stat-label">Healthy</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-down" style="color:var(--danger)">-</div>
+      <div class="stat-label">Down</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-timeout" style="color:#a78bfa">-</div>
+      <div class="stat-label">Timeouts</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-value" id="stat-critical" style="color:var(--danger)">-</div>
+      <div class="stat-label">Critical</div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <select id="filter-provider">
+      <option value="">All Providers</option>
+      <option value="kimi">Kimi</option>
+      <option value="claude">Claude</option>
+      <option value="internal">Internal</option>
+    </select>
+    <select id="filter-status">
+      <option value="">All Statuses</option>
+      <option value="healthy">Healthy</option>
+      <option value="degraded">Degraded</option>
+      <option value="down">Down</option>
+      <option value="timeout">Timeout</option>
+      <option value="error">Error</option>
+    </select>
+    <button class="primary" onclick="refresh()">Refresh</button>
+    <button onclick="triggerScan()">Run Scan Now</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">Recent Results</div>
+    <div class="card-body" style="padding:0;max-height:600px;overflow:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Provider</th>
+            <th>Endpoint</th>
+            <th>Status</th>
+            <th>HTTP</th>
+            <th>Latency</th>
+            <th>Error Category</th>
+            <th>Severity</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody id="results-body">
+          <tr><td colspan="8" class="loading">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:20px;">
+    <div class="card">
+      <div class="card-header">Neural Review Summary</div>
+      <div class="card-body">
+        <div id="neural-content" class="empty">No neural review data yet.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">Latest Error Detail</div>
+      <div class="card-body">
+        <div id="error-detail" class="empty">Select a result to view details.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API_BASE = window.location.origin;
+  let allResults = [];
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  function statusBadge(status) {
+    const map = {
+      healthy: 'badge-healthy',
+      degraded: 'badge-degraded',
+      down: 'badge-down',
+      timeout: 'badge-timeout',
+      error: 'badge-error'
+    };
+    return `<span class="badge ${map[status] || 'badge-error'}">${status}</span>`;
+  }
+
+  function severityBadge(sev) {
+    const map = {
+      critical: 'badge-critical',
+      high: 'badge-high',
+      medium: 'badge-medium',
+      low: 'badge-low',
+      info: 'badge-low'
+    };
+    return `<span class="badge ${map[sev] || 'badge-medium'}">${sev}</span>`;
+  }
+
+  function renderStats(rows) {
+    document.getElementById('stat-total').textContent = rows.length;
+    document.getElementById('stat-healthy').textContent = rows.filter(r => r.status === 'healthy').length;
+    document.getElementById('stat-down').textContent = rows.filter(r => r.status === 'down').length;
+    document.getElementById('stat-timeout').textContent = rows.filter(r => r.status === 'timeout').length;
+    document.getElementById('stat-critical').textContent = rows.filter(r => r.severity === 'critical').length;
+  }
+
+  function renderTable(rows) {
+    const tbody = document.getElementById('results-body');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="empty">No results found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => `
+      <tr style="cursor:pointer" onclick="showDetail('${r.id}')">
+        <td>${r.provider}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.endpoint}">${r.endpoint}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td>${r.http_code || '-'}</td>
+        <td>${r.response_time_ms ? r.response_time_ms + 'ms' : '-'}</td>
+        <td>${r.error_category || '-'}</td>
+        <td>${severityBadge(r.severity)}</td>
+        <td>${new Date(r.created_at).toLocaleString()}</td>
+      </tr>
+    `).join('');
+  }
+
+  function showDetail(id) {
+    const r = allResults.find(x => x.id === id);
+    if (!r) return;
+    const el = document.getElementById('error-detail');
+    el.innerHTML = `
+      <div style="margin-bottom:8px;font-weight:600;">${r.endpoint}</div>
+      <div style="margin-bottom:8px;">${statusBadge(r.status)} ${severityBadge(r.severity)}</div>
+      ${r.error_message ? `<pre>${r.error_message}</pre>` : ''}
+      ${r.request_safe ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--fg2)">Request:</div><pre>${JSON.stringify(r.request_safe, null, 2)}</pre>` : ''}
+      ${r.response_safe ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--fg2)">Response:</div><pre>${JSON.stringify(r.response_safe, null, 2)}</pre>` : ''}
+    `;
+  }
+
+  function applyFilters() {
+    const provider = document.getElementById('filter-provider').value;
+    const status = document.getElementById('filter-status').value;
+    let rows = allResults;
+    if (provider) rows = rows.filter(r => r.provider === provider);
+    if (status) rows = rows.filter(r => r.status === status);
+    renderStats(rows);
+    renderTable(rows);
+  }
+
+  async function refresh() {
+    try {
+      const res = await fetch(`${API_BASE}/api/api-debugger?limit=100`);
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error);
+      allResults = data.results || [];
+      applyFilters();
+      toast('Refreshed');
+    } catch (err) {
+      document.getElementById('results-body').innerHTML = `<tr><td colspan="8" class="empty">Error: ${err.message}</td></tr>`;
+    }
+  }
+
+  async function triggerScan() {
+    try {
+      const res = await fetch(`${API_BASE}/api/api-debugger?run=1&secret=dev-secret`, { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) toast('Scan triggered');
+      else toast('Scan failed: ' + data.error);
+    } catch (err) {
+      toast('Scan error: ' + err.message);
+    }
+  }
+
+  document.getElementById('filter-provider').addEventListener('change', applyFilters);
+  document.getElementById('filter-status').addEventListener('change', applyFilters);
+
+  refresh();
+</script>
+</body>
+</html>
