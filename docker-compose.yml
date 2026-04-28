@@ -1,0 +1,56 @@
+# ============================================================
+# Trading Signal Bot — Docker Compose for VPS with Caddy HTTPS
+# Domain: bot.abcx124.xyz
+# ============================================================
+
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trading-signal-bot
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DEPLOYMENT_TARGET=vps
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/api/debug').then(r=>{if(!r.ok)throw new Error('unhealthy');process.exit(0)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - botnet
+
+  # Caddy: automatic HTTPS reverse proxy
+  caddy:
+    image: caddy:2-alpine
+    container_name: bot-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - botnet
+
+networks:
+  botnet:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
