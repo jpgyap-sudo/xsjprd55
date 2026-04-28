@@ -115,6 +115,26 @@ module.exports = {
       min_uptime: '10s'
     },
     {
+      name: 'mock-trading-worker',
+      script: './workers/mock-trading-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/mock-trading-combined.log',
+      out_file: './logs/mock-trading-out.log',
+      error_file: './logs/mock-trading-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
+    },
+    {
       name: 'research-agent-worker',
       script: './workers/research-agent-worker.js',
       instances: 1,
