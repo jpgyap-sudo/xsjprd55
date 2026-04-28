@@ -15,7 +15,8 @@ export default async function handler(req, res) {
   const result = await askAI({ question, chatHistory });
 
   if (!result.ok) {
-    return res.status(result.error === 'ANTHROPIC_API_KEY not configured' ? 503 : 500).json(result);
+    const isConfigError = result.error?.includes('API_KEY not configured');
+    return res.status(isConfigError ? 503 : 500).json(result);
   }
 
   return res.status(200).json(result);
