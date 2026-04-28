@@ -293,6 +293,49 @@
     </div>
   </div>
 
+  <!-- Strategy Labs -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+      <span>🧪 Strategy Labs</span>
+      <span class="badge paper" style="font-size:0.6rem;padding:2px 8px;">ML + Mock</span>
+    </div>
+    <div class="card-body">
+      <div id="sl-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading strategy lab data...</div>
+      <div id="sl-content" style="display:none;">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;">
+          <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
+            <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Mock Balance</div>
+            <div id="sl-balance" style="font-size:1.4rem;font-weight:700;color:var(--accent1);margin-top:4px;">—</div>
+          </div>
+          <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
+            <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Peak Balance</div>
+            <div id="sl-peak" style="font-size:1.4rem;font-weight:700;color:var(--accent1);margin-top:4px;">—</div>
+          </div>
+          <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
+            <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">Open Trades</div>
+            <div id="sl-open" style="font-size:1.4rem;font-weight:700;color:var(--accent1);margin-top:4px;">—</div>
+          </div>
+          <div style="flex:1;min-width:140px;background:var(--bg3);border-radius:8px;padding:12px 14px;">
+            <div style="font-size:0.7rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.03em;">ML Model</div>
+            <div id="sl-model" style="font-size:0.9rem;font-weight:600;color:var(--fg);margin-top:4px;">—</div>
+          </div>
+        </div>
+        <div style="margin-bottom:12px;font-weight:600;font-size:0.85rem;">📊 Strategy Performance</div>
+        <div id="sl-stats" style="overflow-x:auto;">
+          <table class="signal-table" style="min-width:500px;">
+            <thead>
+              <tr><th>Strategy</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Total PnL</th><th>Avg Return</th></tr>
+            </thead>
+            <tbody id="sl-stats-body"></tbody>
+          </table>
+        </div>
+        <div style="margin-top:16px;margin-bottom:12px;font-weight:600;font-size:0.85rem;">🏆 Promoted Strategies</div>
+        <div id="sl-promoted"></div>
+      </div>
+      <div id="sl-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load strategy labs. Retrying...</div>
+    </div>
+  </div>
+
   <!-- AI Chat Widget -->
   <div class="chat-widget hidden" id="chat-widget">
     <div class="chat-header">
@@ -732,6 +775,72 @@ async function loadCatalysts() {
 }
 loadCatalysts();
 setInterval(loadCatalysts, 300000);
+
+// ── Strategy Labs Panel ──────────────────────────────
+async function loadStrategyLabs() {
+  const loading = document.getElementById('sl-loading');
+  const content = document.getElementById('sl-content');
+  const error = document.getElementById('sl-error');
+
+  try {
+    const res = await fetch('/api/strategy-labs');
+    const data = await res.json();
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+
+    // Mock account
+    document.getElementById('sl-balance').textContent = data.mock?.balance != null
+      ? '$' + data.mock.balance.toLocaleString(undefined, { maximumFractionDigits: 0 })
+      : '—';
+    document.getElementById('sl-peak').textContent = data.mock?.peak != null
+      ? '$' + data.mock.peak.toLocaleString(undefined, { maximumFractionDigits: 0 })
+      : '—';
+    document.getElementById('sl-open').textContent = data.mock?.openTrades?.length ?? 0;
+
+    // ML model
+    document.getElementById('sl-model').textContent = data.mlModel
+      ? `${data.mlModel.name} (acc ${data.mlModel.metrics?.accuracy ?? '?'})`
+      : 'No model trained yet';
+
+    // Stats table
+    const statsBody = document.getElementById('sl-stats-body');
+    if (data.mock?.closedStats?.length) {
+      statsBody.innerHTML = data.mock.closedStats.map(s => {
+        const pnlColor = s.total_pnl > 0 ? 'var(--accent)' : s.total_pnl < 0 ? 'var(--accent3)' : 'var(--fg2)';
+        return `<tr>
+          <td style="font-weight:600;">${s.strategy_name}</td>
+          <td>${s.trades}</td>
+          <td style="color:var(--accent);">${s.wins}</td>
+          <td style="color:var(--accent3);">${s.losses}</td>
+          <td style="color:${pnlColor};font-weight:700;">$${Number(s.total_pnl).toLocaleString(undefined,{maximumFractionDigits:0})}</td>
+          <td>${Number(s.avg_return).toFixed(2)}%</td>
+        </tr>`;
+      }).join('');
+    } else {
+      statsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg2);padding:16px;">No closed trades yet. Strategies are being tested.</td></tr>';
+    }
+
+    // Promoted strategies
+    const promotedDiv = document.getElementById('sl-promoted');
+    if (data.promotedStrategies?.length) {
+      promotedDiv.innerHTML = data.promotedStrategies.map(p =>
+        `<span style="display:inline-block;background:rgba(16,185,129,0.12);color:var(--accent);padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;margin:0 6px 6px 0;">
+          🏆 ${p.name} · ${(p.winRate*100).toFixed(0)}% WR · $${Number(p.totalPnl).toLocaleString(undefined,{maximumFractionDigits:0})}
+        </span>`
+      ).join('');
+    } else {
+      promotedDiv.innerHTML = '<span style="color:var(--fg2);font-size:0.8rem;">No strategies promoted yet. Need ≥30 trades with ≥54% win rate.</span>';
+    }
+
+  } catch (e) {
+    loading.style.display = 'none';
+    error.style.display = 'block';
+  }
+}
+loadStrategyLabs();
+setInterval(loadStrategyLabs, 60000);
 </script>
 
 </body>

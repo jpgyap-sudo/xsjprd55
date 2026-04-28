@@ -155,14 +155,18 @@ ALTER TABLE trades ENABLE ROW LEVEL SECURITY;
 ALTER TABLE exchange_credentials ENABLE ROW LEVEL SECURITY;
 
 -- bot_users: users can read/update their own row; service role can do everything
+DROP POLICY IF EXISTS bot_users_self_select ON bot_users;
 CREATE POLICY bot_users_self_select ON bot_users FOR SELECT USING (
   telegram_user_id = current_setting('app.current_telegram_user_id', true)
 );
+
+DROP POLICY IF EXISTS bot_users_self_update ON bot_users;
 CREATE POLICY bot_users_self_update ON bot_users FOR UPDATE USING (
   telegram_user_id = current_setting('app.current_telegram_user_id', true)
 );
 
 -- trades: users can see their own trades only
+DROP POLICY IF EXISTS trades_self_select ON trades;
 CREATE POLICY trades_self_select ON trades FOR SELECT USING (
   EXISTS (
     SELECT 1 FROM bot_users WHERE bot_users.id = trades.user_id
@@ -171,13 +175,13 @@ CREATE POLICY trades_self_select ON trades FOR SELECT USING (
 );
 
 -- exchange_credentials: users can manage their own credentials
+DROP POLICY IF EXISTS exch_cred_self_all ON exchange_credentials;
 CREATE POLICY exch_cred_self_all ON exchange_credentials FOR ALL USING (
   EXISTS (
     SELECT 1 FROM bot_users WHERE bot_users.id = exchange_credentials.user_id
     AND bot_users.telegram_user_id = current_setting('app.current_telegram_user_id', true)
   )
 );
-
 -- ── news_articles ────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS news_articles (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -213,3 +217,109 @@ CREATE TABLE IF NOT EXISTS news_signals (
 );
 
 CREATE INDEX IF NOT EXISTS idx_news_sig_signal ON news_signals(signal_id);
+
+-- ── tracked_wallets ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS tracked_wallets (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  address         TEXT NOT NULL UNIQUE,
+  label           TEXT,
+  chain           TEXT DEFAULT 'hyperliquid',
+  quality_score   NUMERIC DEFAULT 0,
+  realized_pnl    NUMERIC DEFAULT 0,
+  win_rate        NUMERIC DEFAULT 0,
+  max_drawdown    NUMERIC DEFAULT 0,
+  consistency     NUMERIC DEFAULT 0,
+  total_trades    INTEGER DEFAULT 0,
+  is_active       BOOLEAN DEFAULT TRUE,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_tracked_wallets_active ON tracked_wallets(is_active);
+CREATE INDEX IF NOT EXISTS idx_tracked_wallets_score ON tracked_wallets(quality_score DESC);
+
+-- ── wallet_snapshots ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS wallet_snapshots (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  address         TEXT NOT NULL,
+  label           TEXT,
+  account_value   NUMERIC DEFAULT 0,
+  withdrawable    NUMERIC DEFAULT 0,
+  margin_used     NUMERIC DEFAULT 0,
+  raw_snapshot    JSONB DEFAULT '{}',
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_wallet_snap_address ON wallet_snapshots(address);
+CREATE INDEX IF NOT EXISTS idx_wallet_snap_created ON wallet_snapshots(created_at DESC);
+
+-- ── agent_improvement_ideas ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS agent_improvement_ideas (
+  id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  source_bot          TEXT NOT NULL CHECK (source_bot IN (
+    'Coding Bot','Application Bot','Trading Signal Bot',
+    'Mock Trading Bot','Backtesting Bot','Wallet Tracker Bot'
+  )),
+  idea_type           TEXT NOT NULL CHECK (idea_type IN (
+    'Bug Fix','Feature Upgrade','Strategy Improvement',
+    'Risk Management','Data Source Improvement','UI/UX Improvement',
+    'Performance Improvement','Automation Idea','Cost Optimization',
+    'Security Improvement','Tech Stack Upgrade'
+  )),
+  feature_affected    TEXT NOT NULL,
+  observation         TEXT NOT NULL,
+  recommendation      TEXT NOT NULL,
+  expected_benefit    TEXT,
+  priority            TEXT NOT NULL DEFAULT 'Medium' CHECK (priority IN ('Critical','High','Medium','Low','Optional')),
+  confidence          TEXT NOT NULL DEFAULT 'Medium' CHECK (confidence IN ('High','Medium','Low','Needs Testing')),
+  status              TEXT NOT NULL DEFAULT 'New' CHECK (status IN (
+    'New','Under Review','Approved','Rejected','In Progress',
+    'Completed','Needs Backtest','Needs Human Decision'
+  )),
+  related_trade_id    UUID,
+  related_backtest_id UUID,
+  related_wallet      TEXT,
+  related_error_id    TEXT,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_ideas_status ON agent_improvement_ideas(status);
+CREATE INDEX IF NOT EXISTS idx_agent_ideas_bot ON agent_improvement_ideas(source_bot);
+CREATE INDEX IF NOT EXISTS idx_agent_ideas_priority ON agent_improvement_ideas(priority);
+CREATE INDEX IF NOT EXISTS idx_agent_ideas_created ON agent_improvement_ideas(created_at DESC);
+
+-- ── social_sentiment ────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS social_sentiment (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  source          TEXT NOT NULL,
+  sentiment_score NUMERIC DEFAULT 0,
+  sentiment_label TEXT DEFAULT 'neutral' CHECK (sentiment_label IN ('bullish','bearish','neutral')),
+  raw_data        JSONB DEFAULT '{}',
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_social_sent_label ON social_sentiment(sentiment_label);
+CREATE INDEX IF NOT EXISTS idx_social_sent_created ON social_sentiment(created_at DESC);
+
+-- ── market_trends ───────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS market_trends (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  symbol          TEXT NOT NULL,
+  source          TEXT NOT NULL,
+  price           NUMERIC,
+  change_24h      NUMERIC,
+  volume_approx   TEXT,
+  raw             JSONB DEFAULT '{}',
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_trends_symbol ON market_trends(symbol);
+CREATE INDEX IF NOT EXISTS idx_trends_source ON market_trends(source);
+CREATE INDEX IF NOT EXISTS idx_trends_created ON market_trends(created_at DESC);
+
+-- RLS for agent_improvement_ideas (service role can do everything; read-only for anon)
+ALTER TABLE agent_improvement_ideas ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS agent_ideas_select_all ON agent_improvement_ideas;
+CREATE POLICY agent_ideas_select_all ON agent_improvement_ideas FOR SELECT USING (true);
