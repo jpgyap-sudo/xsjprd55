@@ -120,6 +120,21 @@
       font-weight: 600;
     }
 
+    /* API Status */
+    .status-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .status-item { background: var(--bg3); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); }
+    .status-item.offline { border-color: rgba(239,68,68,0.3); }
+    .status-dot-sm { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot-sm.online { background: var(--accent); box-shadow: 0 0 8px rgba(34,197,94,0.4); }
+    .status-dot-sm.offline { background: var(--accent3); box-shadow: 0 0 8px rgba(239,68,68,0.4); }
+    .status-dot-sm.warn { background: var(--accent2); box-shadow: 0 0 8px rgba(234,179,8,0.4); }
+    .status-info { flex: 1; min-width: 0; }
+    .status-name { font-weight: 600; font-size: 0.88rem; }
+    .status-meta { font-size: 0.75rem; color: var(--fg2); margin-top: 2px; }
+    .status-section { margin-bottom: 24px; }
+    .status-section-title { font-size: 0.8rem; color: var(--fg2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; font-weight: 600; }
+    .status-refresh { font-size: 0.75rem; color: var(--fg2); margin-top: 8px; text-align: right; }
+
     /* Layout */
     .container { max-width: 1440px; margin: 0 auto; padding: 20px; }
     .grid { display: grid; gap: 20px; }
@@ -232,6 +247,7 @@
   <button class="tab-btn" data-tab="catalyst">🔴 Catalyst</button>
   <button class="tab-btn" data-tab="news">📰 News & Intel</button>
   <button class="tab-btn" data-tab="ai">🤖 AI Chat</button>
+  <button class="tab-btn" data-tab="api-status">📡 API Status</button>
 </nav>
 
 <div class="container">
@@ -507,6 +523,45 @@
       <div class="chat-input-area">
         <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask me anything about crypto..."></textarea>
         <button class="chat-send" id="chat-send">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- API STATUS TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-api-status">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>📡 External API Health</span>
+        <span style="font-size:0.75rem;color:var(--fg2);" id="api-status-time">Checking…</span>
+      </div>
+      <div class="card-body">
+        <div id="api-status-loading" style="text-align:center;padding:30px;color:var(--fg2);">
+          <div class="spinner" style="width:28px;height:28px;border:3px solid rgba(148,163,184,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px;"></div>
+          Checking all services…
+        </div>
+        <div id="api-status-error" style="display:none;text-align:center;padding:30px;color:var(--accent3);">
+          Failed to load status. The backend health endpoint may be unreachable.
+        </div>
+        <div id="api-status-content" style="display:none;">
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.75rem;color:var(--fg2);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Core Services</div>
+            <div class="status-grid" id="status-services"></div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.75rem;color:var(--fg2);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Exchanges</div>
+            <div class="status-grid" id="status-exchanges"></div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.75rem;color:var(--fg2);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">AI Providers</div>
+            <div class="status-grid" id="status-ai"></div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--fg2);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Data Feeds</div>
+            <div class="status-grid" id="status-data"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -967,6 +1022,63 @@ async function loadStrategyLabs() {
 }
 loadStrategyLabs();
 setInterval(loadStrategyLabs, 60000);
+
+// ── API Status ───────────────────────────────────────
+async function loadApiStatus() {
+  const loading = document.getElementById('api-status-loading');
+  const content = document.getElementById('api-status-content');
+  const error = document.getElementById('api-status-error');
+  const timeEl = document.getElementById('api-status-time');
+
+  try {
+    const res = await fetch('/api/health');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+    timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+    const renderGroup = (containerId, group) => {
+      const container = document.getElementById(containerId);
+      if (!group || !Object.keys(group).length) {
+        container.innerHTML = '<div style="color:var(--fg2);font-size:0.8rem;">No services configured</div>';
+        return;
+      }
+      container.innerHTML = Object.entries(group).map(([name, s]) => {
+        const isOnline = s.ok;
+        const isWarn = !s.ok && s.configured;
+        const dotClass = isOnline ? 'online' : isWarn ? 'warn' : 'offline';
+        const statusText = isOnline ? 'Online' : s.configured ? 'Offline' : 'Not Configured';
+        const latencyText = s.latency != null ? ` · ${s.latency}ms` : '';
+        const errorText = s.error ? `<div style="font-size:0.7rem;color:var(--accent3);margin-top:2px;">${s.error}</div>` : '';
+        return `
+          <div class="status-item ${isOnline ? '' : 'offline'}">
+            <div class="status-dot-sm ${dotClass}"></div>
+            <div class="status-info">
+              <div style="font-weight:600;font-size:0.85rem;">${name}</div>
+              <div style="font-size:0.75rem;color:var(--fg2);">${statusText}${latencyText}</div>
+              ${errorText}
+            </div>
+          </div>`;
+      }).join('');
+    };
+
+    renderGroup('status-services', data.checks?.services);
+    renderGroup('status-exchanges', data.checks?.exchanges);
+    renderGroup('status-ai', data.checks?.ai);
+    renderGroup('status-data', data.checks?.data_feeds);
+
+  } catch (e) {
+    loading.style.display = 'none';
+    content.style.display = 'none';
+    error.style.display = 'block';
+    timeEl.textContent = 'Check failed';
+  }
+}
+loadApiStatus();
+setInterval(loadApiStatus, 30000);
 </script>
 
 </body>
