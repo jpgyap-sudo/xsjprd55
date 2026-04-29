@@ -497,6 +497,7 @@
   <button class="tab-btn" data-tab="signals">🚨 Signals</button>
   <button class="tab-btn" data-tab="research-agent">🔬 Research Agent</button>
   <button class="tab-btn" data-tab="mock-trading">💰 Mock Trading</button>
+  <button class="tab-btn" data-tab="perpetual-trader">🎯 Perpetual Trader</button>
   <button class="tab-btn" data-tab="catalyst">🔴 Catalyst</button>
   <button class="tab-btn" data-tab="news">📰 News & Intel</button>
   <button class="tab-btn" data-tab="ai">🤖 AI Chat</button>
@@ -580,84 +581,85 @@
 
     <div class="grid grid-2">
       <!-- Main Chart -->
-      <div class="card">
-        <div class="card-header">
-          <span>📊 BTC/USDT Technical Chart</span>
-          <select id="chart-symbol" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;cursor:pointer;max-width:160px;">
-            <option value="BINANCE:BTCUSDT">BTC/USDT</option>
-            <option value="BINANCE:ETHUSDT">ETH/USDT</option>
-            <option value="BINANCE:SOLUSDT">SOL/USDT</option>
-            <option value="BINANCE:BNBUSDT">BNB/USDT</option>
-            <option value="BINANCE:XRPUSDT">XRP/USDT</option>
-            <option value="BINANCE:DOGEUSDT">DOGE/USDT</option>
-            <option value="BINANCE:ADAUSDT">ADA/USDT</option>
-            <option value="BINANCE:AVAXUSDT">AVAX/USDT</option>
-            <option value="BINANCE:LINKUSDT">LINK/USDT</option>
-            <option value="BINANCE:LTCUSDT">LTC/USDT</option>
-            <option value="BINANCE:DOTUSDT">DOT/USDT</option>
-            <option value="BINANCE:UNIUSDT">UNI/USDT</option>
-            <option value="BINANCE:AAVEUSDT">AAVE/USDT</option>
-            <option value="BINANCE:SUIUSDT">SUI/USDT</option>
-            <option value="BINANCE:SEIUSDT">SEI/USDT</option>
-            <option value="BINANCE:INJUSDT">INJ/USDT</option>
-            <option value="BINANCE:RNDRUSDT">RNDR/USDT</option>
-            <option value="BINANCE:ARBUSDT">ARB/USDT</option>
-            <option value="BINANCE:OPUSDT">OP/USDT</option>
-            <option value="BINANCE:STRKUSDT">STRK/USDT</option>
-            <option value="BINANCE:TIAUSDT">TIA/USDT</option>
-            <option value="BINANCE:FETUSDT">FET/USDT</option>
-            <option value="BINANCE:WLDUSDT">WLD/USDT</option>
-            <option value="BINANCE:PYTHUSDT">PYTH/USDT</option>
-            <option value="BINANCE:JUPUSDT">JUP/USDT</option>
-            <option value="BINANCE:JTOUSDT">JTO/USDT</option>
-            <option value="BINANCE:BONKUSDT">BONK/USDT</option>
-            <option value="BINANCE:PEPEUSDT">PEPE/USDT</option>
-            <option value="BINANCE:WIFUSDT">WIF/USDT</option>
-            <option value="BINANCE:SHIBUSDT">SHIB/USDT</option>
-            <option value="BINANCE:FLOKIUSDT">FLOKI/USDT</option>
-            <option value="BINANCE:ENAUSDT">ENA/USDT</option>
-            <option value="BINANCE:WUSDT">W/USDT</option>
-            <option value="BINANCE:TAOUSDT">TAO/USDT</option>
-            <option value="BINANCE:ARKMUSDT">ARKM/USDT</option>
-            <option value="BINANCE:MEMEUSDT">MEME/USDT</option>
-            <option value="BINANCE:BEAMUSDT">BEAM/USDT</option>
-            <option value="BINANCE:RUNEUSDT">RUNE/USDT</option>
-            <option value="BINANCE:NEARUSDT">NEAR/USDT</option>
-            <option value="BINANCE:APTUSDT">APT/USDT</option>
-            <option value="BINANCE:TRXUSDT">TRX/USDT</option>
-            <option value="BINANCE:ETCUSDT">ETC/USDT</option>
-            <option value="BINANCE:XLMUSDT">XLM/USDT</option>
-            <option value="BINANCE:FILUSDT">FIL/USDT</option>
-            <option value="BINANCE:ALGOUSDT">ALGO/USDT</option>
-            <option value="BINANCE:ATOMUSDT">ATOM/USDT</option>
-            <option value="BINANCE:IMXUSDT">IMX/USDT</option>
-            <option value="BINANCE:GRTUSDT">GRT/USDT</option>
-            <option value="BINANCE:STXUSDT">STX/USDT</option>
-            <option value="BINANCE:FLOWUSDT">FLOW/USDT</option>
-            <option value="BINANCE:SANDUSDT">SAND/USDT</option>
-            <option value="BINANCE:MANAUSDT">MANA/USDT</option>
-            <option value="BINANCE:AXSUSDT">AXS/USDT</option>
-            <option value="BINANCE:CHZUSDT">CHZ/USDT</option>
-            <option value="BINANCE:CRVUSDT">CRV/USDT</option>
-            <option value="BINANCE:DYDXUSDT">DYDX/USDT</option>
-            <option value="BINANCE:GMXUSDT">GMX/USDT</option>
-            <option value="BINANCE:SNXUSDT">SNX/USDT</option>
-            <option value="BINANCE:COMPUSDT">COMP/USDT</option>
-            <option value="BINANCE:MKRUSDT">MKR/USDT</option>
-            <option value="BINANCE:YFIUSDT">YFI/USDT</option>
-            <option value="BINANCE:BALUSDT">BAL/USDT</option>
-            <option value="BINANCE:1INCHUSDT">1INCH/USDT</option>
-            <option value="BINANCE:ZRXUSDT">ZRX/USDT</option>
-            <option value="BINANCE:LDOUSDT">LDO/USDT</option>
-            <option value="BINANCE:PENDLEUSDT">PENDLE/USDT</option>
-            <option value="BINANCE:EIGENUSDT">EIGEN/USDT</option>
-            <option value="BINANCE:ZROUSDT">ZRO/USDT</option>
-            <option value="BINANCE:LISTAUSDT">LISTA/USDT</option>
-            <option value="BINANCE:NOTUSDT">NOT/USDT</option>
-          </select>
+      <div class="card" style="grid-column:1 / -1;">
+        <div class="card-header" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <span>📊 Technical Chart</span>
+          <input type="text" id="chart-symbol" list="chart-symbols" value="BINANCE:BTCUSDT" placeholder="Search symbol (e.g. BTCUSDT)..." style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:0.85rem;min-width:220px;flex:1;max-width:320px;">
+          <datalist id="chart-symbols">
+            <option value="BINANCE:BTCUSDT">
+            <option value="BINANCE:ETHUSDT">
+            <option value="BINANCE:SOLUSDT">
+            <option value="BINANCE:BNBUSDT">
+            <option value="BINANCE:XRPUSDT">
+            <option value="BINANCE:DOGEUSDT">
+            <option value="BINANCE:ADAUSDT">
+            <option value="BINANCE:AVAXUSDT">
+            <option value="BINANCE:LINKUSDT">
+            <option value="BINANCE:LTCUSDT">
+            <option value="BINANCE:DOTUSDT">
+            <option value="BINANCE:UNIUSDT">
+            <option value="BINANCE:AAVEUSDT">
+            <option value="BINANCE:SUIUSDT">
+            <option value="BINANCE:SEIUSDT">
+            <option value="BINANCE:INJUSDT">
+            <option value="BINANCE:RNDRUSDT">
+            <option value="BINANCE:ARBUSDT">
+            <option value="BINANCE:OPUSDT">
+            <option value="BINANCE:STRKUSDT">
+            <option value="BINANCE:TIAUSDT">
+            <option value="BINANCE:FETUSDT">
+            <option value="BINANCE:WLDUSDT">
+            <option value="BINANCE:PYTHUSDT">
+            <option value="BINANCE:JUPUSDT">
+            <option value="BINANCE:JTOUSDT">
+            <option value="BINANCE:BONKUSDT">
+            <option value="BINANCE:PEPEUSDT">
+            <option value="BINANCE:WIFUSDT">
+            <option value="BINANCE:SHIBUSDT">
+            <option value="BINANCE:FLOKIUSDT">
+            <option value="BINANCE:ENAUSDT">
+            <option value="BINANCE:WUSDT">
+            <option value="BINANCE:TAOUSDT">
+            <option value="BINANCE:ARKMUSDT">
+            <option value="BINANCE:MEMEUSDT">
+            <option value="BINANCE:BEAMUSDT">
+            <option value="BINANCE:RUNEUSDT">
+            <option value="BINANCE:NEARUSDT">
+            <option value="BINANCE:APTUSDT">
+            <option value="BINANCE:TRXUSDT">
+            <option value="BINANCE:ETCUSDT">
+            <option value="BINANCE:XLMUSDT">
+            <option value="BINANCE:FILUSDT">
+            <option value="BINANCE:ALGOUSDT">
+            <option value="BINANCE:ATOMUSDT">
+            <option value="BINANCE:IMXUSDT">
+            <option value="BINANCE:GRTUSDT">
+            <option value="BINANCE:STXUSDT">
+            <option value="BINANCE:FLOWUSDT">
+            <option value="BINANCE:SANDUSDT">
+            <option value="BINANCE:MANAUSDT">
+            <option value="BINANCE:AXSUSDT">
+            <option value="BINANCE:CHZUSDT">
+            <option value="BINANCE:CRVUSDT">
+            <option value="BINANCE:DYDXUSDT">
+            <option value="BINANCE:GMXUSDT">
+            <option value="BINANCE:SNXUSDT">
+            <option value="BINANCE:COMPUSDT">
+            <option value="BINANCE:MKRUSDT">
+            <option value="BINANCE:YFIUSDT">
+            <option value="BINANCE:BALUSDT">
+            <option value="BINANCE:1INCHUSDT">
+            <option value="BINANCE:ZRXUSDT">
+            <option value="BINANCE:LDOUSDT">
+            <option value="BINANCE:PENDLEUSDT">
+            <option value="BINANCE:EIGENUSDT">
+            <option value="BINANCE:ZROUSDT">
+            <option value="BINANCE:LISTAUSDT">
+            <option value="BINANCE:NOTUSDT">
+          </datalist>
         </div>
-        <div class="tradingview-widget-container" id="tv-chart" style="height:460px;">
-          <div class="tradingview-widget-container__widget" style="height:460px;"></div>
+        <div class="tradingview-widget-container" id="tv-chart" style="height:650px;">
+          <div class="tradingview-widget-container__widget" style="height:650px;"></div>
           <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
           {
             "autosize": true,
@@ -768,6 +770,22 @@
       </div>
     </div>
 
+    <!-- Proposal Detail Panel -->
+    <div class="card" style="margin-bottom:20px;display:none;" id="ra-proposal-detail-card">
+      <div class="card-header"><span>📖 Strategy Details</span></div>
+      <div class="card-body" id="ra-proposals-detail" style="font-size:0.9rem;line-height:1.6;">
+        <div style="color:var(--fg2);">Click a strategy proposal above to see details.</div>
+      </div>
+    </div>
+
+    <!-- Backtest Detail Panel -->
+    <div class="card" style="margin-bottom:20px;display:none;" id="ra-backtest-detail-card">
+      <div class="card-header"><span>📊 Backtest Analysis</span></div>
+      <div class="card-body" id="ra-backtest-detail" style="font-size:0.9rem;line-height:1.6;">
+        <div style="color:var(--fg2);">Click a backtest row above to see detailed analysis.</div>
+      </div>
+    </div>
+
     <!-- Promoted Strategies -->
     <div class="card" style="margin-bottom:20px;">
       <div class="card-header"><span>🏆 Promoted Strategies</span></div>
@@ -872,6 +890,115 @@
   </div>
 
   <!-- ════════════════════════════════════════════════════ -->
+  <!-- PERPETUAL SIGNAL TRADER TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-perpetual-trader">
+    <!-- Account Header -->
+    <div class="stat-grid" style="margin-bottom:20px;" id="pt-stats">
+      <div class="stat-item"><div class="stat-label">💰 Equity</div><div class="stat-value" id="pt-equity">—</div></div>
+      <div class="stat-item"><div class="stat-label">Available</div><div class="stat-value" id="pt-available">—</div></div>
+      <div class="stat-item"><div class="stat-label">Margin Used</div><div class="stat-value" id="pt-margin">—</div></div>
+      <div class="stat-item"><div class="stat-label">Unrealized PnL</div><div class="stat-value" id="pt-unrealized">—</div></div>
+      <div class="stat-item"><div class="stat-label">Realized PnL</div><div class="stat-value" id="pt-realized">—</div></div>
+      <div class="stat-item"><div class="stat-label">Daily PnL</div><div class="stat-value" id="pt-dailypnl">—</div></div>
+      <div class="stat-item"><div class="stat-label">Total Return</div><div class="stat-value" id="pt-return">—</div></div>
+      <div class="stat-item"><div class="stat-label">Win Rate</div><div class="stat-value" id="pt-winrate">—</div></div>
+      <div class="stat-item"><div class="stat-label">Total Trades</div><div class="stat-value" id="pt-trades">—</div></div>
+      <div class="stat-item"><div class="stat-label">Open Positions</div><div class="stat-value" id="pt-open">—</div></div>
+    </div>
+
+    <!-- Trading Status Banner -->
+    <div id="pt-status-banner" style="margin-bottom:20px;padding:12px 16px;border-radius:8px;font-size:0.9rem;font-weight:600;display:none;"></div>
+
+    <div class="grid grid-2">
+      <!-- Open Positions -->
+      <div class="card" style="margin-bottom:20px;grid-column:1 / -1;">
+        <div class="card-header"><span>📈 Open Positions</span></div>
+        <div class="card-body" style="padding:0;max-height:400px;overflow:auto;">
+          <div id="pt-open-loading" style="text-align:center;padding:20px;color:var(--fg2);">Loading positions...</div>
+          <div id="pt-open-content" style="display:none;">
+            <table class="signal-table" style="min-width:700px;">
+              <thead><tr><th>Symbol</th><th>Side</th><th>Entry</th><th>Size</th><th>Lev</th><th>Margin</th><th>Stop</th><th>Target</th><th>R:R</th><th>Reason</th></tr></thead>
+              <tbody id="pt-open-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- Recent Closed Trades -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><span>📉 Recent Closed Trades</span></div>
+        <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
+          <div id="pt-closed-content" style="display:none;">
+            <table class="signal-table">
+              <thead><tr><th>Symbol</th><th>Side</th><th>Lev</th><th>PnL $</th><th>PnL %</th><th>Exit</th></tr></thead>
+              <tbody id="pt-closed-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- Strategy Performance -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><span>📊 Strategy Performance</span></div>
+        <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
+          <div id="pt-strat-content" style="display:none;">
+            <table class="signal-table" style="min-width:500px;">
+              <thead><tr><th>Strategy</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>Total PnL</th></tr></thead>
+              <tbody id="pt-strat-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pair Performance -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span>🪙 Pair Performance</span></div>
+      <div class="card-body" style="padding:0;max-height:300px;overflow:auto;">
+        <div id="pt-pair-content" style="display:none;">
+          <table class="signal-table" style="min-width:400px;">
+            <thead><tr><th>Symbol</th><th>Trades</th><th>Wins</th><th>Win Rate</th><th>Total PnL</th></tr></thead>
+            <tbody id="pt-pair-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signal Memory Feed -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span>🧠 Signal Memory (Recent)</span></div>
+      <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
+        <div id="pt-memory-content" style="display:none;">
+          <table class="signal-table" style="min-width:600px;">
+            <thead><tr><th>Symbol</th><th>Side</th><th>Strategy</th><th>Conf</th><th>Outcome</th><th>PnL</th><th>Description</th></tr></thead>
+            <tbody id="pt-memory-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trader Logs -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span>📋 Decision Log</span></div>
+      <div class="card-body" style="padding:0;max-height:300px;overflow:auto;">
+        <div id="pt-logs-content" style="display:none;">
+          <table class="signal-table" style="min-width:500px;">
+            <thead><tr><th>Time</th><th>Level</th><th>Category</th><th>Message</th></tr></thead>
+            <tbody id="pt-logs-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Risk Settings -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span>⚙️ Risk Settings</span></div>
+      <div class="card-body" id="pt-risk-settings" style="font-size:0.85rem;color:var(--fg2);">
+        Loading...
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
   <!-- CATALYST TAB -->
   <!-- ════════════════════════════════════════════════════ -->
   <div class="tab-panel" id="tab-catalyst">
@@ -903,13 +1030,19 @@
       <div class="card">
         <div class="card-header">
           <span>📰 News Feed</span>
-          <span class="badge live" id="news-updated" style="font-size:0.6rem;padding:2px 8px;">Live</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span id="news-source-badge" style="font-size:0.65rem;color:var(--fg2);"></span>
+            <span class="badge live" id="news-updated" style="font-size:0.6rem;padding:2px 8px;">Live</span>
+            <button onclick="loadNewsFeed()" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:0.7rem;cursor:pointer;">↻ Refresh</button>
+          </div>
         </div>
         <div class="card-body" style="padding:0;">
           <div id="news-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading news...</div>
           <div id="news-content" style="display:none;">
             <div id="news-overall" style="padding:12px 18px;border-bottom:1px solid var(--border);font-size:0.85rem;font-weight:600;"></div>
+            <div id="news-sentiment-breakdown" style="padding:8px 18px;border-bottom:1px solid var(--border);font-size:0.75rem;display:flex;gap:12px;align-items:center;"></div>
             <div id="news-list" style="max-height:600px;overflow-y:auto;"></div>
+            <div id="news-footer" style="padding:8px 18px;font-size:0.7rem;color:var(--fg2);text-align:right;border-top:1px solid var(--border);"></div>
           </div>
           <div id="news-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load news</div>
         </div>
@@ -1520,17 +1653,50 @@ loadLiquidationIntel();
 setInterval(loadLiquidationIntel, 60000);
 
 // ── News Feed ────────────────────────────────────────
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const diff = Date.now() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
+
+function impactScoreLabel(score) {
+  if (score >= 0.7) return { text: '🔥 HIGH', color: 'var(--accent3)' };
+  if (score >= 0.4) return { text: '⚡ MED', color: 'var(--accent2)' };
+  return { text: '● LOW', color: 'var(--fg2)' };
+}
+
 async function loadNewsFeed() {
   const loading = document.getElementById('news-loading');
   const content = document.getElementById('news-content');
   const error = document.getElementById('news-error');
   const overall = document.getElementById('news-overall');
+  const breakdown = document.getElementById('news-sentiment-breakdown');
   const list = document.getElementById('news-list');
+  const footer = document.getElementById('news-footer');
+  const sourceBadge = document.getElementById('news-source-badge');
+
+  loading.style.display = 'block';
+  content.style.display = 'none';
+  error.style.display = 'none';
 
   try {
-    const res = await fetch('/api/news-feed?limit=15&hours=12');
+    const res = await fetch('/api/news-feed?limit=20&hours=12');
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'News API error');
+
+    // Source badge
+    if (sourceBadge) {
+      sourceBadge.textContent = data.source === 'live_rss' ? '📡 Live RSS' : '💾 Database';
+      sourceBadge.style.color = data.source === 'live_rss' ? 'var(--accent2)' : 'var(--fg2)';
+    }
 
     // Handle empty but valid response gracefully
     if (!data.items || data.items.length === 0) {
@@ -1538,7 +1704,9 @@ async function loadNewsFeed() {
       error.style.display = 'none';
       content.style.display = 'block';
       overall.innerHTML = '<div style="color:var(--fg2);">Market Sentiment: <span style="font-weight:700;">No Data</span></div>';
+      breakdown.innerHTML = '';
       list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--fg2);font-size:0.85rem;">No news articles yet. The news crawler will populate this soon.</div>';
+      footer.innerHTML = '';
       return;
     }
 
@@ -1546,53 +1714,97 @@ async function loadNewsFeed() {
     error.style.display = 'none';
     content.style.display = 'block';
 
+    // Overall sentiment
     const score = data.overallScore || 0;
     const sentColor = score > 0.2 ? 'var(--accent)' : score < -0.2 ? 'var(--accent3)' : 'var(--accent2)';
     const sentLabel = score > 0.2 ? 'Bullish' : score < -0.2 ? 'Bearish' : 'Neutral';
+    const sentEmoji = score > 0.2 ? '🟢' : score < -0.2 ? '🔴' : '⚪';
     overall.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
         <span>Market Sentiment:</span>
-        <span style="color:${sentColor};font-weight:700;">${sentLabel}</span>
+        <span style="color:${sentColor};font-weight:700;">${sentEmoji} ${sentLabel}</span>
         <span style="color:var(--fg2);font-weight:400;">(${score.toFixed(2)})</span>
-        <span style="margin-left:auto;color:var(--fg2);font-weight:400;">${data.itemCount} articles</span>
+        <span style="margin-left:auto;color:var(--fg2);font-weight:400;font-size:0.75rem;">${data.itemCount} articles • last 12h</span>
       </div>`;
 
-    list.innerHTML = data.items.map(item => {
+    // Sentiment breakdown
+    const bullish = data.items.filter(i => i.impact === 'bullish').length;
+    const bearish = data.items.filter(i => i.impact === 'bearish').length;
+    const neutral = data.items.filter(i => i.impact === 'neutral').length;
+    breakdown.innerHTML = `
+      <span style="color:var(--fg2);">Breakdown:</span>
+      <span style="color:var(--accent);font-weight:600;">🟢 ${bullish} Bullish</span>
+      <span style="color:var(--accent3);font-weight:600;">🔴 ${bearish} Bearish</span>
+      <span style="color:var(--fg2);">⚪ ${neutral} Neutral</span>
+      ${data.byAsset?.length ? `<span style="margin-left:auto;color:var(--fg2);">Top: ${data.byAsset.slice(0,3).map(a => a.name).join(', ')}</span>` : ''}
+    `;
+
+    // News list with enhanced UI
+    list.innerHTML = data.items.map((item, idx) => {
       const impactColor = item.impact === 'bullish' ? 'var(--accent)' : item.impact === 'bearish' ? 'var(--accent3)' : 'var(--fg2)';
       const impactIcon = item.impact === 'bullish' ? '📈' : item.impact === 'bearish' ? '📉' : '➡️';
       const assetTags = item.detectedAssets.map(a => `<span style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.7rem;color:var(--fg2);">${a.symbol.replace('USDT','')}</span>`).join(' ');
-      const urgency = item.hasUrgency ? '<span style="color:var(--accent3);font-size:0.7rem;font-weight:700;">BREAKING</span>' : '';
-      const pubDate = item.publishedAt || item.ingestedAt || item.created_at;
-      const timeStr = pubDate ? new Date(pubDate).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      
+      // Urgency badge
+      let urgencyBadge = '';
+      if (item.hasUrgency) {
+        urgencyBadge = '<span style="background:rgba(239,68,68,0.15);color:var(--accent3);font-size:0.65rem;font-weight:700;padding:1px 6px;border-radius:4px;">BREAKING</span>';
+      } else if ((item.urgencyScore || 0) > 0.15) {
+        urgencyBadge = '<span style="background:rgba(245,158,11,0.15);color:var(--accent2);font-size:0.65rem;font-weight:700;padding:1px 6px;border-radius:4px;">URGENT</span>';
+      }
+      
+      // Impact score (combine sentiment + urgency)
+      const impact = impactScoreLabel(Math.abs(item.sentimentScore || 0) + (item.urgencyScore || 0));
+      
+      const timeStr = timeAgo(item.publishedAt || item.ingestedAt);
+      const pubDateFull = item.publishedAt ? new Date(item.publishedAt).toLocaleString() : '';
+      
       return `
-        <div style="padding:10px 18px;border-bottom:1px solid rgba(30,37,56,0.4);">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-            <span style="font-size:0.75rem;color:var(--fg2);">${item.source}</span>
-            ${urgency}
-            <span style="margin-left:auto;font-size:0.7rem;color:var(--fg2);">${timeStr}</span>
+        <div style="padding:10px 18px;border-bottom:1px solid rgba(30,37,56,0.4);cursor:pointer;" onclick="toggleNewsDetail(${idx})" onmouseover="this.style.background='rgba(59,130,246,0.05)'" onmouseout="this.style.background='transparent'">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;">
+            <span style="font-size:0.75rem;color:var(--fg2);font-weight:500;">${item.source}</span>
+            ${urgencyBadge}
+            <span style="font-size:0.65rem;color:${impact.color};font-weight:600;margin-left:4px;">${impact.text}</span>
+            <span style="margin-left:auto;font-size:0.7rem;color:var(--fg2);" title="${pubDateFull}">${timeStr}</span>
           </div>
-          <a href="${item.url}" target="_blank" style="color:var(--fg);text-decoration:none;font-size:0.82rem;font-weight:500;line-height:1.4;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${item.title}</a>
+          <div style="color:var(--fg);font-size:0.82rem;font-weight:500;line-height:1.4;">${item.title}</div>
+          <div id="news-detail-${idx}" style="display:none;margin-top:6px;padding:8px;background:var(--bg3);border-radius:6px;font-size:0.75rem;color:var(--fg2);line-height:1.5;">
+            <div style="margin-bottom:4px;"><strong>Sentiment:</strong> <span style="color:${impactColor};">${impactIcon} ${(item.sentimentScore || 0).toFixed(2)}</span> | <strong>Urgency:</strong> ${(item.urgencyScore || 0).toFixed(2)} | <strong>Credibility:</strong> ${((item.credibilityScore || 0.7) * 100).toFixed(0)}%</div>
+            ${item.matchedKeywords?.length ? `<div style="margin-bottom:4px;"><strong>Keywords:</strong> ${item.matchedKeywords.slice(0,5).map(k => k.term || k).join(', ')}</div>` : ''}
+            <a href="${item.url}" target="_blank" style="color:var(--accent);text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Read full article →</a>
+          </div>
           <div style="margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             ${assetTags}
-            <span style="margin-left:auto;font-size:0.75rem;color:${impactColor};">${impactIcon} ${(item.sentimentScore || 0).toFixed(2)}</span>
+            <span style="margin-left:auto;font-size:0.7rem;color:${impactColor};font-weight:500;">${impactIcon} ${(item.sentimentScore || 0).toFixed(2)}</span>
           </div>
         </div>`;
     }).join('');
+
+    // Footer with last updated
+    footer.innerHTML = `Updated ${new Date().toLocaleTimeString()} • Source: ${data.source === 'live_rss' ? 'Live RSS (real-time)' : 'Database cache'}`;
 
   } catch (e) {
     loading.style.display = 'none';
     content.style.display = 'none';
     error.style.display = 'block';
+    console.error('[News Feed] Error:', e);
   }
 }
+
+function toggleNewsDetail(idx) {
+  const el = document.getElementById(`news-detail-${idx}`);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
 loadNewsFeed();
 setInterval(loadNewsFeed, 120000);
 
 // ── Chart symbol switcher ────────────────────────────
 document.getElementById('chart-symbol').addEventListener('change', function() {
-  const symbol = this.value;
+  let symbol = this.value.trim();
+  if (!symbol.includes(':')) symbol = 'BINANCE:' + symbol.replace('/','');
   const container = document.getElementById('tv-chart');
-  container.innerHTML = '<div class="tradingview-widget-container__widget" style="height:460px;"></div>';
+  container.innerHTML = '<div class="tradingview-widget-container__widget" style="height:650px;"></div>';
   const script = document.createElement('script');
   script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
   script.async = true;
@@ -1800,16 +2012,24 @@ async function loadResearchAgent() {
       modelEl.style.color = 'var(--fg2)';
     }
 
+    // Store for detail views
+    raProposals = data.proposals || [];
+    raBacktests = data.backtests || [];
+
     // Proposals
     const propBody = document.getElementById('ra-proposals-body');
     if (data.proposals?.length) {
       propBody.innerHTML = data.proposals.map(p => {
         const status = p.promoted ? '🏆 Promoted' : p.rejected ? '❌ Rejected' : p.tested ? '✅ Tested' : '⏳ Pending';
         const statusColor = p.promoted ? 'var(--accent)' : p.rejected ? 'var(--accent3)' : 'var(--accent2)';
-        return `<tr>
+        const ruleSummary = (p.rules || []).map(r => {
+          const feat = r.feature?.replace(/_/g, ' ') || 'rule';
+          return `${feat} ${r.operator || ''} ${typeof r.value === 'number' ? r.value.toFixed(3) : r.value}`;
+        }).slice(0,2).join(', ');
+        return `<tr style="cursor:pointer;" onclick="showProposalDetail(${p.id})" title="Click for details">
           <td style="font-weight:600;font-size:0.85rem;">${p.name}</td>
           <td style="font-size:0.8rem;">${(p.confidence * 100).toFixed(0)}%</td>
-          <td style="font-size:0.75rem;color:var(--fg2);">${(p.rules || []).slice(0,2).join(', ')}${(p.rules || []).length > 2 ? '…' : ''}</td>
+          <td style="font-size:0.75rem;color:var(--fg2);">${ruleSummary}${(p.rules || []).length > 2 ? '…' : ''}</td>
           <td style="font-size:0.75rem;color:${statusColor};font-weight:600;">${status}</td>
         </tr>`;
       }).join('');
@@ -1820,11 +2040,12 @@ async function loadResearchAgent() {
     }
 
     // Backtests
+    let raBacktests = data.backtests || [];
     const btBody = document.getElementById('ra-backtests-body');
-    if (data.backtests?.length) {
-      btBody.innerHTML = data.backtests.map(b => {
+    if (raBacktests.length) {
+      btBody.innerHTML = raBacktests.map((b, idx) => {
         const retColor = b.totalReturnPct > 0 ? 'var(--accent)' : b.totalReturnPct < 0 ? 'var(--accent3)' : 'var(--fg2)';
-        return `<tr>
+        return `<tr style="cursor:pointer;" onclick="showBacktestDetail(${idx})" title="Click for analysis">
           <td style="font-weight:600;font-size:0.85rem;">${b.strategyName}</td>
           <td>${b.totalTrades}</td>
           <td style="color:${retColor};font-weight:700;">${b.totalReturnPct?.toFixed(2) ?? 0}%</td>
@@ -2661,21 +2882,352 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── Enhanced Research Agent with Clickable Proposals ────
 let raProposals = [];
+let raBacktests = [];
+
+function explainRuleInPlainEnglish(rule) {
+  const featureNames = {
+    funding_rate: 'Funding Rate',
+    open_interest_change_pct: 'Open Interest Change',
+    liquidation_imbalance: 'Liquidation Imbalance',
+    volume_change_pct: 'Volume Change',
+    volatility_pct: 'Volatility',
+    social_sentiment: 'Social Sentiment',
+    news_sentiment: 'News Sentiment',
+    btc_trend_score: 'BTC Trend',
+    whale_flow_score: 'Whale Flow',
+    spread_bps: 'Spread',
+    rule_probability: 'Rule Probability',
+  };
+  const feat = featureNames[rule.feature] || rule.feature.replace(/_/g, ' ');
+  const op = rule.operator === 'gt' ? 'greater than' : rule.operator === 'lt' ? 'less than' : rule.operator === 'eq' ? 'equals' : 'between';
+  const val = typeof rule.value === 'number' ? rule.value.toFixed(3) : rule.value;
+  const val2 = rule.value2 ? ` and ${rule.value2.toFixed(3)}` : '';
+  return `${feat} is ${op} ${val}${val2}`;
+}
+
+function explainStrategyLogic(p) {
+  if (!p.rules || !p.rules.length) return 'No trading rules defined yet.';
+  const sideBias = p.rules.some(r => ['social_sentiment','news_sentiment','btc_trend_score'].includes(r.feature) && r.operator === 'gt') ? 'bullish' : 'bearish';
+  const explanations = [
+    `This is a <strong>${sideBias}</strong>-biased strategy that trades when specific market conditions align.`,
+    `It uses ${p.rules.length} signal rule${p.rules.length > 1 ? 's' : ''} to decide entry points.`,
+    `Each rule is weighted — the more rules that fire, the higher the trade confidence.`,
+    `Trades are simulated with ~2% take-profit and ~1% stop-loss targets.`,
+  ];
+  return explanations.join(' ');
+}
+
 function showProposalDetail(id) {
   const p = raProposals.find(x => x.id === id);
   if (!p) return;
   const el = document.getElementById('ra-proposals-detail');
-  if (!el) return;
+  const card = document.getElementById('ra-proposal-detail-card');
+  if (!el || !card) return;
+  card.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
   const status = p.promoted ? '🏆 Promoted' : p.rejected ? '❌ Rejected' : p.tested ? '✅ Tested' : '⏳ Pending';
   const statusColor = p.promoted ? 'var(--accent)' : p.rejected ? 'var(--accent3)' : 'var(--accent2)';
-  const rules = (p.rules || []).map(r => `<li style="margin:2px 0;"><code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.75rem;">${r.feature} ${r.operator} ${r.value}${r.weight ? ' (w:'+r.weight+')' : ''}</code></li>`).join('');
+
+  const rulesHtml = (p.rules || []).map(r => {
+    const plain = explainRuleInPlainEnglish(r);
+    return `<li style="margin:4px 0;padding:6px 10px;background:var(--bg3);border-radius:6px;font-size:0.85rem;">
+      <code style="background:rgba(0,0,0,0.2);padding:2px 6px;border-radius:4px;font-size:0.75rem;">${r.feature}</code>
+      <span style="color:var(--fg2);margin-left:8px;">${plain}</span>
+      ${r.weight ? `<span style="color:var(--accent2);font-size:0.75rem;margin-left:8px;">weight: ${r.weight}</span>` : ''}
+    </li>`;
+  }).join('');
+
+  const relatedBacktest = raBacktests.find(b => b.strategyName === p.name);
+  const btSummary = relatedBacktest
+    ? `<div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:8px;">
+        <strong>Backtest Result:</strong> ${relatedBacktest.totalTrades} trades, ${(relatedBacktest.winRate*100).toFixed(1)}% WR, ${relatedBacktest.totalReturnPct?.toFixed(2) ?? 0}% return
+       </div>`
+    : '<div style="margin-top:12px;color:var(--fg2);">No backtest results yet — strategy is still being evaluated.</div>';
+
   el.innerHTML = `
-    <div style="margin-bottom:8px;font-weight:600;font-size:1rem;color:var(--fg);">${p.name}</div>
-    <div style="margin-bottom:12px;color:${statusColor};font-weight:600;font-size:0.85rem;">${status} · ${(p.confidence*100).toFixed(0)}% confidence</div>
-    <div style="margin-bottom:12px;"><strong>Description:</strong><div style="margin-top:4px;color:var(--fg2);">${p.description || 'No description.'}</div></div>
-    <div><strong>Rules:</strong><ul style="margin-top:4px;color:var(--fg2);padding-left:18px;">${rules || '<li>No rules defined.</li>'}</ul></div>
+    <div style="margin-bottom:8px;font-weight:600;font-size:1.1rem;color:var(--fg);">${p.name}</div>
+    <div style="margin-bottom:12px;color:${statusColor};font-weight:600;font-size:0.9rem;">${status} · ${(p.confidence*100).toFixed(0)}% confidence</div>
+    <div style="margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:8px;border-left:3px solid var(--accent);">
+      <strong>What this strategy does:</strong>
+      <div style="margin-top:6px;color:var(--fg2);line-height:1.6;">${explainStrategyLogic(p)}</div>
+    </div>
+    <div style="margin-bottom:12px;"><strong>Description:</strong><div style="margin-top:4px;color:var(--fg2);">${p.description || 'No description available.'}</div></div>
+    <div><strong>Signal Rules (${(p.rules || []).length}):</strong><ul style="margin-top:8px;padding-left:0;list-style:none;">${rulesHtml || '<li style="color:var(--fg2);">No rules defined.</li>'}</ul></div>
+    ${btSummary}
   `;
 }
+
+function showBacktestDetail(idx) {
+  const b = raBacktests[idx];
+  if (!b) return;
+  const el = document.getElementById('ra-backtest-detail');
+  const card = document.getElementById('ra-backtest-detail-card');
+  if (!el || !card) return;
+  card.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  const retColor = b.totalReturnPct > 0 ? 'var(--accent)' : b.totalReturnPct < 0 ? 'var(--accent3)' : 'var(--fg2)';
+  const wrColor = (b.winRate || 0) > 0.5 ? 'var(--accent)' : 'var(--accent3)';
+  const sharpeColor = (b.sharpeRatio || 0) > 1 ? 'var(--accent)' : (b.sharpeRatio || 0) > 0 ? 'var(--accent2)' : 'var(--accent3)';
+  const ddColor = (b.maxDrawdownPct || 0) < 10 ? 'var(--accent)' : (b.maxDrawdownPct || 0) < 20 ? 'var(--accent2)' : 'var(--accent3)';
+
+  // Simulate trade log view
+  const tradeRows = (b.tradeLog || []).slice(0, 10).map(t => {
+    const pnlColor = t.pnlPct > 0 ? 'var(--accent)' : 'var(--accent3)';
+    return `<tr>
+      <td style="font-size:0.8rem;">${new Date(t.timestamp).toLocaleDateString()}</td>
+      <td><span class="side-badge ${t.side === 'LONG' ? 'side-long' : 'side-short'}">${t.side}</span></td>
+      <td style="font-size:0.8rem;">${t.hit || '—'}</td>
+      <td style="color:${pnlColor};font-weight:600;font-size:0.85rem;">${t.pnlPct > 0 ? '+' : ''}${t.pnlPct?.toFixed(2) ?? 0}%</td>
+    </tr>`;
+  }).join('');
+
+  const tradeLogHtml = tradeRows
+    ? `<table class="signal-table" style="margin-top:8px;font-size:0.85rem;"><thead><tr><th>Date</th><th>Side</th><th>Exit</th><th>PnL</th></tr></thead><tbody>${tradeRows}</tbody></table>`
+    : '<div style="color:var(--fg2);margin-top:8px;">No trade log available.</div>';
+
+  const quality = b.totalTrades === 0 ? '⚠️ No trades generated — strategy rules may be too strict for current market conditions.' :
+    b.winRate > 0.6 && b.totalReturnPct > 10 ? '✅ Strong performer — high win rate with solid returns.' :
+    b.winRate > 0.5 && b.totalReturnPct > 0 ? '👍 Positive edge — profitable but monitor closely.' :
+    b.totalReturnPct < -10 ? '❌ Underperforming — consider rejecting or refining rules.' :
+    '🤔 Neutral — needs more data or rule tuning.';
+
+  el.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:600;font-size:1.1rem;color:var(--fg);">${b.strategyName}</div>
+    <div style="margin-bottom:12px;padding:10px;background:var(--bg3);border-radius:8px;border-left:3px solid ${retColor};">
+      <strong>Strategy Quality:</strong> <span style="color:${retColor};">${quality}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:16px;">
+      <div style="text-align:center;padding:10px;background:var(--bg3);border-radius:8px;">
+        <div style="font-size:1.4rem;font-weight:700;color:${retColor};">${b.totalReturnPct?.toFixed(2) ?? 0}%</div>
+        <div style="font-size:0.75rem;color:var(--fg2);margin-top:4px;">Total Return</div>
+      </div>
+      <div style="text-align:center;padding:10px;background:var(--bg3);border-radius:8px;">
+        <div style="font-size:1.4rem;font-weight:700;color:var(--fg);">${b.totalTrades}</div>
+        <div style="font-size:0.75rem;color:var(--fg2);margin-top:4px;">Trades</div>
+      </div>
+      <div style="text-align:center;padding:10px;background:var(--bg3);border-radius:8px;">
+        <div style="font-size:1.4rem;font-weight:700;color:${wrColor};">${((b.winRate || 0) * 100).toFixed(1)}%</div>
+        <div style="font-size:0.75rem;color:var(--fg2);margin-top:4px;">Win Rate</div>
+      </div>
+      <div style="text-align:center;padding:10px;background:var(--bg3);border-radius:8px;">
+        <div style="font-size:1.4rem;font-weight:700;color:${sharpeColor};">${b.sharpeRatio?.toFixed(2) ?? '—'}</div>
+        <div style="font-size:0.75rem;color:var(--fg2);margin-top:4px;">Sharpe</div>
+      </div>
+      <div style="text-align:center;padding:10px;background:var(--bg3);border-radius:8px;">
+        <div style="font-size:1.4rem;font-weight:700;color:${ddColor};">${b.maxDrawdownPct?.toFixed(1) ?? '—'}%</div>
+        <div style="font-size:0.75rem;color:var(--fg2);margin-top:4px;">Max Drawdown</div>
+      </div>
+      <div style="text-align:center;padding:10px;background:var(--bg3);border-radius:8px;">
+        <div style="font-size:1.4rem;font-weight:700;color:var(--fg);">${b.profitFactor?.toFixed(2) ?? '—'}</div>
+        <div style="font-size:0.75rem;color:var(--fg2);margin-top:4px;">Profit Factor</div>
+      </div>
+    </div>
+    <div><strong>Recent Trades:</strong>${tradeLogHtml}</div>
+  `;
+}
+
+// ── Perpetual Signal Trader ────────────────────────────
+async function loadPerpetualTrader() {
+  try {
+    const res = await fetch('/api/perpetual-trader');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    const a = data.account;
+    const s = data.summary;
+
+    // Stats
+    document.getElementById('pt-equity').textContent = '$' + Number(a.equity).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    document.getElementById('pt-available').textContent = '$' + Number(a.availableBalance).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    document.getElementById('pt-margin').textContent = '$' + Number(a.marginUsed).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const unrealColor = a.unrealizedPnl >= 0 ? 'var(--accent)' : 'var(--accent3)';
+    document.getElementById('pt-unrealized').innerHTML = `<span style="color:${unrealColor}">${a.unrealizedPnl >= 0 ? '+' : ''}$${Number(a.unrealizedPnl).toFixed(0)}</span>`;
+    const realColor = a.realizedPnl >= 0 ? 'var(--accent)' : 'var(--accent3)';
+    document.getElementById('pt-realized').innerHTML = `<span style="color:${realColor}">${a.realizedPnl >= 0 ? '+' : ''}$${Number(a.realizedPnl).toFixed(0)}</span>`;
+    const dailyColor = a.dailyPnlToday >= 0 ? 'var(--accent)' : 'var(--accent3)';
+    document.getElementById('pt-dailypnl').innerHTML = `<span style="color:${dailyColor}">${a.dailyPnlToday >= 0 ? '+' : ''}$${Number(a.dailyPnlToday).toFixed(0)}</span>`;
+    const retColor = a.totalReturn >= 0 ? 'var(--accent)' : 'var(--accent3)';
+    document.getElementById('pt-return').innerHTML = `<span style="color:${retColor}">${a.totalReturn >= 0 ? '+' : ''}$${Number(a.totalReturn).toFixed(0)} (${a.totalReturnPct?.toFixed(2) ?? 0}%)</span>`;
+    document.getElementById('pt-winrate').textContent = s.totalTrades > 0 ? ((s.winRate || 0) * 100).toFixed(1) + '%' : '—';
+    document.getElementById('pt-trades').textContent = s.totalTrades;
+    document.getElementById('pt-open').textContent = s.openTradeCount;
+
+    // Status banner
+    const banner = document.getElementById('pt-status-banner');
+    if (!a.tradingEnabled) {
+      banner.style.display = 'block';
+      banner.style.background = 'rgba(239,68,68,0.15)';
+      banner.style.color = 'var(--accent3)';
+      banner.style.border = '1px solid rgba(239,68,68,0.3)';
+      banner.textContent = `⏸️ Trading Paused: ${a.tradingPausedReason || 'Risk limit reached'}`;
+    } else if (s.openTradeCount >= 5) {
+      banner.style.display = 'block';
+      banner.style.background = 'rgba(245,158,11,0.15)';
+      banner.style.color = 'var(--accent2)';
+      banner.style.border = '1px solid rgba(245,158,11,0.3)';
+      banner.textContent = `⚠️ Max open positions reached (${s.openTradeCount}/5)`;
+    } else {
+      banner.style.display = 'block';
+      banner.style.background = 'rgba(16,185,129,0.15)';
+      banner.style.color = 'var(--accent)';
+      banner.style.border = '1px solid rgba(16,185,129,0.3)';
+      banner.textContent = `✅ Trading Active · Min Confidence: ${a.minConfidence.toFixed(0)}% · Max Leverage: ${a.maxLeverage}x · Risk/Trade: ${a.maxRiskPerTrade.toFixed(1)}%`;
+    }
+
+    // Open positions
+    const openBody = document.getElementById('pt-open-body');
+    const openContent = document.getElementById('pt-open-content');
+    const openLoading = document.getElementById('pt-open-loading');
+    if (data.openTrades?.length) {
+      openBody.innerHTML = data.openTrades.map(t => {
+        const sideClass = t.side === 'LONG' ? 'side-long' : 'side-short';
+        return `<tr>
+          <td style="font-weight:600;">${t.symbol}</td>
+          <td><span class="side-badge ${sideClass}">${t.side}</span></td>
+          <td style="font-size:0.8rem;">$${Number(t.entryPrice).toFixed(2)}</td>
+          <td style="font-size:0.8rem;">$${Number(t.sizeUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+          <td style="font-size:0.8rem;">${t.leverage}x</td>
+          <td style="font-size:0.8rem;">$${Number(t.marginUsed).toFixed(0)}</td>
+          <td style="font-size:0.8rem;color:var(--accent3);">$${Number(t.stopLoss).toFixed(2)}</td>
+          <td style="font-size:0.8rem;color:var(--accent);">$${Number(t.takeProfit).toFixed(2)}</td>
+          <td style="font-size:0.8rem;">${t.riskReward?.toFixed(1) ?? '—'}:1</td>
+          <td style="font-size:0.75rem;color:var(--fg2);max-width:200px;overflow:hidden;text-overflow:ellipsis;">${t.entryReason || '—'}</td>
+        </tr>`;
+      }).join('');
+      openLoading.style.display = 'none';
+      openContent.style.display = 'block';
+    } else {
+      openLoading.style.display = 'none';
+      openContent.style.display = 'block';
+      openBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--fg2);padding:20px;">No open positions. Waiting for signals...</td></tr>';
+    }
+
+    // Closed trades
+    const closedBody = document.getElementById('pt-closed-body');
+    const closedContent = document.getElementById('pt-closed-content');
+    if (data.closedTrades?.length) {
+      closedBody.innerHTML = data.closedTrades.slice(0, 20).map(t => {
+        const pnlColor = (t.pnlUsd || 0) >= 0 ? 'var(--accent)' : 'var(--accent3)';
+        return `<tr>
+          <td style="font-weight:600;">${t.symbol}</td>
+          <td><span class="side-badge ${t.side === 'LONG' ? 'side-long' : 'side-short'}">${t.side}</span></td>
+          <td style="font-size:0.8rem;">${t.leverage}x</td>
+          <td style="color:${pnlColor};font-weight:600;">${t.pnlUsd >= 0 ? '+' : ''}$${Number(t.pnlUsd).toFixed(2)}</td>
+          <td style="color:${pnlColor};font-size:0.8rem;">${t.pnlPct >= 0 ? '+' : ''}${Number(t.pnlPct).toFixed(2)}%</td>
+          <td style="font-size:0.75rem;color:var(--fg2);">${t.exitReason?.toUpperCase() || '—'}</td>
+        </tr>`;
+      }).join('');
+      closedContent.style.display = 'block';
+    } else {
+      closedContent.style.display = 'block';
+      closedBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg2);padding:16px;">No closed trades yet.</td></tr>';
+    }
+
+    // Strategy stats
+    const stratBody = document.getElementById('pt-strat-body');
+    const stratContent = document.getElementById('pt-strat-content');
+    if (data.strategyStats?.length) {
+      stratBody.innerHTML = data.strategyStats.map(st => {
+        const pnlColor = st.totalPnl >= 0 ? 'var(--accent)' : 'var(--accent3)';
+        return `<tr>
+          <td style="font-weight:600;font-size:0.85rem;">${st.name}</td>
+          <td>${st.trades}</td>
+          <td style="color:var(--accent);">${st.wins}</td>
+          <td style="color:var(--accent3);">${st.losses}</td>
+          <td>${(st.winRate * 100).toFixed(1)}%</td>
+          <td style="color:${pnlColor};font-weight:600;">${st.totalPnl >= 0 ? '+' : ''}$${Number(st.totalPnl).toFixed(2)}</td>
+        </tr>`;
+      }).join('');
+      stratContent.style.display = 'block';
+    } else {
+      stratContent.style.display = 'block';
+      stratBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg2);padding:16px;">No strategy data yet.</td></tr>';
+    }
+
+    // Pair stats
+    const pairBody = document.getElementById('pt-pair-body');
+    const pairContent = document.getElementById('pt-pair-content');
+    if (data.pairStats?.length) {
+      pairBody.innerHTML = data.pairStats.map(p => {
+        const pnlColor = p.totalPnl >= 0 ? 'var(--accent)' : 'var(--accent3)';
+        return `<tr>
+          <td style="font-weight:600;">${p.symbol}</td>
+          <td>${p.trades}</td>
+          <td style="color:var(--accent);">${p.wins}</td>
+          <td>${(p.winRate * 100).toFixed(1)}%</td>
+          <td style="color:${pnlColor};font-weight:600;">${p.totalPnl >= 0 ? '+' : ''}$${Number(p.totalPnl).toFixed(2)}</td>
+        </tr>`;
+      }).join('');
+      pairContent.style.display = 'block';
+    } else {
+      pairContent.style.display = 'block';
+      pairBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--fg2);padding:16px;">No pair data yet.</td></tr>';
+    }
+
+    // Signal memory
+    const memBody = document.getElementById('pt-memory-body');
+    const memContent = document.getElementById('pt-memory-content');
+    if (data.signalMemory?.length) {
+      memBody.innerHTML = data.signalMemory.map(m => {
+        const outcomeBadge = m.outcome === 'win' ? '<span style="color:var(--accent);">✅ Win</span>' : m.outcome === 'loss' ? '<span style="color:var(--accent3);">❌ Loss</span>' : '<span style="color:var(--fg2);">⏳ Pending</span>';
+        const pnlColor = (m.outcomePnl || 0) >= 0 ? 'var(--accent)' : 'var(--accent3)';
+        return `<tr>
+          <td style="font-weight:600;">${m.symbol}</td>
+          <td><span class="side-badge ${m.side === 'LONG' ? 'side-long' : 'side-short'}">${m.side}</span></td>
+          <td style="font-size:0.8rem;">${m.strategy}</td>
+          <td style="font-size:0.8rem;">${Math.round((m.confidence || 0) * 100)}%</td>
+          <td style="font-size:0.8rem;">${outcomeBadge}</td>
+          <td style="color:${pnlColor};font-weight:600;font-size:0.85rem;">${m.outcomePnl ? (m.outcomePnl >= 0 ? '+' : '') + '$' + Number(m.outcomePnl).toFixed(2) : '—'}</td>
+          <td style="font-size:0.75rem;color:var(--fg2);max-width:250px;overflow:hidden;text-overflow:ellipsis;">${m.description || '—'}</td>
+        </tr>`;
+      }).join('');
+      memContent.style.display = 'block';
+    } else {
+      memContent.style.display = 'block';
+      memBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg2);padding:16px;">No signal memory yet.</td></tr>';
+    }
+
+    // Logs
+    const logsBody = document.getElementById('pt-logs-body');
+    const logsContent = document.getElementById('pt-logs-content');
+    if (data.logs?.length) {
+      logsBody.innerHTML = data.logs.map(l => {
+        const levelColor = l.level === 'error' ? 'var(--accent3)' : l.level === 'warn' ? 'var(--accent2)' : 'var(--fg2)';
+        const catBadge = l.category === 'entry' ? '🟢' : l.category === 'exit' ? '🔴' : l.category === 'risk' ? '⚠️' : l.category === 'signal_skip' ? '⏭️' : '📋';
+        return `<tr>
+          <td style="font-size:0.75rem;color:var(--fg2);">${new Date(l.createdAt).toLocaleTimeString()}</td>
+          <td style="color:${levelColor};font-size:0.75rem;font-weight:600;">${l.level.toUpperCase()}</td>
+          <td style="font-size:0.75rem;">${catBadge} ${l.category}</td>
+          <td style="font-size:0.8rem;">${l.message}</td>
+        </tr>`;
+      }).join('');
+      logsContent.style.display = 'block';
+    } else {
+      logsContent.style.display = 'block';
+      logsBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:16px;">No logs yet.</td></tr>';
+    }
+
+    // Risk settings
+    document.getElementById('pt-risk-settings').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+        <div><strong>Max Leverage:</strong> ${a.maxLeverage}x</div>
+        <div><strong>Max Risk/Trade:</strong> ${a.maxRiskPerTrade.toFixed(1)}%</div>
+        <div><strong>Min Confidence:</strong> ${a.minConfidence.toFixed(0)}%</div>
+        <div><strong>Max Open Trades:</strong> 5</div>
+        <div><strong>Max Exposure/Coin:</strong> 25%</div>
+        <div><strong>Daily Loss Limit:</strong> 5%</div>
+        <div><strong>Max Drawdown Stop:</strong> 15%</div>
+        <div><strong>Starting Balance:</strong> $${Number(a.startBalance).toLocaleString()}</div>
+      </div>
+    `;
+  } catch (e) {
+    console.error('[PerpetualTrader] Load failed:', e);
+  }
+}
+loadPerpetualTrader();
+setInterval(loadPerpetualTrader, 30000);
 
 // ── Autonomous Report Tab ───────────────────────────────
 async function loadAutonomousReport() {

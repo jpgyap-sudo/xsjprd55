@@ -19,11 +19,25 @@ export default async function handler(req, res) {
   try {
     const assets = asset ? [asset.toUpperCase()] : [];
     let newsItems = [];
+    let source = 'db';
     try {
       newsItems = await queryNews({ assets, hours, limit, minFreshness: 0.05 });
     } catch (queryErr) {
-      // Table may not exist or be empty — return graceful empty response
       console.warn('[news-feed] query warning:', queryErr.message);
+    }
+
+    // Live RSS fallback if DB is empty/stale
+    if (newsItems.length === 0) {
+      try {
+        const { fetchAllNews } = await import('../lib/news-aggregator.js');
+        const { scoreNewsItems } = await import('../lib/news-sentiment.js');
+        const live = await fetchAllNews(Math.min(hours * 60, 120));
+        const scored = scoreNewsItems(live);
+        newsItems = scored.items.slice(0, limit);
+        source = 'live_rss';
+      } catch (rssErr) {
+        console.warn('[news-feed] RSS fallback failed:', rssErr.message);
+      }
     }
 
     // Format for dashboard
@@ -78,7 +92,8 @@ export default async function handler(req, res) {
       overallScore,
       itemCount: newsItems.length,
       items,
-      byAsset: Object.values(byAsset).sort((a, b) => b.count - a.count)
+      byAsset: Object.values(byAsset).sort((a, b) => b.count - a.count),
+      source
     });
 
   } catch (err) {

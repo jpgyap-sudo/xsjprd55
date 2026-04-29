@@ -254,8 +254,12 @@ export default async function handler(req, res) {
                 volSpike: ohlcv[ohlcv.length - 1][5] / (ohlcv.slice(-20, -1).reduce((s, c) => s + c[5], 0) / 19)
               };
               await extractPattern(saved, marketCtx, null, null, null);
+
+              // Store signal memory for Research Agent + Perpetual Trader
+              const { storeSignalMemory } = await import('../lib/signal-memory.js');
+              await storeSignalMemory(saved, marketCtx);
             } catch (patternErr) {
-              logger.warn('[SIGNALS] Pattern extraction failed:', patternErr.message);
+              logger.warn('[SIGNALS] Pattern/memory extraction failed:', patternErr.message);
             }
 
             // Send Telegram
