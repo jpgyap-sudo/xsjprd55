@@ -505,6 +505,7 @@
   <button class="tab-btn" data-tab="bugs">🐞 Bugs</button>
   <button class="tab-btn" data-tab="api-debugger">🔧 API Debugger</button>
   <button class="tab-btn" data-tab="app-dev">💡 App Dev Proposals</button>
+  <button class="tab-btn" data-tab="autonomous">🤖 Autonomous</button>
 </nav>
 
 <div class="container">
@@ -1268,6 +1269,40 @@
           <div id="ad-tags" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- AUTONOMOUS REPORT TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-autonomous">
+    <div class="stat-grid" style="margin-bottom:20px;" id="auto-stats">
+      <div class="stat-item"><div class="stat-label">Session Date</div><div class="stat-value" id="auto-stat-date">—</div></div>
+      <div class="stat-item"><div class="stat-label">Fixes Applied</div><div class="stat-value" id="auto-stat-fixes" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Files Modified</div><div class="stat-value" id="auto-stat-files">—</div></div>
+      <div class="stat-item"><div class="stat-label">Deploy Status</div><div class="stat-value" id="auto-stat-deploy" style="color:var(--accent2)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Duration</div><div class="stat-value" id="auto-stat-duration">—</div></div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🤖 Autonomous Session Log</span>
+        <span style="font-size:0.75rem;color:var(--fg2);" id="auto-time">Loading…</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div id="auto-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading session data…</div>
+        <div id="auto-content" style="display:none;">
+          <table class="signal-table">
+            <thead>
+              <tr><th>#</th><th>Action</th><th>File</th><th>Status</th><th>Summary</th></tr>
+            </thead>
+            <tbody id="auto-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">📋 Action Detail</div>
+      <div class="card-body" id="auto-detail" style="color:var(--fg2);font-size:0.85rem;">Click an action row to view the full description and fix applied.</div>
     </div>
   </div>
 
@@ -2564,6 +2599,138 @@ async function loadAppDevProposals() {
 // Attach AD filter listeners
 document.getElementById('ad-filter-status').addEventListener('change', applyAdFilters);
 document.getElementById('ad-filter-category').addEventListener('change', applyAdFilters);
+
+// ── Enhanced Bugs with Clickable Detail ─────────────────
+let bugsAllRows = [];
+function showBugDetail(bugId) {
+  const b = bugsAllRows.find(x => x.id === bugId);
+  if (!b) return;
+  const el = document.getElementById('bugs-detail');
+  const sevColor = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
+  el.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:600;font-size:1rem;color:var(--fg);">${b.title}</div>
+    <div style="margin-bottom:12px;"><span style="color:${sevColor[b.severity] || sevColor.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${b.severity}</span> <span style="font-size:0.75rem;color:var(--fg2);margin-left:8px;">${b.source || '—'}</span></div>
+    <div style="margin-bottom:12px;"><strong>Description:</strong><div style="margin-top:4px;color:var(--fg2);">${b.description || 'No description available.'}</div></div>
+    <div style="margin-bottom:12px;"><strong>Recommendation:</strong><div style="margin-top:4px;color:var(--fg2);">${b.recommendation || 'No recommendation available.'}</div></div>
+    <div><strong>Fix Notes:</strong><div style="margin-top:4px;color:var(--fg2);">${b.fix_notes || 'No fix notes available.'}</div></div>
+  `;
+}
+async function loadBugsEnhanced() {
+  const loading = document.getElementById('bugs-loading');
+  const content = document.getElementById('bugs-content');
+  const timeEl = document.getElementById('bugs-time');
+  try {
+    const res = await fetch('/api/bugs?limit=50');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    bugsAllRows = data.bugs || [];
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+    const tbody = document.getElementById('bugs-tbody');
+    if (!bugsAllRows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--fg2);">No bugs found. Great job!</td></tr>';
+      return;
+    }
+    const sevColor = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
+    tbody.innerHTML = bugsAllRows.map(b => `
+      <tr style="cursor:pointer;" onclick="showBugDetail('${b.id}')">
+        <td><span style="color:${sevColor[b.severity] || sevColor.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${b.severity}</span></td>
+        <td>${b.title}</td>
+        <td style="font-size:0.8rem;color:var(--fg2);">${b.source || '—'}</td>
+        <td style="font-size:0.8rem;text-transform:capitalize;">${b.status}</td>
+        <td style="font-size:0.8rem;color:var(--fg2);">${new Date(b.created_at).toLocaleString()}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    loading.style.display = 'none';
+    timeEl.textContent = 'Failed to load';
+  }
+}
+// Override the original loadBugs
+document.addEventListener('DOMContentLoaded', () => {
+  const orig = window.loadBugs;
+  if (orig) { clearInterval(orig._timer); }
+  loadBugsEnhanced();
+  setInterval(loadBugsEnhanced, 120000);
+});
+
+// ── Enhanced Research Agent with Clickable Proposals ────
+let raProposals = [];
+function showProposalDetail(id) {
+  const p = raProposals.find(x => x.id === id);
+  if (!p) return;
+  const el = document.getElementById('ra-proposals-detail');
+  if (!el) return;
+  const status = p.promoted ? '🏆 Promoted' : p.rejected ? '❌ Rejected' : p.tested ? '✅ Tested' : '⏳ Pending';
+  const statusColor = p.promoted ? 'var(--accent)' : p.rejected ? 'var(--accent3)' : 'var(--accent2)';
+  const rules = (p.rules || []).map(r => `<li style="margin:2px 0;"><code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.75rem;">${r.feature} ${r.operator} ${r.value}${r.weight ? ' (w:'+r.weight+')' : ''}</code></li>`).join('');
+  el.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:600;font-size:1rem;color:var(--fg);">${p.name}</div>
+    <div style="margin-bottom:12px;color:${statusColor};font-weight:600;font-size:0.85rem;">${status} · ${(p.confidence*100).toFixed(0)}% confidence</div>
+    <div style="margin-bottom:12px;"><strong>Description:</strong><div style="margin-top:4px;color:var(--fg2);">${p.description || 'No description.'}</div></div>
+    <div><strong>Rules:</strong><ul style="margin-top:4px;color:var(--fg2);padding-left:18px;">${rules || '<li>No rules defined.</li>'}</ul></div>
+  `;
+}
+
+// ── Autonomous Report Tab ───────────────────────────────
+async function loadAutonomousReport() {
+  const loading = document.getElementById('auto-loading');
+  const content = document.getElementById('auto-content');
+  const timeEl = document.getElementById('auto-time');
+  try {
+    const res = await fetch('/api/debug?detail=autonomous');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+    const logs = (data.autonomousLogs || []);
+    document.getElementById('auto-stat-date').textContent = data.sessionDate || new Date().toLocaleDateString();
+    document.getElementById('auto-stat-fixes').textContent = logs.filter(l => l.status === 'fixed' || l.status === 'applied').length;
+    document.getElementById('auto-stat-files').textContent = new Set(logs.map(l => l.file).filter(Boolean)).size;
+    document.getElementById('auto-stat-deploy').textContent = data.deployStatus || 'Pending';
+    document.getElementById('auto-stat-duration').textContent = data.duration || '—';
+
+    const tbody = document.getElementById('auto-tbody');
+    if (!logs.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--fg2);">No autonomous actions recorded yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = logs.map((l, i) => `
+      <tr style="cursor:pointer;" onclick="showAutoDetail(${i})">
+        <td style="font-size:0.8rem;color:var(--fg2);">${i+1}</td>
+        <td style="font-weight:600;font-size:0.85rem;">${l.action}</td>
+        <td style="font-size:0.8rem;color:var(--fg2);">${l.file || '—'}</td>
+        <td style="font-size:0.8rem;"><span style="color:${l.status==='applied'||l.status==='fixed'?'var(--accent)':l.status==='failed'?'var(--accent3)':'var(--accent2)'};font-weight:600;">${l.status}</span></td>
+        <td style="font-size:0.8rem;color:var(--fg2);">${l.summary}</td>
+      </tr>
+    `).join('');
+    window._autoLogs = logs;
+  } catch (e) {
+    loading.style.display = 'none';
+    timeEl.textContent = 'Failed to load';
+  }
+}
+function showAutoDetail(idx) {
+  const l = (window._autoLogs || [])[idx];
+  if (!l) return;
+  const el = document.getElementById('auto-detail');
+  el.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:600;font-size:1rem;color:var(--fg);">${l.action}</div>
+    <div style="margin-bottom:12px;"><span style="color:${l.status==='applied'||l.status==='fixed'?'var(--accent)':l.status==='failed'?'var(--accent3)':'var(--accent2)'};font-weight:600;">${l.status}</span> <span style="font-size:0.75rem;color:var(--fg2);margin-left:8px;">${l.file || ''}</span></div>
+    <div style="margin-bottom:12px;"><strong>Summary:</strong><div style="margin-top:4px;color:var(--fg2);">${l.summary}</div></div>
+    ${l.description ? `<div><strong>Full Description:</strong><div style="margin-top:4px;color:var(--fg2);white-space:pre-wrap;">${l.description}</div></div>` : ''}
+  `;
+}
+// Init autonomous tab when tab is clicked
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'autonomous') loadAutonomousReport();
+  });
+});
 </script>
 
 <!-- PWA Install Banner -->

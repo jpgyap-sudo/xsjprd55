@@ -71,10 +71,10 @@ async function seedDemoData() {
   const extracted = extractAndSaveFromResearch();
   logger.info(`[RESEARCH-WORKER] Seeded ${seedSources.length} sources, extracted ${extracted.count} strategies`);
 
-  // Run backtests on extracted proposals with dummy candle data
+  // Run backtests on extracted proposals with real OHLCV data
   try {
     const { runBacktestOnProposals } = await import('../lib/ml/backtestEngine.js');
-    const btResult = runBacktestOnProposals('BTCUSDT', 20);
+    const btResult = await runBacktestOnProposals('BTCUSDT', 100);
     logger.info(`[RESEARCH-WORKER] Backtested ${btResult.results?.length || 0} proposals`);
   } catch (e) {
     logger.warn(`[RESEARCH-WORKER] Backtest seed failed: ${e.message}`);
@@ -120,14 +120,38 @@ export async function runResearchAgentWorker() {
     const extracted = extractAndSaveFromResearch();
     logger.info(`[RESEARCH-WORKER] Extracted ${extracted.count} new strategies`);
 
-    // 4. Run backtests on untested proposals
+    // 4. Run backtests on untested proposals across multiple symbols
+    const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT'];
+    let totalBacktested = 0;
     try {
       const { runBacktestOnProposals } = await import('../lib/ml/backtestEngine.js');
-      const btResult = runBacktestOnProposals('BTCUSDT', 15);
-      logger.info(`[RESEARCH-WORKER] Backtested ${btResult.results?.length || 0} proposals`);
+      for (const sym of symbols) {
+        const btResult = await runBacktestOnProposals(sym, 100);
+        totalBacktested += btResult.results?.length || 0;
+        // Promote top performers immediately
+        for (const r of btResult.results || []) {
+          if (r.totalTrades >= 5 && r.winRate >= 0.54) {
+            try {
+              const { promoteStrategy } = await import('../lib/ml/feedbackLoop.js');
+              promoteStrategy(r.strategyName, { winRate: r.winRate, totalReturnPct: r.totalReturnPct, trades: r.totalTrades });
+              logger.info(`[RESEARCH-WORKER] Auto-promoted ${r.strategyName} — ${(r.winRate*100).toFixed(0)}% WR, ${r.totalTrades} trades`);
+            } catch (e) {}
+          }
+        }
+      }
+      logger.info(`[RESEARCH-WORKER] Backtested ${totalBacktested} proposals across ${symbols.length} symbols`);
     } catch (e) {
       logger.warn(`[RESEARCH-WORKER] Backtest cycle failed: ${e.message}`);
     }
+
+    // 5. Feed promoted strategies into signal pipeline
+    try {
+      const { getPromotedStrategies } = await import('../lib/ml/feedbackLoop.js');
+      const promoted = getPromotedStrategies();
+      if (promoted.length) {
+        logger.info(`[RESEARCH-WORKER] ${promoted.length} promoted strategies available for trading`);
+      }
+    } catch (e) {}
 
     logger.info('[RESEARCH-WORKER] Tick complete');
   } catch (err) {

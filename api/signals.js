@@ -7,9 +7,10 @@ import { supabase } from '../lib/supabase.js';
 import { config } from '../lib/config.js';
 import { logger } from '../lib/logger.js';
 import { extractPattern } from '../lib/pattern-learner.js';
+import { fetchOHLCV } from '../lib/exchange.js';
 import {
   validateSignal, buildSignal, formatSignalMessage,
-  createExchange, checkRiskGates, logAudit
+  checkRiskGates, logAudit
 } from '../lib/trading.js';
 
 const BOT_TOKEN = config.TELEGRAM_BOT_TOKEN;
@@ -142,14 +143,12 @@ export default async function handler(req, res) {
   const results = { scanned: 0, signals: [], errors: [] };
 
   try {
-    const exchange = createExchange('binance', { options: { defaultType: 'future' } });
-
     for (const pair of pairs) {
       for (const tf of tfs) {
         results.scanned++;
         try {
-          // Load 100 candles
-          const ohlcv = await exchange.fetchOHLCV(pair, tf, undefined, 100);
+          // Load 100 candles (with fallback if no API keys)
+          const ohlcv = await fetchOHLCV('binance', pair, tf, 100);
           if (!ohlcv || ohlcv.length < 55) continue;
 
           // Cache market data
