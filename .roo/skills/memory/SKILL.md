@@ -34,6 +34,13 @@ Then:
 2. Ask: "Continue from there?"
 3. If yes, switch to the relevant project/workspace if needed and continue
 
+### Autonomous Report Trigger
+If the user triggers autonomous mode (`autonomous`, `/autonomous`, `go autonomous`, `run autonomous report`):
+1. Run `node scripts/autonomous-report.js` in the current workspace
+2. Read the generated `AUTONOMOUS-REPORT-YYYY-MM-DD-HHMM.md`
+3. Summarize findings to the user
+4. Append a summary entry to `C:/Users/User/.roo/MEMORY.md` under `## Autonomous Session`
+
 ## At Session End (Mandatory)
 Before ending any session, update `C:/Users/User/.roo/MEMORY.md` with:
 
