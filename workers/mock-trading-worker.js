@@ -4,6 +4,7 @@
 // Runs every 3 minutes on VPS.
 // ============================================================
 
+import fetch from 'node-fetch';
 import { supabase } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';

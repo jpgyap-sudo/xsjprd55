@@ -4,6 +4,7 @@
 // to ensure the signals table is continuously populated.
 // ============================================================
 
+import fetch from 'node-fetch';
 import { logger } from '../lib/logger.js';
 
 const INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
