@@ -1307,8 +1307,12 @@ async function loadMarketData() {
       const chg = t.changePct;
       const color = chg >= 0 ? 'var(--accent)' : 'var(--accent3)';
       const arrow = chg >= 0 ? '▲' : '▼';
+      const tvSymbol = 'BINANCE:' + t.symbol;
       return `
-        <div class="stat-item" style="min-width:110px;">
+        <div class="stat-item" style="min-width:110px;cursor:pointer;transition:transform .12s,border-color .12s;border:1px solid transparent;"
+             onmouseenter="this.style.transform='translateY(-2px)';this.style.borderColor='var(--accent)'"
+             onmouseleave="this.style.transform='';this.style.borderColor='transparent'"
+             onclick="window.open('https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol)}','_blank')">
           <div class="stat-label">${t.symbol.replace('USDT','')}</div>
           <div class="stat-value" style="font-size:0.95rem;">$${Number(t.price).toLocaleString(undefined,{maximumFractionDigits:t.price<1?6:2})}</div>
           <div class="stat-change" style="color:${color};font-size:0.78rem;">${arrow} ${Math.abs(chg).toFixed(2)}%</div>
