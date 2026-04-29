@@ -233,6 +233,26 @@ module.exports = {
       restart_delay: 3000,
       max_restarts: 10,
       min_uptime: '10s'
+    },
+    {
+      name: 'secretary',
+      script: './scripts/secretary.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps'
+      },
+      autorestart: true,
+      max_memory_restart: '128M',
+      log_file: './logs/secretary-combined.log',
+      out_file: './logs/secretary-out.log',
+      error_file: './logs/secretary-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
     }
   ]
 };
