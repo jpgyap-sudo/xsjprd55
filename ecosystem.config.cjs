@@ -319,6 +319,26 @@ module.exports = {
       min_uptime: '10s'
     },
     {
+      name: 'bug-fix-pipeline',
+      script: './workers/bug-fix-pipeline-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/bug-fix-pipeline-combined.log',
+      out_file: './logs/bug-fix-pipeline-out.log',
+      error_file: './logs/bug-fix-pipeline-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
+    },
+    {
       name: 'secretary',
       script: './scripts/secretary.js',
       instances: 1,

@@ -1165,10 +1165,38 @@
   <!-- BUGS TAB -->
   <!-- ════════════════════════════════════════════════════ -->
   <div class="tab-panel" id="tab-bugs">
+    <div class="stat-grid" style="margin-bottom:20px;" id="bug-fix-stats">
+      <div class="stat-item">
+        <div class="stat-label" style="font-size:0.65rem;">Critical Pending</div>
+        <div class="stat-value" style="font-size:1.1rem;" id="bf-critical">—</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label" style="font-size:0.65rem;">High Pending</div>
+        <div class="stat-value" style="font-size:1.1rem;" id="bf-high">—</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label" style="font-size:0.65rem;">Queued for Fix</div>
+        <div class="stat-value" style="font-size:1.1rem;" id="bf-queued">—</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label" style="font-size:0.65rem;">Active Fix Tasks</div>
+        <div class="stat-value" style="font-size:1.1rem;" id="bf-tasks">—</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">
+      <button onclick="triggerBugFixCycle()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:600;cursor:pointer;">🔄 Run Auto-Fix Scan</button>
+      <span style="font-size:0.75rem;color:var(--fg2);" id="bugs-time">Loading…</span>
+    </div>
     <div class="card" style="margin-bottom:20px;">
       <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
         <span>🐞 Bugs to Fix</span>
-        <span style="font-size:0.75rem;color:var(--fg2);" id="bugs-time">Loading…</span>
+        <select id="bugs-filter-severity" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:0.75rem;cursor:pointer;">
+          <option value="">All Severities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
       </div>
       <div class="card-body" style="padding:0;">
         <div id="bugs-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading bugs…</div>
@@ -1181,6 +1209,7 @@
                 <th>Source</th>
                 <th>Status</th>
                 <th>Created</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody id="bugs-tbody"></tbody>
@@ -1364,6 +1393,7 @@
       </select>
       <button onclick="loadAppDevProposals()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:600;cursor:pointer;">Refresh</button>
       <button onclick="triggerConsolidation()" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:0.85rem;cursor:pointer;">Run Consolidation</button>
+      <button onclick="openNewProposalModal()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:600;cursor:pointer;">➕ New Proposal</button>
       <span style="font-size:0.75rem;color:var(--fg2);margin-left:auto;" id="ad-time">Loading…</span>
     </div>
 
@@ -1407,6 +1437,33 @@
         </div>
       </div>
     </div>
+
+    <!-- Dev Pipeline Panel -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🚀 Product Dev Pipeline</span>
+        <span style="font-size:0.75rem;color:var(--fg2);" id="dev-pipeline-time">Loading…</span>
+      </div>
+      <div class="card-body" style="padding:0;max-height:400px;overflow:auto;">
+        <div id="dev-pipeline-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading pipeline…</div>
+        <div id="dev-pipeline-content" style="display:none;">
+          <table class="signal-table" style="min-width:700px;">
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Priority</th>
+                <th>Status</th>
+                <th>Assigned To</th>
+                <th>Files</th>
+                <th>Created</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="dev-pipeline-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ════════════════════════════════════════════════════ -->
@@ -1445,6 +1502,125 @@
 
 </div>
 
+<!-- ════════════════════════════════════════════════════ -->
+<!-- Proposal Detail Modal -->
+<!-- ════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="ad-modal" onclick="closeAdModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="modal-title" id="ad-modal-title">Proposal Title</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+          <span style="font-size:0.8rem;color:var(--fg2);" id="ad-modal-id">#0</span>
+          <span class="modal-status-badge" id="ad-modal-status">pending</span>
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeAdModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <div class="modal-section-title">Description</div>
+        <div class="modal-description" id="ad-modal-desc">No description available.</div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-meta-grid">
+          <div class="modal-meta-item"><div class="modal-meta-label">Category</div><div class="modal-meta-value" id="ad-modal-category">—</div></div>
+          <div class="modal-meta-item"><div class="modal-meta-label">Capability Area</div><div class="modal-meta-value" id="ad-modal-capability">—</div></div>
+          <div class="modal-meta-item"><div class="modal-meta-label">Impact Score</div><div class="modal-meta-value"><span id="ad-modal-impact">0</span>/10<div class="impact-bar-wrap"><div class="impact-bar"><div class="impact-bar-inner" id="ad-modal-impact-bar" style="width:0%;background:var(--accent2);"></div></div></div></div></div>
+          <div class="modal-meta-item"><div class="modal-meta-label">Effort</div><div class="modal-meta-value" id="ad-modal-effort">—</div></div>
+          <div class="modal-meta-item"><div class="modal-meta-label">Proposed By</div><div class="modal-meta-value" id="ad-modal-proposed">System</div></div>
+          <div class="modal-meta-item"><div class="modal-meta-label">Tags</div><div class="modal-tags" id="ad-modal-tags"></div></div>
+        </div>
+      </div>
+      <div class="modal-section" id="ad-modal-review-section" style="display:none;">
+        <div class="modal-section-title">Review Notes</div>
+        <div style="background:var(--bg3);padding:14px;border-radius:8px;font-size:0.85rem;line-height:1.5;" id="ad-modal-review"></div>
+      </div>
+      <div class="modal-section" id="ad-modal-meta-section" style="display:none;">
+        <div class="modal-section-title">Metadata</div>
+        <pre style="background:var(--bg3);padding:14px;border-radius:8px;font-size:0.8rem;overflow-x:auto;" id="ad-modal-meta"></pre>
+      </div>
+      <div class="modal-section">
+        <div class="modal-section-title">Timeline</div>
+        <div class="modal-timeline" id="ad-modal-timeline"></div>
+      </div>
+      <div class="modal-section" style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button onclick="proceedWithDevelopmentFromModal()" id="ad-modal-proceed-btn" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:0.85rem;font-weight:600;cursor:pointer;">🚀 Proceed Development</button>
+        <button onclick="closeAdModal()" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:10px 18px;font-size:0.85rem;cursor:pointer;">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════ -->
+<!-- New Proposal Modal -->
+<!-- ════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="new-proposal-modal" onclick="closeNewProposalModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="modal-title">➕ New App Development Proposal</div>
+        <div style="font-size:0.8rem;color:var(--fg2);margin-top:4px;">Submit a feature or improvement idea for the coding agent</div>
+      </div>
+      <button class="modal-close" onclick="closeNewProposalModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label style="display:block;font-size:0.75rem;color:var(--fg2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Title *</label>
+          <input type="text" id="np-title" placeholder="e.g. Add RSI divergence scanner to signals" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--fg);font-size:0.9rem;outline:none;font-family:inherit;">
+        </div>
+        <div>
+          <label style="display:block;font-size:0.75rem;color:var(--fg2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Description *</label>
+          <textarea id="np-desc" rows="4" placeholder="Describe what the feature should do and why it improves the app..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--fg);font-size:0.9rem;outline:none;resize:vertical;font-family:inherit;"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="display:block;font-size:0.75rem;color:var(--fg2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Category</label>
+            <select id="np-category" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--fg);font-size:0.9rem;outline:none;font-family:inherit;cursor:pointer;">
+              <option value="feature">Feature</option>
+              <option value="ui">UI / UX</option>
+              <option value="strategy">Strategy</option>
+              <option value="infrastructure">Infrastructure</option>
+              <option value="data">Data / Feeds</option>
+              <option value="risk">Risk / Safety</option>
+              <option value="automation">Automation</option>
+              <option value="ml">ML / AI</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.75rem;color:var(--fg2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Impact Score (0–1)</label>
+            <input type="number" id="np-impact" min="0" max="1" step="0.1" value="0.5" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--fg);font-size:0.9rem;outline:none;font-family:inherit;">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="display:block;font-size:0.75rem;color:var(--fg2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Effort Estimate</label>
+            <select id="np-effort" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--fg);font-size:0.9rem;outline:none;font-family:inherit;cursor:pointer;">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.75rem;color:var(--fg2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Capability Area</label>
+            <input type="text" id="np-capability" placeholder="e.g. signal-generation" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--fg);font-size:0.9rem;outline:none;font-family:inherit;">
+          </div>
+        </div>
+        <div>
+          <label style="display:block;font-size:0.75rem;color:var(--fg2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Tags (comma-separated)</label>
+          <input type="text" id="np-tags" placeholder="frontend, api, urgent" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--fg);font-size:0.9rem;outline:none;font-family:inherit;">
+        </div>
+        <div id="np-error" style="color:var(--accent3);font-size:0.85rem;display:none;"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+          <button onclick="closeNewProposalModal()" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:10px 18px;font-size:0.85rem;cursor:pointer;">Cancel</button>
+          <button onclick="submitNewProposal()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:0.85rem;font-weight:600;cursor:pointer;">Submit Proposal</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <footer>
   xsjprd55 Trading Signal Bot — Paper Mode — <a href="https://github.com/jpgyap-sudo/xsjprd55" style="color:var(--fg2);">GitHub</a>
 </footer>
@@ -1461,6 +1637,8 @@ tabBtns.forEach(btn => {
     tabPanels.forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('tab-' + tab).classList.add('active');
+    // Load tab-specific data
+    if (tab === 'app-dev') { loadAppDevProposals(); loadDevPipeline(); }
     // Scroll to top of content
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
@@ -2727,25 +2905,29 @@ function renderAdTable(rows) {
   };
   tbody.innerHTML = rows.map(p => {
     const st = statusColors[p.status] || statusColors.pending;
+    const proceedBtn = p.status === 'approved'
+      ? `<button onclick="event.stopPropagation(); proceedDevelopmentInline('${p.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:0.7rem;font-weight:600;cursor:pointer;margin-right:4px;">🚀 Proceed</button>`
+      : '';
     return `<tr style="cursor:pointer" onclick="openAdModal('${p.id}')">
-      <td style="font-weight:600;font-size:0.85rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.title}">${p.title}</td>
-      <td style="font-size:0.8rem;color:var(--fg2);">${p.category}</td>
-      <td style="font-size:0.8rem;font-weight:700;">${p.impactScore}/10</td>
-      <td style="font-size:0.8rem;">${p.effortEstimate || '—'}</td>
-      <td style="font-size:0.75rem;color:${st.color};font-weight:600;">${st.label}</td>
-      <td style="font-size:0.75rem;color:var(--fg2);">${p.capabilityArea}</td>
-      <td style="font-size:0.75rem;color:var(--fg2);">${p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—'}</td>
-      <td style="font-size:0.75rem;">
-        <select onchange="updateProposalStatus('${p.id}', this.value); event.stopPropagation();" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:0.7rem;cursor:pointer;" onclick="event.stopPropagation();">
-          <option value="" disabled selected>Update…</option>
-          <option value="pending">⏳ Pending</option>
-          <option value="approved">✅ Approved</option>
-          <option value="rejected">❌ Rejected</option>
-          <option value="in_progress">🚧 In Progress</option>
-          <option value="implemented">🚀 Implemented</option>
-        </select>
-      </td>
-    </tr>`;
+    <td style="font-weight:600;font-size:0.85rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.title}">${p.title}</td>
+    <td style="font-size:0.8rem;color:var(--fg2);">${p.category}</td>
+    <td style="font-size:0.8rem;font-weight:700;">${p.impactScore}/10</td>
+    <td style="font-size:0.8rem;">${p.effortEstimate || '—'}</td>
+    <td style="font-size:0.75rem;color:${st.color};font-weight:600;">${st.label}</td>
+    <td style="font-size:0.75rem;color:var(--fg2);">${p.capabilityArea}</td>
+    <td style="font-size:0.75rem;color:var(--fg2);">${p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—'}</td>
+    <td style="font-size:0.75rem;">
+      ${proceedBtn}
+      <select onchange="updateProposalStatus('${p.id}', this.value); event.stopPropagation();" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:0.7rem;cursor:pointer;" onclick="event.stopPropagation();">
+        <option value="" disabled selected>Update…</option>
+        <option value="pending">⏳ Pending</option>
+        <option value="approved">✅ Approved</option>
+        <option value="rejected">❌ Rejected</option>
+        <option value="in_progress">🚧 In Progress</option>
+        <option value="implemented">🚀 Implemented</option>
+      </select>
+    </td>
+  </tr>`;
   }).join('');
 }
 
@@ -2824,6 +3006,189 @@ async function loadAppDevProposals() {
 // Attach AD filter listeners
 document.getElementById('ad-filter-status').addEventListener('change', applyAdFilters);
 document.getElementById('ad-filter-category').addEventListener('change', applyAdFilters);
+
+// ── Proceed Development ─────────────────────────────────
+let _currentModalProposalId = null;
+function proceedWithDevelopmentFromModal() {
+  if (!_currentModalProposalId) return;
+  const p = adAllProposals.find(x => String(x.id) === String(_currentModalProposalId));
+  if (!p) return;
+  const btn = document.getElementById('ad-modal-proceed-btn');
+  const orig = btn.textContent;
+  btn.textContent = 'Creating task…';
+  btn.disabled = true;
+  fetch('/api/app-development-proposals?action=proceed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      proposalId: p.id,
+      title: p.title,
+      description: p.description,
+      category: p.category,
+      capabilityArea: p.capabilityArea,
+      impactScore: p.impactScore,
+      effortEstimate: p.effortEstimate,
+      tags: p.tags || []
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.ok) {
+      btn.textContent = '✅ Task Created!';
+      setTimeout(() => { closeAdModal(); loadAppDevProposals(); loadDevPipeline(); }, 800);
+    } else {
+      btn.textContent = '❌ Error';
+      alert(data.error || 'Failed to create task');
+    }
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 3000);
+  })
+  .catch(e => {
+    btn.textContent = orig; btn.disabled = false;
+    alert('Network error: ' + e.message);
+  });
+}
+
+async function proceedDevelopmentInline(id) {
+  const p = adAllProposals.find(x => String(x.id) === String(id));
+  if (!p) return;
+  if (!confirm('Start development for: "' + p.title + '"?\n\nThis will create a task for the coding agent to implement automatically.')) return;
+  try {
+    const res = await fetch('/api/app-development-proposals?action=proceed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        proposalId: p.id,
+        title: p.title,
+        description: p.description,
+        category: p.category,
+        capabilityArea: p.capabilityArea,
+        impactScore: p.impactScore,
+        effortEstimate: p.effortEstimate,
+        tags: p.tags || []
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      alert('✅ Development task #' + data.task.id + ' created. Coding agent will pick it up.');
+      loadAppDevProposals();
+      loadDevPipeline();
+    } else {
+      alert('❌ Error: ' + (data.error || 'Failed to create task'));
+    }
+  } catch (e) {
+    alert('Network error: ' + e.message);
+  }
+}
+
+// Override openAdModal to remember current proposal
+const _origOpenAdModal = openAdModal;
+openAdModal = function(id) {
+  _currentModalProposalId = id;
+  _origOpenAdModal(id);
+};
+
+// ── New Proposal Modal ──────────────────────────────────
+function openNewProposalModal() {
+  document.getElementById('new-proposal-modal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeNewProposalModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('new-proposal-modal').classList.remove('active');
+  document.body.style.overflow = '';
+  document.getElementById('np-error').style.display = 'none';
+}
+async function submitNewProposal() {
+  const title = document.getElementById('np-title').value.trim();
+  const description = document.getElementById('np-desc').value.trim();
+  const category = document.getElementById('np-category').value;
+  const impactScore = parseFloat(document.getElementById('np-impact').value) || 0.5;
+  const effortEstimate = document.getElementById('np-effort').value;
+  const capabilityArea = document.getElementById('np-capability').value.trim() || 'general';
+  const tagsRaw = document.getElementById('np-tags').value.trim();
+  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+  const errEl = document.getElementById('np-error');
+  if (!title || !description) {
+    errEl.textContent = 'Title and description are required.';
+    errEl.style.display = 'block';
+    return;
+  }
+  try {
+    const res = await fetch('/api/app-development-proposals?action=create-manual', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, description, category, impactScore, effortEstimate, capabilityArea, tags })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      closeNewProposalModal();
+      document.getElementById('np-title').value = '';
+      document.getElementById('np-desc').value = '';
+      document.getElementById('np-tags').value = '';
+      loadAppDevProposals();
+    } else {
+      errEl.textContent = data.error || 'Failed to create proposal.';
+      errEl.style.display = 'block';
+    }
+  } catch (e) {
+    errEl.textContent = 'Network error: ' + e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+// ── Dev Pipeline ────────────────────────────────────────
+async function loadDevPipeline() {
+  const loading = document.getElementById('dev-pipeline-loading');
+  const content = document.getElementById('dev-pipeline-content');
+  const timeEl = document.getElementById('dev-pipeline-time');
+  const tbody = document.getElementById('dev-pipeline-tbody');
+  try {
+    const res = await fetch('/api/app-development-proposals?action=tasks&limit=50');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+    const tasks = data.tasks || [];
+    if (!tasks.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--fg2);">No development tasks yet. Click 🚀 Proceed Development on a proposal to create one.</td></tr>';
+      return;
+    }
+    const statusColors = {
+      pending: { color: 'var(--accent2)', label: '⏳ Pending' },
+      in_progress: { color: '#a78bfa', label: '🚧 In Progress' },
+      completed: { color: 'var(--accent)', label: '✅ Completed' },
+      failed: { color: 'var(--accent3)', label: '❌ Failed' }
+    };
+    const priorityColors = { high: '#f87171', medium: '#fbbf24', low: '#60a5fa' };
+    tbody.innerHTML = tasks.map(t => {
+      const st = statusColors[t.status] || statusColors.pending;
+      const prColor = priorityColors[t.priority] || priorityColors.medium;
+      const files = (t.filesToModify || []).slice(0, 3).map(f => '<span style="background:rgba(37,99,235,0.1);color:#60a5fa;padding:2px 6px;border-radius:4px;font-size:0.7rem;">' + f.replace(/^.*[\\/]/, '') + '</span>').join(' ');
+      const more = (t.filesToModify || []).length > 3 ? ' <span style="color:var(--fg2);font-size:0.7rem;">+' + ((t.filesToModify || []).length - 3) + '</span>' : '';
+      return '<tr>' +
+        '<td style="font-weight:600;font-size:0.85rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + t.title + '">' + t.title + '</td>' +
+        '<td style="font-size:0.8rem;color:' + prColor + ';font-weight:600;">' + (t.priority || 'medium') + '</td>' +
+        '<td style="font-size:0.75rem;color:' + st.color + ';font-weight:600;">' + st.label + '</td>' +
+        '<td style="font-size:0.8rem;color:var(--fg2);">' + (t.assignedTo || 'coding_agent') + '</td>' +
+        '<td style="font-size:0.75rem;">' + files + more + '</td>' +
+        '<td style="font-size:0.75rem;color:var(--fg2);">' + (t.createdAt ? new Date(t.createdAt).toLocaleDateString() : '—') + '</td>' +
+        '<td style="font-size:0.75rem;">' +
+          (t.status === 'pending' ? '<button onclick="viewTaskDetail(' + t.id + ')" style="background:var(--accent);color:#fff;border:none;border-radius:4px;padding:4px 8px;font-size:0.7rem;cursor:pointer;">View</button>' : '') +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  } catch (e) {
+    loading.style.display = 'none';
+    timeEl.textContent = 'Failed to load';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--accent3);">Error loading pipeline.</td></tr>';
+    console.error('Dev pipeline load error:', e);
+  }
+}
+function viewTaskDetail(taskId) {
+  // Simple alert for now — can be expanded to modal
+  alert('Task #' + taskId + ' detail view coming soon. Check the API for task actions.');
+}
 
 // ── Enhanced Bugs with Clickable Detail ─────────────────
 let bugsAllRows = [];
@@ -2907,38 +3272,131 @@ async function showBugDetail(bugId) {
     </div>
   `;
 }
+let _bugsFilterSeverity = '';
+
+document.getElementById('bugs-filter-severity')?.addEventListener('change', function() {
+  _bugsFilterSeverity = this.value;
+  renderBugsTable();
+});
+
+async function loadBugFixStats() {
+  try {
+    const res = await fetch('/api/bug-fix-pipeline');
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('bf-critical').textContent = data.stats.criticalPending ?? '—';
+      document.getElementById('bf-high').textContent = data.stats.highPending ?? '—';
+      document.getElementById('bf-queued').textContent = data.stats.queued ?? '—';
+      document.getElementById('bf-tasks').textContent = data.stats.activeTasks ?? '—';
+    }
+  } catch (e) { /* silent */ }
+}
+
+function renderBugsTable() {
+  const tbody = document.getElementById('bugs-tbody');
+  let rows = bugsAllRows;
+  if (_bugsFilterSeverity) rows = rows.filter(b => b.severity === _bugsFilterSeverity);
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--fg2);">No bugs match this filter.</td></tr>';
+    return;
+  }
+  const sevColor = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
+  tbody.innerHTML = rows.map(b => {
+    const canQueue = ['critical','high'].includes(b.severity) && !['queued_for_fix','fixed','verified'].includes(b.status);
+    const queueBtn = canQueue
+      ? `<button onclick="event.stopPropagation(); queueBugForFix('${b.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:0.7rem;font-weight:600;cursor:pointer;">🔧 Fix</button>`
+      : (b.status === 'queued_for_fix' ? '<span style="font-size:0.7rem;color:var(--accent2);">⏳ Queued</span>' : '');
+    return `<tr style="cursor:pointer;" onclick="showBugDetail('${b.id}')">
+      <td><span style="color:${sevColor[b.severity] || sevColor.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${b.severity}</span></td>
+      <td>${b.title}</td>
+      <td style="font-size:0.8rem;color:var(--fg2);">${b.source || '—'}</td>
+      <td style="font-size:0.8rem;text-transform:capitalize;">${b.status.replace('_',' ')}</td>
+      <td style="font-size:0.8rem;color:var(--fg2);">${new Date(b.created_at).toLocaleString()}</td>
+      <td style="font-size:0.75rem;">${queueBtn}</td>
+    </tr>`;
+  }).join('');
+}
+
 async function loadBugsEnhanced() {
   const loading = document.getElementById('bugs-loading');
   const content = document.getElementById('bugs-content');
   const timeEl = document.getElementById('bugs-time');
   try {
-    const res = await fetch('/api/bugs?limit=50');
-    const data = await res.json();
+    const [bugsRes, statsRes] = await Promise.all([
+      fetch('/api/bugs?limit=50'),
+      fetch('/api/bug-fix-pipeline')
+    ]);
+    const data = await bugsRes.json();
     if (!data.ok) throw new Error(data.error);
     bugsAllRows = data.bugs || [];
     loading.style.display = 'none';
     content.style.display = 'block';
     timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
-    const tbody = document.getElementById('bugs-tbody');
-    if (!bugsAllRows.length) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--fg2);">No bugs found. Great job!</td></tr>';
-      return;
-    }
-    const sevColor = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
-    tbody.innerHTML = bugsAllRows.map(b => `
-      <tr style="cursor:pointer;" onclick="showBugDetail('${b.id}')">
-        <td><span style="color:${sevColor[b.severity] || sevColor.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${b.severity}</span></td>
-        <td>${b.title}</td>
-        <td style="font-size:0.8rem;color:var(--fg2);">${b.source || '—'}</td>
-        <td style="font-size:0.8rem;text-transform:capitalize;">${b.status}</td>
-        <td style="font-size:0.8rem;color:var(--fg2);">${new Date(b.created_at).toLocaleString()}</td>
-      </tr>
-    `).join('');
+    renderBugsTable();
+
+    // Update stats from pipeline
+    try {
+      const statsData = await statsRes.json();
+      if (statsData.ok) {
+        document.getElementById('bf-critical').textContent = statsData.stats.criticalPending ?? '—';
+        document.getElementById('bf-high').textContent = statsData.stats.highPending ?? '—';
+        document.getElementById('bf-queued').textContent = statsData.stats.queued ?? '—';
+        document.getElementById('bf-tasks').textContent = statsData.stats.activeTasks ?? '—';
+      }
+    } catch (e) {}
   } catch (e) {
     loading.style.display = 'none';
     timeEl.textContent = 'Failed to load';
   }
 }
+
+async function queueBugForFix(bugId) {
+  try {
+    const res = await fetch('/api/bug-fix-pipeline?action=queue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ bugId })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      if (data.result.alreadyQueued) {
+        alert('Bug is already queued for auto-fix. Task #' + data.result.task.id);
+      } else {
+        alert('✅ Bug queued for auto-fix. Task #' + data.result.task.id + ' created.');
+      }
+      loadBugsEnhanced();
+      loadDevPipeline();
+    } else {
+      alert('❌ Error: ' + (data.error || 'Failed to queue bug'));
+    }
+  } catch (e) {
+    alert('Network error: ' + e.message);
+  }
+}
+
+async function triggerBugFixCycle() {
+  const btn = document.querySelector('button[onclick="triggerBugFixCycle()"]');
+  const orig = btn.textContent;
+  btn.textContent = 'Scanning…';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/bug-fix-pipeline?action=run', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      btn.textContent = '✅ Scan done · Queued ' + data.result.queued;
+      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 3000);
+      loadBugsEnhanced();
+      loadDevPipeline();
+    } else {
+      btn.textContent = '❌ Auth required';
+      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+    }
+  } catch (e) {
+    btn.textContent = 'Error';
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+  }
+}
+
 // Override the original loadBugs
 document.addEventListener('DOMContentLoaded', () => {
   const orig = window.loadBugs;
