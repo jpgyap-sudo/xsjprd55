@@ -177,6 +177,7 @@ export default async function handler(req, res) {
   const mode     = req.body?.mode || process.env.TRADING_MODE || 'paper';
 
   const results = { scanned: 0, signals: [], errors: [] };
+  let ohlcvFetchErrors = 0;
 
   try {
     for (const pair of pairs) {
@@ -184,7 +185,15 @@ export default async function handler(req, res) {
         results.scanned++;
         try {
           // Load 100 candles (with fallback if no API keys)
-          const ohlcv = await fetchOHLCV('binance', pair, tf, 100);
+          let ohlcv;
+          try {
+            ohlcv = await fetchOHLCV('binance', pair, tf, 100);
+          } catch (fetchErr) {
+            ohlcvFetchErrors++;
+            logger.warn(`[SIGNALS] OHLCV fetch failed for ${pair} ${tf}: ${fetchErr.message}`);
+            // Continue to next pair/timeframe — don't let one bad pair kill the whole scan
+            continue;
+          }
           if (!ohlcv || ohlcv.length < 55) continue;
 
           // Cache market data

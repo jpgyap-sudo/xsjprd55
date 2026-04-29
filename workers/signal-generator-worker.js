@@ -9,20 +9,44 @@ import { logger } from '../lib/logger.js';
 const INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 const SERVER_PORT = process.env.PORT || 3000;
 const API_URL = `http://localhost:${SERVER_PORT}/api/signals`;
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 5_000;
+
+async function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+async function fetchWithRetry(url, options, retries = MAX_RETRIES) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60_000); // 60s timeout
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeout);
+      return res;
+    } catch (e) {
+      if (i === retries - 1) throw e;
+      logger.warn(`[SIGNAL-GEN] Retry ${i + 1}/${retries} after ${RETRY_DELAY_MS}ms: ${e.message}`);
+      await sleep(RETRY_DELAY_MS * (i + 1));
+    }
+  }
+  throw new Error('Max retries exceeded');
+}
 
 async function runSignalGenerator() {
   logger.info('[SIGNAL-GEN] Starting signal scan...');
 
   try {
-    const res = await fetch(API_URL, {
+    const res = await fetchWithRetry(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
+      body: JSON.stringify({}),
+      keepalive: true,
     });
 
     if (!res.ok) {
       const text = await res.text();
-      logger.warn(`[SIGNAL-GEN] API returned ${res.status}: ${text}`);
+      logger.warn(`[SIGNAL-GEN] API returned ${res.status}: ${text.slice(0, 200)}`);
       return;
     }
 

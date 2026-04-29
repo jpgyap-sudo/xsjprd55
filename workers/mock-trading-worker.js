@@ -40,13 +40,16 @@ export async function runMockTradingWorker() {
     if (scoredSignals.length === 0) {
       try {
         const now = new Date().toISOString();
-        const { data: recentSignals } = await supabase
+        const isPaper = (process.env.TRADING_MODE || 'paper') === 'paper';
+        let query = supabase
           .from('signals')
           .select('*')
           .eq('status', 'active')
-          .gt('valid_until', now)
           .order('generated_at', { ascending: false })
           .limit(20);
+        // In paper mode be permissive; live mode only non-expired
+        if (!isPaper) query = query.gt('valid_until', now);
+        const { data: recentSignals } = await query;
         scoredSignals = (recentSignals || []).map(s => ({
           signal: s,
           final_probability: Math.round((s.confidence || 0.5) * 100)
