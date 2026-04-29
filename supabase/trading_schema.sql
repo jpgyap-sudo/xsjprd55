@@ -404,7 +404,7 @@ CREATE TABLE IF NOT EXISTS mock_accounts (
 CREATE TABLE IF NOT EXISTS mock_trades (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   account_id          UUID REFERENCES mock_accounts(id),
-  signal_id           UUID REFERENCES signal_logs(id) ON DELETE SET NULL,
+  signal_id           UUID REFERENCES signals(id) ON DELETE SET NULL,
   symbol              TEXT NOT NULL,
   side                TEXT NOT NULL CHECK (side IN ('long','short')),
   strategy_name       TEXT,
@@ -422,10 +422,14 @@ CREATE TABLE IF NOT EXISTS mock_trades (
   exit_reason         TEXT,
   probability_at_entry NUMERIC,
   score_breakdown     JSONB DEFAULT '{}',
+  trailing_stop_pct   NUMERIC DEFAULT 0.35,
+  highest_price       NUMERIC,
+  lowest_price        NUMERIC,
   created_at          TIMESTAMPTZ DEFAULT NOW(),
   closed_at           TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS idx_mock_trades_account ON mock_trades(account_id, status);
+CREATE INDEX IF NOT EXISTS idx_mock_trades_signal ON mock_trades(signal_id);
 
 -- 19. APP_IMPROVEMENT_SUGGESTIONS — auto-generated upgrade ideas
 CREATE TABLE IF NOT EXISTS app_improvement_suggestions (
