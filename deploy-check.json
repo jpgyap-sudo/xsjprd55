@@ -1,0 +1,2794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#121620">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="xsjprd55">
+  <meta name="description" content="Crypto trading signal bot dashboard with liquidation intel, research agent, and mock trading">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon-192.svg">
+  <title>xsjprd55 — Crypto Trading Signal Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --bg2: #121620;
+      --bg3: #1a1f2e;
+      --fg: #e0e6ed;
+      --fg2: #8b95a5;
+      --accent: #22c55e;
+      --accent2: #eab308;
+      --accent3: #ef4444;
+      --border: #1e2538;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; }
+
+    /* Header */
+    header {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, var(--accent), #2563eb);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+    }
+    .header-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .header-subtitle {
+      font-size: 0.72rem;
+      color: var(--fg2);
+      font-weight: 500;
+    }
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .badge {
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .badge.paper { background: rgba(234,179,8,0.15); color: var(--accent2); border: 1px solid rgba(234,179,8,0.3); }
+    .badge.live { background: rgba(34,197,94,0.15); color: var(--accent); border: 1px solid rgba(34,197,94,0.3); }
+
+    /* Tab Navigation */
+    .tab-nav {
+      display: flex;
+      gap: 8px;
+      padding: 12px 24px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 63px;
+      z-index: 99;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .tab-nav::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--fg2);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .tab-btn:hover {
+      background: var(--bg3);
+      color: var(--fg);
+      border-color: #2e3650;
+    }
+    .tab-btn.active {
+      background: rgba(34,197,94,0.12);
+      color: var(--accent);
+      border-color: rgba(34,197,94,0.35);
+      font-weight: 600;
+    }
+
+    /* API Status */
+    .status-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .status-item { background: var(--bg3); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border); }
+    .status-item.offline { border-color: rgba(239,68,68,0.3); }
+    .status-dot-sm { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .status-dot-sm.online { background: var(--accent); box-shadow: 0 0 8px rgba(34,197,94,0.4); }
+    .status-dot-sm.offline { background: var(--accent3); box-shadow: 0 0 8px rgba(239,68,68,0.4); }
+    .status-dot-sm.warn { background: var(--accent2); box-shadow: 0 0 8px rgba(234,179,8,0.4); }
+    /* Diagnostics */
+    .diag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+    .diag-card { background: var(--bg2); border-radius: 12px; padding: 18px; border: 1px solid var(--border); }
+    .diag-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .diag-card-title { font-weight: 700; font-size: 0.9rem; }
+    .diag-metric { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(30,37,56,0.4); }
+    .diag-metric:last-child { border-bottom: none; }
+    .diag-metric-label { font-size: 0.82rem; color: var(--fg2); }
+    .diag-metric-value { font-weight: 600; font-size: 0.85rem; }
+    .diag-bar { width: 100%; height: 6px; background: var(--bg3); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+    .diag-bar-inner { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+    .diag-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+    .diag-badge.fresh { background: rgba(34,197,94,0.15); color: var(--accent); }
+    .diag-badge.warn { background: rgba(234,179,8,0.15); color: var(--accent2); }
+    .diag-badge.stale { background: rgba(239,68,68,0.15); color: var(--accent3); }
+    .diag-badge.no-data { background: rgba(148,163,184,0.15); color: var(--fg2); }
+    .status-info { flex: 1; min-width: 0; }
+    .status-name { font-weight: 600; font-size: 0.88rem; }
+    .status-meta { font-size: 0.75rem; color: var(--fg2); margin-top: 2px; }
+    .status-section { margin-bottom: 24px; }
+    .status-section-title { font-size: 0.8rem; color: var(--fg2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; font-weight: 600; }
+    .status-refresh { font-size: 0.75rem; color: var(--fg2); margin-top: 8px; text-align: right; }
+
+    /* Layout */
+    .container { max-width: 1440px; margin: 0 auto; padding: 20px; }
+    .grid { display: grid; gap: 20px; }
+    .grid-2 { grid-template-columns: 2fr 1fr; }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    @media (max-width: 1024px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+
+    .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 600; font-size: 0.9rem; }
+    .card-body { padding: 18px; }
+
+    /* Tab Panels */
+    .tab-panel { display: none; animation: fadeIn 0.25s ease; }
+    .tab-panel.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Mini stats */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .stat-item { background: var(--bg3); padding: 14px; border-radius: 10px; }
+    .stat-label { font-size: 0.75rem; color: var(--fg2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .stat-value { font-size: 1.3rem; font-weight: 700; }
+    .stat-change { font-size: 0.8rem; margin-top: 4px; }
+    .stat-change.up { color: var(--accent); }
+    .stat-change.down { color: var(--accent3); }
+
+    /* Signals table */
+    .signal-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .signal-table th { text-align: left; padding: 10px 12px; color: var(--fg2); font-weight: 500; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; border-bottom: 1px solid var(--border); }
+    .signal-table td { padding: 12px; border-bottom: 1px solid rgba(30,37,56,0.5); }
+    .signal-table tr:hover { background: rgba(255,255,255,0.02); }
+    .side-badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-weight: 700; font-size: 0.75rem; }
+    .side-long { background: rgba(34,197,94,0.15); color: var(--accent); }
+    .side-short { background: rgba(239,68,68,0.15); color: var(--accent3); }
+    .side-close { background: rgba(139,149,165,0.15); color: var(--fg2); }
+    .conf-bar { height: 6px; border-radius: 3px; background: var(--bg3); overflow: hidden; width: 60px; }
+    .conf-bar-inner { height: 100%; border-radius: 3px; }
+
+    /* AI Chat inline */
+    .chat-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; height: calc(100vh - 220px); min-height: 500px; }
+    .chat-panel-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(59,130,246,0.08));
+      border-radius: 12px 12px 0 0;
+    }
+    .chat-panel-title { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+    .chat-panel-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .msg { max-width: 92%; padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; line-height: 1.5; word-break: break-word; }
+    .msg.user { align-self: flex-end; background: #2563eb; color: white; border-bottom-right-radius: 4px; }
+    .msg.ai { align-self: flex-start; background: var(--bg3); border-bottom-left-radius: 4px; }
+    .msg.ai pre { background: rgba(0,0,0,0.3); padding: 8px; border-radius: 6px; overflow-x: auto; margin-top: 8px; font-size: 0.8rem; }
+    .msg.ai code { font-family: 'Fira Code', monospace; font-size: 0.8rem; }
+    .msg.ai p { margin-bottom: 8px; }
+    .msg.ai p:last-child { margin-bottom: 0; }
+    .chat-input-area { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 10px; }
+    .chat-input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--fg); font-size: 0.9rem; outline: none; resize: none; font-family: inherit; }
+    .chat-input:focus { border-color: #2563eb; }
+    .chat-send { background: #2563eb; color: white; border: none; border-radius: 10px; padding: 10px 16px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: background 0.2s; }
+    .chat-send:hover { background: #1d4ed8; }
+    .chat-send:disabled { opacity: 0.5; cursor: not-allowed; }
+    .typing { display: flex; gap: 4px; align-items: center; padding: 8px 0; }
+    .typing span { width: 8px; height: 8px; background: var(--fg2); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+    .typing span:nth-child(1) { animation-delay: -0.32s; }
+    .typing span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce { 0%,80%,100% { transform: scale(0); } 40% { transform: scale(1); } }
+    .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .suggestion-chip { background: rgba(37,99,235,0.15); border: 1px solid rgba(37,99,235,0.3); color: #60a5fa; padding: 6px 12px; border-radius: 999px; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; }
+    .suggestion-chip:hover { background: rgba(37,99,235,0.25); }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--fg2); font-size: 0.9rem; }
+    .empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
+
+    /* Footer */
+    footer { text-align: center; padding: 30px; color: var(--fg2); font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 30px; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2e3650; }
+
+    /* --- Mobile / PWA --- */
+    @media (max-width: 768px) {
+      header { padding: 10px 14px; }
+      .header-title { font-size: 0.9rem; }
+      .header-subtitle { font-size: 0.65rem; }
+      .header-status { gap: 8px; }
+      .badge { padding: 3px 8px; font-size: 0.6rem; }
+      .tab-nav { padding: 10px 12px; gap: 6px; top: 56px; }
+      .tab-btn { padding: 6px 12px; font-size: 0.72rem; }
+      .container { padding: 12px; }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; gap: 14px; }
+      .card-header { padding: 12px 14px; font-size: 0.82rem; }
+      .card-body { padding: 14px; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .stat-value { font-size: 1.1rem; }
+      .signal-table th, .signal-table td { padding: 8px; font-size: 0.78rem; }
+      .chat-panel { height: calc(100vh - 190px); min-height: 360px; }
+      .msg { max-width: 96%; font-size: 0.8rem; }
+      .chat-input-area { padding: 10px 12px; }
+      .chat-input { padding: 8px 12px; font-size: 0.85rem; }
+      .chat-send { padding: 8px 12px; font-size: 0.8rem; }
+      .diag-grid { grid-template-columns: 1fr; gap: 14px; }
+      .status-grid { grid-template-columns: 1fr; gap: 12px; }
+      .suggestions { gap: 6px; }
+      .suggestion-chip { padding: 5px 10px; font-size: 0.72rem; }
+    }
+    @media (max-width: 480px) {
+      .header-logo { width: 32px; height: 32px; font-size: 1.1rem; }
+      .tab-btn { padding: 5px 10px; font-size: 0.68rem; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+      .signal-table { font-size: 0.72rem; }
+      .signal-table th, .signal-table td { padding: 6px; }
+    }
+    /* Install prompt banner */
+    #install-banner {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--bg2);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      z-index: 200;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    #install-banner.show { display: flex; }
+    #install-banner button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    #install-banner .dismiss {
+      background: transparent;
+      color: var(--fg2);
+      border: 1px solid var(--border);
+    }
+
+    /* Proposal Detail Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.2s ease;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-content {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      max-width: 720px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      background: var(--bg2);
+      border-radius: 16px 16px 0 0;
+      z-index: 2;
+    }
+    .modal-title-wrap { flex: 1; min-width: 0; }
+    .modal-title { font-size: 1.15rem; font-weight: 700; line-height: 1.3; margin-bottom: 8px; }
+    .modal-status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .modal-close {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--fg2);
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+    .modal-close:hover { background: var(--border); color: var(--fg); }
+    .modal-body { padding: 24px; }
+    .modal-section { margin-bottom: 20px; }
+    .modal-section:last-child { margin-bottom: 0; }
+    .modal-section-title {
+      font-size: 0.7rem;
+      color: var(--fg2);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .modal-description {
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: var(--fg);
+      background: var(--bg3);
+      padding: 16px;
+      border-radius: 10px;
+      border-left: 3px solid var(--accent);
+    }
+    .modal-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .modal-meta-item {
+      background: var(--bg3);
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .modal-meta-label {
+      font-size: 0.7rem;
+      color: var(--fg2);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+    .modal-meta-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .impact-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .impact-bar {
+      flex: 1;
+      height: 8px;
+      background: var(--bg3);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .impact-bar-inner {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+    .modal-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .timeline-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .timeline-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+    .timeline-dot.done { background: var(--accent); box-shadow: 0 0 8px rgba(34,197,94,0.4); }
+    .timeline-dot.current { background: var(--accent2); box-shadow: 0 0 8px rgba(234,179,8,0.4); }
+    .timeline-content { font-size: 0.85rem; }
+    .timeline-label { font-weight: 600; }
+    .timeline-time { color: var(--fg2); font-size: 0.78rem; margin-top: 2px; }
+    .modal-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .modal-tag {
+      background: rgba(37,99,235,0.12);
+      color: #60a5fa;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    @media (max-width: 768px) {
+      .modal-meta-grid { grid-template-columns: 1fr; }
+      .modal-content { max-height: 90vh; }
+      .modal-header { padding: 16px; }
+      .modal-body { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="header-brand">
+    <div class="header-logo">??</div>
+    <div>
+      <div class="header-title">xsjprd55</div>
+      <div class="header-subtitle">Crypto Trading Signal Dashboard</div>
+    </div>
+  </div>
+  <div class="header-status">
+    <span class="badge paper" id="mode-badge">Paper Mode</span>
+    <div class="status-dot"></div>
+    <span style="font-size:0.8rem;color:var(--fg2);">Bot Active</span>
+    <button id="install-btn" onclick="triggerInstall()" style="display:none;margin-left:8px;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:0.7rem;cursor:pointer;">?? Add to Home</button>
+  </div>
+</header>
+
+<!-- Tab Navigation -->
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="overview">?? Overview</button>
+  <button class="tab-btn" data-tab="signals">?? Signals</button>
+  <button class="tab-btn" data-tab="research-agent">?? Research Agent</button>
+  <button class="tab-btn" data-tab="mock-trading">?? Mock Trading</button>
+  <button class="tab-btn" data-tab="catalyst">?? Catalyst</button>
+  <button class="tab-btn" data-tab="news">?? News & Intel</button>
+  <button class="tab-btn" data-tab="ai">?? AI Chat</button>
+  <button class="tab-btn" data-tab="api-status">?? API Status</button>
+  <button class="tab-btn" data-tab="diagnostics">?? Diagnostics</button>
+  <button class="tab-btn" data-tab="bugs">?? Bugs</button>
+  <button class="tab-btn" data-tab="api-debugger">?? API Debugger</button>
+  <button class="tab-btn" data-tab="app-dev">?? App Dev Proposals</button>
+  <button class="tab-btn" data-tab="autonomous">?? Autonomous</button>
+</nav>
+
+<div class="container">
+
+  <!-- ---------------------------------------------------- -->
+  <!-- OVERVIEW TAB -->
+  <!-- ---------------------------------------------------- -->
+  <div class="tab-panel active" id="tab-overview">
+
+    <!-- Ticker Tape — All Binance Perpetuals -->
+    <div style="margin-bottom:20px;border-radius:12px;overflow:hidden;">
+      <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container__widget"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+        {
+          "symbols": [
+            {"proName": "BINANCE:BTCUSDT","title": "BTC"},{"proName": "BINANCE:ETHUSDT","title": "ETH"},
+            {"proName": "BINANCE:SOLUSDT","title": "SOL"},{"proName": "BINANCE:BNBUSDT","title": "BNB"},
+            {"proName": "BINANCE:XRPUSDT","title": "XRP"},{"proName": "BINANCE:DOGEUSDT","title": "DOGE"},
+            {"proName": "BINANCE:ADAUSDT","title": "ADA"},{"proName": "BINANCE:AVAXUSDT","title": "AVAX"},
+            {"proName": "BINANCE:LINKUSDT","title": "LINK"},{"proName": "BINANCE:LTCUSDT","title": "LTC"},
+            {"proName": "BINANCE:DOTUSDT","title": "DOT"},{"proName": "BINANCE:UNIUSDT","title": "UNI"},
+            {"proName": "BINANCE:AAVEUSDT","title": "AAVE"},{"proName": "BINANCE:SUIUSDT","title": "SUI"},
+            {"proName": "BINANCE:SEIUSDT","title": "SEI"},{"proName": "BINANCE:INJUSDT","title": "INJ"},
+            {"proName": "BINANCE:RNDRUSDT","title": "RNDR"},{"proName": "BINANCE:ARBUSDT","title": "ARB"},
+            {"proName": "BINANCE:OPUSDT","title": "OP"},{"proName": "BINANCE:STRKUSDT","title": "STRK"},
+            {"proName": "BINANCE:TIAUSDT","title": "TIA"},{"proName": "BINANCE:FETUSDT","title": "FET"},
+            {"proName": "BINANCE:WLDUSDT","title": "WLD"},{"proName": "BINANCE:PYTHUSDT","title": "PYTH"},
+            {"proName": "BINANCE:JUPUSDT","title": "JUP"},{"proName": "BINANCE:JTOUSDT","title": "JTO"},
+            {"proName": "BINANCE:BONKUSDT","title": "BONK"},{"proName": "BINANCE:PEPEUSDT","title": "PEPE"},
+            {"proName": "BINANCE:WIFUSDT","title": "WIF"},{"proName": "BINANCE:SHIBUSDT","title": "SHIB"},
+            {"proName": "BINANCE:FLOKIUSDT","title": "FLOKI"},{"proName": "BINANCE:ENAUSDT","title": "ENA"},
+            {"proName": "BINANCE:WUSDT","title": "W"},{"proName": "BINANCE:TAOUSDT","title": "TAO"},
+            {"proName": "BINANCE:ARKMUSDT","title": "ARKM"},{"proName": "BINANCE:MEMEUSDT","title": "MEME"},
+            {"proName": "BINANCE:BEAMUSDT","title": "BEAM"},{"proName": "BINANCE:RUNEUSDT","title": "RUNE"},
+            {"proName": "BINANCE:NEARUSDT","title": "NEAR"},{"proName": "BINANCE:APTUSDT","title": "APT"},
+            {"proName": "BINANCE:TRXUSDT","title": "TRX"},{"proName": "BINANCE:ETCUSDT","title": "ETC"},
+            {"proName": "BINANCE:XLMUSDT","title": "XLM"},{"proName": "BINANCE:FILUSDT","title": "FIL"},
+            {"proName": "BINANCE:ALGOUSDT","title": "ALGO"},{"proName": "BINANCE:ATOMUSDT","title": "ATOM"},
+            {"proName": "BINANCE:IMXUSDT","title": "IMX"},{"proName": "BINANCE:GRTUSDT","title": "GRT"},
+            {"proName": "BINANCE:STXUSDT","title": "STX"},{"proName": "BINANCE:FLOWUSDT","title": "FLOW"},
+            {"proName": "BINANCE:SANDUSDT","title": "SAND"},{"proName": "BINANCE:MANAUSDT","title": "MANA"},
+            {"proName": "BINANCE:AXSUSDT","title": "AXS"},{"proName": "BINANCE:CHZUSDT","title": "CHZ"},
+            {"proName": "BINANCE:CRVUSDT","title": "CRV"},{"proName": "BINANCE:DYDXUSDT","title": "DYDX"},
+            {"proName": "BINANCE:GMXUSDT","title": "GMX"},{"proName": "BINANCE:SNXUSDT","title": "SNX"},
+            {"proName": "BINANCE:COMPUSDT","title": "COMP"},{"proName": "BINANCE:MKRUSDT","title": "MKR"},
+            {"proName": "BINANCE:YFIUSDT","title": "YFI"},{"proName": "BINANCE:BALUSDT","title": "BAL"},
+            {"proName": "BINANCE:1INCHUSDT","title": "1INCH"},{"proName": "BINANCE:ZRXUSDT","title": "ZRX"},
+            {"proName": "BINANCE:LDOUSDT","title": "LDO"},{"proName": "BINANCE:PENDLEUSDT","title": "PENDLE"},
+            {"proName": "BINANCE:EIGENUSDT","title": "EIGEN"},{"proName": "BINANCE:ZROUSDT","title": "ZRO"},
+            {"proName": "BINANCE:LISTAUSDT","title": "LISTA"},{"proName": "BINANCE:NOTUSDT","title": "NOT"}
+          ],
+          "showSymbolLogo": true,
+          "colorTheme": "dark",
+          "isTransparent": false,
+          "displayMode": "adaptive",
+          "locale": "en"
+        }
+        </script>
+      </div>
+    </div>
+
+    <!-- Market Snapshot — Dynamic Binance Perpetuals -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">Market Snapshot · Top Movers</div>
+      <div class="card-body">
+        <div class="stat-grid" id="stats-grid" style="max-height:260px;overflow:auto;">
+          <!-- Populated dynamically from Binance 24h ticker -->
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <!-- Main Chart -->
+      <div class="card">
+        <div class="card-header">
+          <span>?? BTC/USDT Technical Chart</span>
+          <select id="chart-symbol" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;cursor:pointer;max-width:160px;">
+            <option value="BINANCE:BTCUSDT">BTC/USDT</option>
+            <option value="BINANCE:ETHUSDT">ETH/USDT</option>
+            <option value="BINANCE:SOLUSDT">SOL/USDT</option>
+            <option value="BINANCE:BNBUSDT">BNB/USDT</option>
+            <option value="BINANCE:XRPUSDT">XRP/USDT</option>
+            <option value="BINANCE:DOGEUSDT">DOGE/USDT</option>
+            <option value="BINANCE:ADAUSDT">ADA/USDT</option>
+            <option value="BINANCE:AVAXUSDT">AVAX/USDT</option>
+            <option value="BINANCE:LINKUSDT">LINK/USDT</option>
+            <option value="BINANCE:LTCUSDT">LTC/USDT</option>
+            <option value="BINANCE:DOTUSDT">DOT/USDT</option>
+            <option value="BINANCE:UNIUSDT">UNI/USDT</option>
+            <option value="BINANCE:AAVEUSDT">AAVE/USDT</option>
+            <option value="BINANCE:SUIUSDT">SUI/USDT</option>
+            <option value="BINANCE:SEIUSDT">SEI/USDT</option>
+            <option value="BINANCE:INJUSDT">INJ/USDT</option>
+            <option value="BINANCE:RNDRUSDT">RNDR/USDT</option>
+            <option value="BINANCE:ARBUSDT">ARB/USDT</option>
+            <option value="BINANCE:OPUSDT">OP/USDT</option>
+            <option value="BINANCE:STRKUSDT">STRK/USDT</option>
+            <option value="BINANCE:TIAUSDT">TIA/USDT</option>
+            <option value="BINANCE:FETUSDT">FET/USDT</option>
+            <option value="BINANCE:WLDUSDT">WLD/USDT</option>
+            <option value="BINANCE:PYTHUSDT">PYTH/USDT</option>
+            <option value="BINANCE:JUPUSDT">JUP/USDT</option>
+            <option value="BINANCE:JTOUSDT">JTO/USDT</option>
+            <option value="BINANCE:BONKUSDT">BONK/USDT</option>
+            <option value="BINANCE:PEPEUSDT">PEPE/USDT</option>
+            <option value="BINANCE:WIFUSDT">WIF/USDT</option>
+            <option value="BINANCE:SHIBUSDT">SHIB/USDT</option>
+            <option value="BINANCE:FLOKIUSDT">FLOKI/USDT</option>
+            <option value="BINANCE:ENAUSDT">ENA/USDT</option>
+            <option value="BINANCE:WUSDT">W/USDT</option>
+            <option value="BINANCE:TAOUSDT">TAO/USDT</option>
+            <option value="BINANCE:ARKMUSDT">ARKM/USDT</option>
+            <option value="BINANCE:MEMEUSDT">MEME/USDT</option>
+            <option value="BINANCE:BEAMUSDT">BEAM/USDT</option>
+            <option value="BINANCE:RUNEUSDT">RUNE/USDT</option>
+            <option value="BINANCE:NEARUSDT">NEAR/USDT</option>
+            <option value="BINANCE:APTUSDT">APT/USDT</option>
+            <option value="BINANCE:TRXUSDT">TRX/USDT</option>
+            <option value="BINANCE:ETCUSDT">ETC/USDT</option>
+            <option value="BINANCE:XLMUSDT">XLM/USDT</option>
+            <option value="BINANCE:FILUSDT">FIL/USDT</option>
+            <option value="BINANCE:ALGOUSDT">ALGO/USDT</option>
+            <option value="BINANCE:ATOMUSDT">ATOM/USDT</option>
+            <option value="BINANCE:IMXUSDT">IMX/USDT</option>
+            <option value="BINANCE:GRTUSDT">GRT/USDT</option>
+            <option value="BINANCE:STXUSDT">STX/USDT</option>
+            <option value="BINANCE:FLOWUSDT">FLOW/USDT</option>
+            <option value="BINANCE:SANDUSDT">SAND/USDT</option>
+            <option value="BINANCE:MANAUSDT">MANA/USDT</option>
+            <option value="BINANCE:AXSUSDT">AXS/USDT</option>
+            <option value="BINANCE:CHZUSDT">CHZ/USDT</option>
+            <option value="BINANCE:CRVUSDT">CRV/USDT</option>
+            <option value="BINANCE:DYDXUSDT">DYDX/USDT</option>
+            <option value="BINANCE:GMXUSDT">GMX/USDT</option>
+            <option value="BINANCE:SNXUSDT">SNX/USDT</option>
+            <option value="BINANCE:COMPUSDT">COMP/USDT</option>
+            <option value="BINANCE:MKRUSDT">MKR/USDT</option>
+            <option value="BINANCE:YFIUSDT">YFI/USDT</option>
+            <option value="BINANCE:BALUSDT">BAL/USDT</option>
+            <option value="BINANCE:1INCHUSDT">1INCH/USDT</option>
+            <option value="BINANCE:ZRXUSDT">ZRX/USDT</option>
+            <option value="BINANCE:LDOUSDT">LDO/USDT</option>
+            <option value="BINANCE:PENDLEUSDT">PENDLE/USDT</option>
+            <option value="BINANCE:EIGENUSDT">EIGEN/USDT</option>
+            <option value="BINANCE:ZROUSDT">ZRO/USDT</option>
+            <option value="BINANCE:LISTAUSDT">LISTA/USDT</option>
+            <option value="BINANCE:NOTUSDT">NOT/USDT</option>
+          </select>
+        </div>
+        <div class="tradingview-widget-container" id="tv-chart" style="height:460px;">
+          <div class="tradingview-widget-container__widget" style="height:460px;"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+          {
+            "autosize": true,
+            "symbol": "BINANCE:BTCUSDT",
+            "interval": "15",
+            "timezone": "Etc/UTC",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "enable_publishing": false,
+            "backgroundColor": "rgba(18, 22, 32, 1)",
+            "gridColor": "rgba(30, 37, 56, 0.5)",
+            "allow_symbol_change": false,
+            "calendar": false,
+            "support_host": "https://www.tradingview.com"
+          }
+          </script>
+        </div>
+      </div>
+
+      <!-- Side Panel -->
+      <div style="display:flex;flex-direction:column;gap:20px;">
+        <div class="card">
+          <div class="card-header">??? Market Heatmap</div>
+          <div class="tradingview-widget-container" style="height:200px;">
+            <div class="tradingview-widget-container__widget" style="height:200px;"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-crypto-coins-heatmap.js" async>
+            {
+              "dataSource": "Crypto",
+              "blockColor": "change",
+              "blockSize": "market_cap_basic",
+              "locale": "en",
+              "colorTheme": "dark",
+              "width": "100%",
+              "height": "100%"
+            }
+            </script>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- SIGNALS TAB -->
+  <!-- ---------------------------------------------------- -->
+  <div class="tab-panel" id="tab-signals">
+    <div class="card">
+      <div class="card-header">
+        <span>?? Recent Signals</span>
+        <select id="signal-filter" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:0.75rem;">
+          <option value="all">All</option>
+          <option value="News_Event">News Only</option>
+          <option value="EMA_Cross">Technical</option>
+        </select>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <table class="signal-table" id="signals-table">
+          <thead>
+            <tr><th>Pair</th><th>Side</th><th>Conf</th><th>Time</th></tr>
+          </thead>
+          <tbody id="signals-tbody">
+            <tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:20px;">Loading signals...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- RESEARCH AGENT TAB -->
+  <!-- ---------------------------------------------------- -->
+  <div class="tab-panel" id="tab-research-agent">
+    <!-- Stats Row -->
+    <div class="stat-grid" style="margin-bottom:20px;" id="ra-stats">
+      <div class="stat-item"><div class="stat-label">Sources Ingested</div><div class="stat-value" id="ra-stat-sources">—</div></div>
+      <div class="stat-item"><div class="stat-label">Proposals</div><div class="stat-value" id="ra-stat-proposals">—</div></div>
+      <div class="stat-item"><div class="stat-label">Backtests</div><div class="stat-value" id="ra-stat-backtests">—</div></div>
+      <div class="stat-item"><div class="stat-label">Promoted</div><div class="stat-value" id="ra-stat-promoted" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">ML Model</div><div class="stat-value" id="ra-stat-model" style="font-size:1rem">—</div></div>
+    </div>
+
+    <div class="grid grid-2">
+      <!-- Strategy Proposals -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><span>?? Strategy Proposals</span></div>
+        <div class="card-body" style="padding:0;max-height:400px;overflow:auto;">
+          <div id="ra-loading" style="text-align:center;padding:20px;color:var(--fg2);">Loading research data...</div>
+          <div id="ra-proposals-content" style="display:none;">
+            <table class="signal-table" style="min-width:500px;">
+              <thead><tr><th>Name</th><th>Conf</th><th>Rules</th><th>Status</th></tr></thead>
+              <tbody id="ra-proposals-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- Backtest Results -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><span>?? Research Backtests</span></div>
+        <div class="card-body" style="padding:0;max-height:400px;overflow:auto;">
+          <div id="ra-backtests-content" style="display:none;">
+            <table class="signal-table" style="min-width:500px;">
+              <thead><tr><th>Strategy</th><th>Trades</th><th>Return</th><th>WR</th><th>Sharpe</th></tr></thead>
+              <tbody id="ra-backtests-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Promoted Strategies -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span>?? Promoted Strategies</span></div>
+      <div class="card-body">
+        <div id="ra-promoted"></div>
+      </div>
+    </div>
+
+    <!-- Recent Research Sources -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span>?? Recent Research Sources</span></div>
+      <div class="card-body" style="padding:0;max-height:300px;overflow:auto;">
+        <div id="ra-sources-content" style="display:none;">
+          <table class="signal-table">
+            <thead><tr><th>Source</th><th>Hints</th><th>Used</th><th>Time</th></tr></thead>
+            <tbody id="ra-sources-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- MOCK TRADING TAB -->
+  <!-- ---------------------------------------------------- -->
+  <div class="tab-panel" id="tab-mock-trading">
+    <!-- Account Stats -->
+    <div class="stat-grid" style="margin-bottom:20px;" id="mt-stats">
+      <div class="stat-item"><div class="stat-label">Account Balance</div><div class="stat-value" id="mt-balance">—</div></div>
+      <div class="stat-item"><div class="stat-label">Peak Balance</div><div class="stat-value" id="mt-peak">—</div></div>
+      <div class="stat-item"><div class="stat-label">Total Return</div><div class="stat-value" id="mt-return">—</div></div>
+      <div class="stat-item"><div class="stat-label">Win Rate</div><div class="stat-value" id="mt-winrate">—</div></div>
+      <div class="stat-item"><div class="stat-label">Total Trades</div><div class="stat-value" id="mt-trades">—</div></div>
+      <div class="stat-item"><div class="stat-label">Open Positions</div><div class="stat-value" id="mt-open">—</div></div>
+    </div>
+
+    <div class="grid grid-2">
+      <!-- Open Trades -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><span>?? Open Positions</span></div>
+        <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
+          <div id="mt-open-loading" style="text-align:center;padding:20px;color:var(--fg2);">Loading...</div>
+          <div id="mt-open-content" style="display:none;">
+            <table class="signal-table">
+              <thead><tr><th>Symbol</th><th>Side</th><th>Entry</th><th>Size</th><th>Lev</th></tr></thead>
+              <tbody id="mt-open-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <!-- Recent Closed Trades -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header"><span>?? Recent Closed Trades</span></div>
+        <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
+          <div id="mt-closed-content" style="display:none;">
+            <table class="signal-table">
+              <thead><tr><th>Symbol</th><th>Side</th><th>Lev</th><th>PnL $</th><th>PnL %</th></tr></thead>
+              <tbody id="mt-closed-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Strategy Performance -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span>?? Strategy Performance</span></div>
+      <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
+        <div id="mt-strat-content" style="display:none;">
+          <table class="signal-table" style="min-width:600px;">
+            <thead><tr><th>Strategy</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>Total PnL</th><th>Avg Return</th></tr></thead>
+            <tbody id="mt-strat-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trading Analysis -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span>?? Trading Analysis</span></div>
+      <div class="card-body">
+        <div class="grid grid-2" id="mt-analysis">
+          <div>
+            <div style="font-size:0.75rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Best Trade</div>
+            <div id="mt-best" style="font-size:1.1rem;font-weight:700;color:var(--accent);">—</div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Worst Trade</div>
+            <div id="mt-worst" style="font-size:1.1rem;font-weight:700;color:var(--accent3);">—</div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Max Drawdown</div>
+            <div id="mt-drawdown" style="font-size:1.1rem;font-weight:700;color:var(--accent2);">—</div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--fg2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Avg Return / Trade</div>
+            <div id="mt-avg" style="font-size:1.1rem;font-weight:700;">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- CATALYST TAB -->
+  <!-- ---------------------------------------------------- -->
+  <div class="tab-panel" id="tab-catalyst">
+    <div class="card">
+      <div class="card-header">
+        <span>?? Catalyst Watch</span>
+        <span class="badge live" id="catalyst-updated" style="font-size:0.6rem;padding:2px 8px;">Live</span>
+        <span id="catalyst-timestamp" style="font-size:0.6rem;color:var(--fg2);margin-left:auto;">Updating...</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div id="catalyst-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading catalysts...</div>
+        <div id="catalyst-content" style="display:none;">
+          <div id="catalyst-high" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+          <div id="catalyst-readings" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+          <div id="catalyst-levels" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+          <div id="catalyst-bottom" style="padding:14px 18px;background:rgba(234,179,8,0.05);"></div>
+        </div>
+        <div id="catalyst-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load catalysts</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- NEWS & INTEL TAB -->
+  <!-- ---------------------------------------------------- -->
+  <div class="tab-panel" id="tab-news">
+    <div class="grid grid-2">
+      <!-- News Feed -->
+      <div class="card">
+        <div class="card-header">
+          <span>?? News Feed</span>
+          <span class="badge live" id="news-updated" style="font-size:0.6rem;padding:2px 8px;">Live</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div id="news-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading news...</div>
+          <div id="news-content" style="display:none;">
+            <div id="news-overall" style="padding:12px 18px;border-bottom:1px solid var(--border);font-size:0.85rem;font-weight:600;"></div>
+            <div id="news-list" style="max-height:600px;overflow-y:auto;"></div>
+          </div>
+          <div id="news-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load news</div>
+        </div>
+      </div>
+
+      <!-- Liquidation Intel -->
+      <div class="card">
+        <div class="card-header">
+          <span>?? Liquidation Intel</span>
+          <span class="badge live" id="liq-updated" style="font-size:0.6rem;padding:2px 8px;">Live</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div id="liq-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading liquidation data...</div>
+          <div id="liq-content" style="display:none;">
+            <div id="liq-best-short" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+            <div id="liq-best-long" style="padding:14px 18px;border-bottom:1px solid var(--border);"></div>
+            <!-- Top 10 Shorts Table -->
+            <div style="padding:14px 18px;border-bottom:1px solid var(--border);">
+              <div style="font-size:0.75rem;color:var(--accent3);font-weight:700;margin-bottom:10px;">?? TOP 10 SHORT RECOMMENDATIONS</div>
+              <div style="font-size:0.7rem;color:var(--fg2);margin-bottom:8px;">High funding + large OI = crowded longs ripe for liquidation</div>
+              <table class="signal-table" style="font-size:0.8rem;">
+                <thead><tr><th>#</th><th>Symbol</th><th>Price</th><th>Funding</th><th>OI</th><th>Score</th><th>Exchanges</th></tr></thead>
+                <tbody id="liq-top-shorts-body"></tbody>
+              </table>
+            </div>
+            <!-- Top 10 Longs Table -->
+            <div style="padding:14px 18px;border-bottom:1px solid var(--border);">
+              <div style="font-size:0.75rem;color:var(--accent);font-weight:700;margin-bottom:10px;">?? TOP 10 LONG RECOMMENDATIONS</div>
+              <div style="font-size:0.7rem;color:var(--fg2);margin-bottom:8px;">Negative funding + large OI = crowded shorts ripe for squeeze</div>
+              <table class="signal-table" style="font-size:0.8rem;">
+                <thead><tr><th>#</th><th>Symbol</th><th>Price</th><th>Funding</th><th>OI</th><th>Score</th><th>Exchanges</th></tr></thead>
+                <tbody id="liq-top-longs-body"></tbody>
+              </table>
+            </div>
+            <div id="liq-alerts" style="padding:14px 18px;"></div>
+            <div id="liq-timestamp" style="padding:8px 18px;font-size:0.7rem;color:var(--fg2);text-align:right;border-top:1px solid var(--border);"></div>
+          </div>
+          <div id="liq-error" style="display:none;padding:20px;color:var(--accent3);font-size:0.85rem;text-align:center;">Failed to load. Retrying...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- AI CHAT TAB -->
+  <!-- ---------------------------------------------------- -->
+  <div class="tab-panel" id="tab-ai">
+    <div class="chat-panel">
+      <div class="chat-panel-header">
+        <div class="chat-panel-title">?? Crypto Strategist</div>
+        <span style="font-size:0.75rem;color:var(--fg2);">Powered by Claude</span>
+      </div>
+      <div class="chat-panel-body" id="chat-body">
+        <div class="msg ai">
+          <strong>Crypto Trading Strategist</strong> at your service.<br><br>
+          I analyze market trends, token strength, liquidity pools, and social momentum. I can help with:
+          <ul style="margin:8px 0 0 18px;">
+            <li>Spot & swing trading opportunities</li>
+            <li>LP opportunities on Meteora</li>
+            <li>Bear-market accumulation picks</li>
+            <li>Organic meme coin research</li>
+            <li>Risk assessment & red flags</li>
+          </ul>
+          <div class="suggestions">
+            <span class="suggestion-chip" data-q="What is a good short today?">?? Good short today?</span>
+            <span class="suggestion-chip" data-q="What is a good buy today?">?? Good buy today?</span>
+            <span class="suggestion-chip" data-q="Which coin has the most crowded longs?">?? Most crowded longs?</span>
+            <span class="suggestion-chip" data-q="Analyze BTC trend and support levels">?? Analyze BTC</span>
+            <span class="suggestion-chip" data-q="Any undervalued altcoins for accumulation?">?? Undervalued alts</span>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask me anything about crypto..."></textarea>
+        <button class="chat-send" id="chat-send">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- API STATUS TAB -->
+  <!-- ---------------------------------------------------- -->
+  <div class="tab-panel" id="tab-api-status">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>?? External API Health</span>
+        <span style="font-size:0.75rem;color:var(--fg2);" id="api-status-time">Checking…</span>
+      </div>
+      <div class="card-body">
+        <div id="api-status-loading" style="text-align:center;padding:30px;color:var(--fg2);">
+          <div class="spinner" style="width:28px;height:28px;border:3px solid rgba(148,163,184,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px;"></div>
+          Checking all services…
+        </div>
+        <div id="api-status-error" style="display:none;text-align:center;padding:30px;color:var(--accent3);">
+          Failed to load status. The backend health endpoint may be unreachable.
+        </div>
+        <div id="api-status-content" style="display:none;">
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.75rem;color:var(--fg2);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Core Services</div>
+            <div class="status-grid" id="status-services"></div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.75rem;color:var(--fg2);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Exchanges</div>
+            <div class="status-grid" id="status-exchanges"></div>
+          </div>
+          <div style="margin-bottom:16px;">
+            <div style="font-size:0.75rem;color:var(--fg2);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">AI Providers</div>
+            <div class="status-grid" id="status-ai"></div>
+          </div>
+          <div>
+            <div style="font-size:0.75rem;color:var(--fg2);font-weight:700;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Data Feeds</div>
+            <div class="status-grid" id="status-data"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- BUGS TAB -->
+  <!-- ---------------------------------------------------- -->
+  <div class="tab-panel" id="tab-bugs">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>?? Bugs to Fix</span>
+        <span style="font-size:0.75rem;color:var(--fg2);" id="bugs-time">Loading…</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div id="bugs-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading bugs…</div>
+        <div id="bugs-content" style="display:none;">
+          <table class="signal-table">
+            <thead>
+              <tr>
+                <th>Severity</th>
+                <th>Title</th>
+                <th>Source</th>
+                <th>Status</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody id="bugs-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- API DEBUGGER TAB -->
+  <!-- ---------------------------------------------------- -->
+  <div class="tab-panel" id="tab-api-debugger">
+    <!-- Stats -->
+    <div class="stat-grid" style="margin-bottom:20px;" id="api-dbg-stats">
+      <div class="stat-item"><div class="stat-label">Total Tests</div><div class="stat-value" id="api-dbg-stat-total">—</div></div>
+      <div class="stat-item"><div class="stat-label">Healthy</div><div class="stat-value" id="api-dbg-stat-healthy" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Down</div><div class="stat-value" id="api-dbg-stat-down" style="color:var(--accent3)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Timeouts</div><div class="stat-value" id="api-dbg-stat-timeout" style="color:#a78bfa">—</div></div>
+      <div class="stat-item"><div class="stat-label">Critical</div><div class="stat-value" id="api-dbg-stat-critical" style="color:var(--accent3)">—</div></div>
+    </div>
+    <!-- Toolbar -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">
+      <select id="api-dbg-filter-provider" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.9rem;cursor:pointer;">
+        <option value="">All Providers</option>
+        <option value="kimi">Kimi</option>
+        <option value="claude">Claude</option>
+        <option value="internal">Internal</option>
+      </select>
+      <select id="api-dbg-filter-status" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.9rem;cursor:pointer;">
+        <option value="">All Statuses</option>
+        <option value="healthy">Healthy</option>
+        <option value="degraded">Degraded</option>
+        <option value="down">Down</option>
+        <option value="timeout">Timeout</option>
+        <option value="error">Error</option>
+      </select>
+      <button onclick="loadApiDebugger()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:600;cursor:pointer;">Refresh</button>
+      <button onclick="triggerApiDebuggerScan()" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:0.85rem;cursor:pointer;">Run Scan Now</button>
+      <span style="font-size:0.75rem;color:var(--fg2);margin-left:auto;" id="api-dbg-time">Loading…</span>
+    </div>
+    <!-- Results Table -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">Recent Results</div>
+      <div class="card-body" style="padding:0;max-height:520px;overflow:auto;">
+        <div id="api-dbg-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading API health…</div>
+        <div id="api-dbg-content" style="display:none;">
+          <table class="signal-table">
+            <thead>
+              <tr>
+                <th>Provider</th>
+                <th>Endpoint</th>
+                <th>Status</th>
+                <th>HTTP</th>
+                <th>Latency</th>
+                <th>Error Category</th>
+                <th>Severity</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody id="api-dbg-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <!-- Bottom panels -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">Neural Review Summary</div>
+        <div class="card-body">
+          <div id="api-dbg-neural" style="color:var(--fg2);font-size:0.85rem;">No neural review data yet.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">Latest Error Detail</div>
+        <div class="card-body">
+          <div id="api-dbg-detail" style="color:var(--fg2);font-size:0.85rem;">Click a result row to view details.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- DIAGNOSTICS TAB -->
+  <!-- ---------------------------------------------------- -->
+  <div class="tab-panel" id="tab-diagnostics">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>?? System Diagnostics</span>
+        <span style="font-size:0.75rem;color:var(--fg2);" id="diag-time">Checking…</span>
+      </div>
+      <div class="card-body">
+        <div id="diag-loading" style="text-align:center;padding:30px;color:var(--fg2);">
+          <div class="spinner" style="width:28px;height:28px;border:3px solid rgba(148,163,184,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px;"></div>
+          Running diagnostics…
+        </div>
+        <div id="diag-error" style="display:none;text-align:center;padding:30px;color:var(--accent3);">
+          Failed to load diagnostics.
+        </div>
+        <div id="diag-content" style="display:none;">
+          <div class="diag-grid">
+            <!-- News Quality -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <span class="diag-card-title">?? News Feed Quality</span>
+                <span class="diag-badge" id="diag-news-badge">—</span>
+              </div>
+              <div id="diag-news-metrics"></div>
+            </div>
+            <!-- Signal Accuracy -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <span class="diag-card-title">?? Signal Accuracy (7d)</span>
+                <span class="diag-badge" id="diag-signal-badge">—</span>
+              </div>
+              <div id="diag-signal-metrics"></div>
+            </div>
+            <!-- Backtest Performance -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <span class="diag-card-title">?? Backtest Performance</span>
+              </div>
+              <div id="diag-backtest-metrics"></div>
+            </div>
+            <!-- Data Freshness -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <span class="diag-card-title">?? Data Freshness</span>
+              </div>
+              <div id="diag-freshness-metrics"></div>
+            </div>
+            <!-- System Performance -->
+            <div class="diag-card">
+              <div class="diag-card-header">
+                <span class="diag-card-title">?? System Performance</span>
+              </div>
+              <div id="diag-system-metrics"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- APP DEVELOPMENT PROPOSALS TAB -->
+  <!-- ---------------------------------------------------- -->
+  <div class="tab-panel" id="tab-app-dev">
+    <!-- Stats Row -->
+    <div class="stat-grid" style="margin-bottom:20px;" id="ad-stats">
+      <div class="stat-item"><div class="stat-label">Total Proposals</div><div class="stat-value" id="ad-stat-total">—</div></div>
+      <div class="stat-item"><div class="stat-label">Pending Review</div><div class="stat-value" id="ad-stat-pending" style="color:var(--accent2)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Approved</div><div class="stat-value" id="ad-stat-approved" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">In Progress</div><div class="stat-value" id="ad-stat-inprogress" style="color:#a78bfa">—</div></div>
+      <div class="stat-item"><div class="stat-label">Implemented</div><div class="stat-value" id="ad-stat-implemented" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Avg Impact Score</div><div class="stat-value" id="ad-stat-impact">—</div></div>
+    </div>
+
+    <!-- Toolbar -->
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">
+      <select id="ad-filter-status" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.9rem;cursor:pointer;">
+        <option value="">All Statuses</option>
+        <option value="pending">? Pending</option>
+        <option value="approved">? Approved</option>
+        <option value="rejected">? Rejected</option>
+        <option value="in_progress">?? In Progress</option>
+        <option value="implemented">?? Implemented</option>
+      </select>
+      <select id="ad-filter-category" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.9rem;cursor:pointer;">
+        <option value="">All Categories</option>
+        <option value="strategy">Strategy</option>
+        <option value="infrastructure">Infrastructure</option>
+        <option value="ui">UI / UX</option>
+        <option value="data">Data / Feeds</option>
+        <option value="risk">Risk / Safety</option>
+        <option value="automation">Automation</option>
+      </select>
+      <button onclick="loadAppDevProposals()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:600;cursor:pointer;">Refresh</button>
+      <button onclick="triggerConsolidation()" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:0.85rem;cursor:pointer;">Run Consolidation</button>
+      <span style="font-size:0.75rem;color:var(--fg2);margin-left:auto;" id="ad-time">Loading…</span>
+    </div>
+
+    <!-- Proposals Table -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">?? Capability Proposals</div>
+      <div class="card-body" style="padding:0;max-height:600px;overflow:auto;">
+        <div id="ad-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading proposals…</div>
+        <div id="ad-content" style="display:none;">
+          <table class="signal-table" style="min-width:900px;">
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Impact</th>
+                <th>Effort</th>
+                <th>Status</th>
+                <th>Capability Area</th>
+                <th>Created</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="ad-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail Panel -->
+    <div class="grid grid-2">
+      <div class="card">
+        <div class="card-header">?? Proposal Detail</div>
+        <div class="card-body">
+          <div id="ad-detail" style="color:var(--fg2);font-size:0.85rem;">Click a proposal row to view details and review notes.</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">??? Tag Cloud</div>
+        <div class="card-body">
+          <div id="ad-tags" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------- -->
+  <!-- AUTONOMOUS REPORT TAB -->
+  <!-- ---------------------------------------------------- -->
+  <div class="tab-panel" id="tab-autonomous">
+    <div class="stat-grid" style="margin-bottom:20px;" id="auto-stats">
+      <div class="stat-item"><div class="stat-label">Session Date</div><div class="stat-value" id="auto-stat-date">—</div></div>
+      <div class="stat-item"><div class="stat-label">Fixes Applied</div><div class="stat-value" id="auto-stat-fixes" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Files Modified</div><div class="stat-value" id="auto-stat-files">—</div></div>
+      <div class="stat-item"><div class="stat-label">Deploy Status</div><div class="stat-value" id="auto-stat-deploy" style="color:var(--accent2)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Duration</div><div class="stat-value" id="auto-stat-duration">—</div></div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>?? Autonomous Session Log</span>
+        <span style="font-size:0.75rem;color:var(--fg2);" id="auto-time">Loading…</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div id="auto-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading session data…</div>
+        <div id="auto-content" style="display:none;">
+          <table class="signal-table">
+            <thead>
+              <tr><th>#</th><th>Action</th><th>File</th><th>Status</th><th>Summary</th></tr>
+            </thead>
+            <tbody id="auto-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">?? Action Detail</div>
+      <div class="card-body" id="auto-detail" style="color:var(--fg2);font-size:0.85rem;">Click an action row to view the full description and fix applied.</div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  xsjprd55 Trading Signal Bot — Paper Mode — <a href="https://github.com/jpgyap-sudo/xsjprd55" style="color:var(--fg2);">GitHub</a>
+</footer>
+
+<script>
+// -- Tab Switching ------------------------------------
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabPanels = document.querySelectorAll('.tab-panel');
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    tabBtns.forEach(b => b.classList.remove('active'));
+    tabPanels.forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
+    // Scroll to top of content
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+// -- Market Data — Binance 24h Top Movers -------------
+async function loadMarketData() {
+  const grid = document.getElementById('stats-grid');
+  try {
+    const res = await fetch('/api/binance-ticker?limit=70&sort=absChange');
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error);
+    const perps = json.data;
+
+    grid.innerHTML = perps.map(t => {
+      const chg = t.changePct;
+      const color = chg >= 0 ? 'var(--accent)' : 'var(--accent3)';
+      const arrow = chg >= 0 ? '?' : '?';
+      const tvSymbol = 'BINANCE:' + t.symbol;
+      return `
+        <div class="stat-item" style="min-width:110px;cursor:pointer;transition:transform .12s,border-color .12s;border:1px solid transparent;"
+             onmouseenter="this.style.transform='translateY(-2px)';this.style.borderColor='var(--accent)'"
+             onmouseleave="this.style.transform='';this.style.borderColor='transparent'"
+             onclick="window.open('https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol)}','_blank')">
+          <div class="stat-label">${t.symbol.replace('USDT','')}</div>
+          <div class="stat-value" style="font-size:0.95rem;">$${Number(t.price).toLocaleString(undefined,{maximumFractionDigits:t.price<1?6:2})}</div>
+          <div class="stat-change" style="color:${color};font-size:0.78rem;">${arrow} ${Math.abs(chg).toFixed(2)}%</div>
+        </div>`;
+    }).join('') +
+    `<div class="stat-item" style="min-width:140px;align-self:center;">
+      <div class="stat-label" style="font-size:0.65rem;color:var(--fg2);">Updated</div>
+      <div class="stat-value" style="font-size:0.78rem;color:var(--fg2);">${new Date(json.fetchedAt).toLocaleTimeString()}</div>
+      <div class="stat-change" style="font-size:0.65rem;color:var(--fg2);">${json.totalPairs} pairs tracked</div>
+    </div>`;
+  } catch (e) {
+    grid.innerHTML = '<div class="stat-item" style="color:var(--accent3);">Market data unavailable</div>';
+  }
+}
+loadMarketData();
+setInterval(loadMarketData, 30000);
+
+// -- Signals ------------------------------------------
+async function loadSignals() {
+  try {
+    const res = await fetch('/api/signal');
+    const data = await res.json();
+    const tbody = document.getElementById('signals-tbody');
+    tbody.innerHTML = '';
+    if (data.signals && data.signals.length > 0) {
+      data.signals.forEach(s => renderSignal(tbody, s));
+    } else {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:20px;">No active signals. Market is quiet.</td></tr>';
+    }
+  } catch (e) {
+    document.getElementById('signals-tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--accent3);padding:20px;">Error loading signals</td></tr>';
+  }
+}
+
+function renderSignal(tbody, s) {
+  const tr = document.createElement('tr');
+  const sideClass = s.side === 'LONG' ? 'side-long' : s.side === 'SHORT' ? 'side-short' : 'side-close';
+  const confPct = Math.round((s.confidence || 0) * 100);
+  const confColor = confPct >= 70 ? 'var(--accent)' : confPct >= 50 ? 'var(--accent2)' : 'var(--accent3)';
+  tr.innerHTML = `
+    <td><strong>${s.symbol}</strong><br><span style="font-size:0.75rem;color:var(--fg2);">${s.strategy} · ${s.timeframe}</span></td>
+    <td><span class="side-badge ${sideClass}">${s.side}</span></td>
+    <td>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="conf-bar"><div class="conf-bar-inner" style="width:${confPct}%;background:${confColor};"></div></div>
+        <span style="font-size:0.8rem;">${confPct}%</span>
+      </div>
+    </td>
+    <td style="font-size:0.8rem;color:var(--fg2);">${new Date(s.generated_at).toLocaleTimeString()}</td>
+  `;
+  tbody.appendChild(tr);
+}
+loadSignals();
+setInterval(loadSignals, 30000);
+
+// -- Liquidation Intelligence -------------------------
+function fmtM(usd) {
+  if (usd >= 1e9) return '$' + (usd / 1e9).toFixed(2) + 'B';
+  if (usd >= 1e6) return '$' + (usd / 1e6).toFixed(1) + 'M';
+  if (usd >= 1e3) return '$' + (usd / 1e3).toFixed(1) + 'K';
+  return '$' + usd.toFixed(0);
+}
+
+async function loadLiquidationIntel() {
+  const loading = document.getElementById('liq-loading');
+  const content = document.getElementById('liq-content');
+  const error = document.getElementById('liq-error');
+  const bestShort = document.getElementById('liq-best-short');
+  const bestLong = document.getElementById('liq-best-long');
+  const topShortsBody = document.getElementById('liq-top-shorts-body');
+  const topLongsBody = document.getElementById('liq-top-longs-body');
+  const alerts = document.getElementById('liq-alerts');
+  const timestamp = document.getElementById('liq-timestamp');
+
+  try {
+    const res = await fetch('/api/liquidation');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+
+    const ts = data.timestamp ? new Date(data.timestamp).toLocaleString() : new Date().toLocaleString();
+    if (timestamp) timestamp.textContent = 'Last updated: ' + ts;
+
+    if (data.bestShort) {
+      const s = data.bestShort;
+      bestShort.innerHTML = `
+        <div style="font-size:0.75rem;color:var(--accent3);font-weight:700;margin-bottom:4px;">?? BEST SHORT</div>
+        <div style="font-size:1.05rem;font-weight:700;">${s.symbol} @ $${Number(s.price).toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
+        <div style="font-size:0.8rem;color:var(--fg2);margin-top:4px;">
+          Funding: <span style="color:${s.fundingAnnualized > 100 ? 'var(--accent3)' : 'var(--accent)'}">${s.fundingAnnualized.toFixed(1)}%</span> ann. ·
+          OI: ${fmtM(s.openInterestUsd)} ·
+          Risk: ${s.riskScore}/100 · Score: ${s.shortScore?.toFixed(1) || '—'}
+        </div>
+        <div style="font-size:0.78rem;color:var(--fg2);margin-top:6px;">${s.reason}</div>
+      `;
+    } else { bestShort.innerHTML = '<div style="padding:8px;color:var(--fg2);font-size:0.85rem;">No clear short setup</div>'; }
+
+    if (data.bestLong) {
+      const s = data.bestLong;
+      bestLong.innerHTML = `
+        <div style="font-size:0.75rem;color:var(--accent);font-weight:700;margin-bottom:4px;">?? BEST LONG</div>
+        <div style="font-size:1.05rem;font-weight:700;">${s.symbol} @ $${Number(s.price).toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
+        <div style="font-size:0.8rem;color:var(--fg2);margin-top:4px;">
+          Funding: <span style="color:${s.fundingAnnualized < -100 ? 'var(--accent)' : 'var(--accent3)'}">${s.fundingAnnualized.toFixed(1)}%</span> ann. ·
+          OI: ${fmtM(s.openInterestUsd)} ·
+          Risk: ${s.riskScore}/100 · Score: ${s.longScore?.toFixed(1) || '—'}
+        </div>
+        <div style="font-size:0.78rem;color:var(--fg2);margin-top:6px;">${s.reason}</div>
+      `;
+    } else { bestLong.innerHTML = '<div style="padding:8px;color:var(--fg2);font-size:0.85rem;">No clear long setup</div>'; }
+
+    if (data.topShorts?.length) {
+      topShortsBody.innerHTML = data.topShorts.map((s, i) => {
+        const fundColor = s.fundingAnnualized > 100 ? 'var(--accent3)' : s.fundingAnnualized > 50 ? 'var(--accent2)' : 'var(--fg2)';
+        const exchanges = (s.exchanges || []).map(e => e.slice(0,3)).join(', ');
+        return `<tr>
+          <td style="font-weight:700;color:var(--accent3);font-size:0.8rem;">${i + 1}</td>
+          <td style="font-weight:600;">${s.symbol}</td>
+          <td>$${Number(s.price).toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>
+          <td style="color:${fundColor};font-weight:600;">${s.fundingAnnualized.toFixed(1)}%</td>
+          <td>${fmtM(s.openInterestUsd)}</td>
+          <td style="font-weight:700;">${s.shortScore?.toFixed(1) || '—'}</td>
+          <td style="font-size:0.72rem;color:var(--fg2);">${exchanges}</td>
+        </tr>`;
+      }).join('');
+    } else {
+      topShortsBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg2);padding:12px;">No short recommendations</td></tr>';
+    }
+
+    if (data.topLongs?.length) {
+      topLongsBody.innerHTML = data.topLongs.map((s, i) => {
+        const fundColor = s.fundingAnnualized < -100 ? 'var(--accent)' : s.fundingAnnualized < -50 ? 'var(--accent2)' : 'var(--fg2)';
+        const exchanges = (s.exchanges || []).map(e => e.slice(0,3)).join(', ');
+        return `<tr>
+          <td style="font-weight:700;color:var(--accent);font-size:0.8rem;">${i + 1}</td>
+          <td style="font-weight:600;">${s.symbol}</td>
+          <td>$${Number(s.price).toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>
+          <td style="color:${fundColor};font-weight:600;">${s.fundingAnnualized.toFixed(1)}%</td>
+          <td>${fmtM(s.openInterestUsd)}</td>
+          <td style="font-weight:700;">${s.longScore?.toFixed(1) || '—'}</td>
+          <td style="font-size:0.72rem;color:var(--fg2);">${exchanges}</td>
+        </tr>`;
+      }).join('');
+    } else {
+      topLongsBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg2);padding:12px;">No long recommendations</td></tr>';
+    }
+
+    if (data.alerts?.length) {
+      alerts.innerHTML = '<div style="font-size:0.75rem;color:var(--accent2);font-weight:700;margin-bottom:8px;">? LIQUIDATION ALERTS</div>' +
+        data.alerts.slice(0, 6).map(a =>
+          `<div style="font-size:0.78rem;padding:6px 0;border-bottom:1px solid rgba(30,37,56,0.4);color:${a.severity==='high'?'var(--accent3)':'var(--accent2)'}">
+            <span style="font-weight:700;">${a.type === 'overleveraged_longs' ? '??' : a.type === 'overleveraged_shorts' ? '??' : '?'}</span> ${a.message}
+          </div>`
+        ).join('');
+    } else { alerts.innerHTML = '<div style="font-size:0.78rem;color:var(--fg2);">No active liquidation alerts</div>'; }
+  } catch (e) {
+    loading.style.display = 'none';
+    content.style.display = 'none';
+    error.style.display = 'block';
+  }
+}
+loadLiquidationIntel();
+setInterval(loadLiquidationIntel, 60000);
+
+// -- News Feed ----------------------------------------
+async function loadNewsFeed() {
+  const loading = document.getElementById('news-loading');
+  const content = document.getElementById('news-content');
+  const error = document.getElementById('news-error');
+  const overall = document.getElementById('news-overall');
+  const list = document.getElementById('news-list');
+
+  try {
+    const res = await fetch('/api/news-feed?limit=15&hours=12');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'News API error');
+
+    // Handle empty but valid response gracefully
+    if (!data.items || data.items.length === 0) {
+      loading.style.display = 'none';
+      error.style.display = 'none';
+      content.style.display = 'block';
+      overall.innerHTML = '<div style="color:var(--fg2);">Market Sentiment: <span style="font-weight:700;">No Data</span></div>';
+      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--fg2);font-size:0.85rem;">No news articles yet. The news crawler will populate this soon.</div>';
+      return;
+    }
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+
+    const score = data.overallScore || 0;
+    const sentColor = score > 0.2 ? 'var(--accent)' : score < -0.2 ? 'var(--accent3)' : 'var(--accent2)';
+    const sentLabel = score > 0.2 ? 'Bullish' : score < -0.2 ? 'Bearish' : 'Neutral';
+    overall.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span>Market Sentiment:</span>
+        <span style="color:${sentColor};font-weight:700;">${sentLabel}</span>
+        <span style="color:var(--fg2);font-weight:400;">(${score.toFixed(2)})</span>
+        <span style="margin-left:auto;color:var(--fg2);font-weight:400;">${data.itemCount} articles</span>
+      </div>`;
+
+    list.innerHTML = data.items.map(item => {
+      const impactColor = item.impact === 'bullish' ? 'var(--accent)' : item.impact === 'bearish' ? 'var(--accent3)' : 'var(--fg2)';
+      const impactIcon = item.impact === 'bullish' ? '??' : item.impact === 'bearish' ? '??' : '??';
+      const assetTags = item.detectedAssets.map(a => `<span style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.7rem;color:var(--fg2);">${a.symbol.replace('USDT','')}</span>`).join(' ');
+      const urgency = item.hasUrgency ? '<span style="color:var(--accent3);font-size:0.7rem;font-weight:700;">BREAKING</span>' : '';
+      const pubDate = item.publishedAt || item.ingestedAt || item.created_at;
+      const timeStr = pubDate ? new Date(pubDate).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      return `
+        <div style="padding:10px 18px;border-bottom:1px solid rgba(30,37,56,0.4);">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+            <span style="font-size:0.75rem;color:var(--fg2);">${item.source}</span>
+            ${urgency}
+            <span style="margin-left:auto;font-size:0.7rem;color:var(--fg2);">${timeStr}</span>
+          </div>
+          <a href="${item.url}" target="_blank" style="color:var(--fg);text-decoration:none;font-size:0.82rem;font-weight:500;line-height:1.4;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${item.title}</a>
+          <div style="margin-top:4px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            ${assetTags}
+            <span style="margin-left:auto;font-size:0.75rem;color:${impactColor};">${impactIcon} ${(item.sentimentScore || 0).toFixed(2)}</span>
+          </div>
+        </div>`;
+    }).join('');
+
+  } catch (e) {
+    loading.style.display = 'none';
+    content.style.display = 'none';
+    error.style.display = 'block';
+  }
+}
+loadNewsFeed();
+setInterval(loadNewsFeed, 120000);
+
+// -- Chart symbol switcher ----------------------------
+document.getElementById('chart-symbol').addEventListener('change', function() {
+  const symbol = this.value;
+  const container = document.getElementById('tv-chart');
+  container.innerHTML = '<div class="tradingview-widget-container__widget" style="height:460px;"></div>';
+  const script = document.createElement('script');
+  script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  script.async = true;
+  script.innerHTML = JSON.stringify({
+    autosize: true, symbol: symbol, interval: "15", timezone: "Etc/UTC",
+    theme: "dark", style: "1", locale: "en", enable_publishing: false,
+    backgroundColor: "rgba(18, 22, 32, 1)", gridColor: "rgba(30, 37, 56, 0.5)",
+    allow_symbol_change: false, calendar: false
+  });
+  container.appendChild(script);
+});
+
+// -- AI Chat ------------------------------------------
+const chatBody = document.getElementById('chat-body');
+const chatInput = document.getElementById('chat-input');
+const chatSend = document.getElementById('chat-send');
+let chatHistory = [];
+
+chatInput.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+chatInput.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+chatSend.addEventListener('click', sendMessage);
+
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('suggestion-chip')) {
+    chatInput.value = e.target.dataset.q;
+    sendMessage();
+  }
+});
+
+async function sendMessage() {
+  const text = chatInput.value.trim();
+  if (!text) return;
+
+  const userMsg = document.createElement('div');
+  userMsg.className = 'msg user';
+  userMsg.textContent = text;
+  chatBody.appendChild(userMsg);
+  chatInput.value = '';
+  chatInput.style.height = 'auto';
+  chatBody.scrollTop = chatBody.scrollHeight;
+
+  const typing = document.createElement('div');
+  typing.className = 'typing';
+  typing.innerHTML = '<span></span><span></span><span></span>';
+  chatBody.appendChild(typing);
+  chatBody.scrollTop = chatBody.scrollHeight;
+
+  chatSend.disabled = true;
+
+  try {
+    const res = await fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: text, chatHistory })
+    });
+    const data = await res.json();
+    typing.remove();
+
+    const aiMsg = document.createElement('div');
+    aiMsg.className = 'msg ai';
+    if (data.ok) {
+      let html = data.answer
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/`(.+?)`/g, '<code>$1</code>')
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        .replace(/^- (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/s, '<ul style="margin:8px 0 0 18px;">$1</ul>')
+        .replace(/\n/g, '<br>');
+      aiMsg.innerHTML = html;
+
+      chatHistory.push({ role: 'user', content: text });
+      chatHistory.push({ role: 'assistant', content: data.answer });
+      if (chatHistory.length > 12) chatHistory = chatHistory.slice(-12);
+    } else {
+      aiMsg.textContent = 'Error: ' + (data.error || 'Unknown error');
+    }
+    chatBody.appendChild(aiMsg);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  } catch (e) {
+    typing.remove();
+    const errMsg = document.createElement('div');
+    errMsg.className = 'msg ai';
+    errMsg.style.color = 'var(--accent3)';
+    errMsg.textContent = 'Network error. Please try again.';
+    chatBody.appendChild(errMsg);
+    chatBody.scrollTop = chatBody.scrollHeight;
+  } finally {
+    chatSend.disabled = false;
+  }
+}
+
+// -- Catalyst Watch -----------------------------------
+async function loadCatalysts() {
+  const loading = document.getElementById('catalyst-loading');
+  const content = document.getElementById('catalyst-content');
+  const error = document.getElementById('catalyst-error');
+  const highDiv = document.getElementById('catalyst-high');
+  const readingsDiv = document.getElementById('catalyst-readings');
+  const levelsDiv = document.getElementById('catalyst-levels');
+  const bottomDiv = document.getElementById('catalyst-bottom');
+
+  try {
+    const res = await fetch('/api/catalyst');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+    const ts = document.getElementById('catalyst-timestamp');
+    if (ts) ts.textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+    if (data.high?.length) {
+      highDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--accent3);font-weight:700;margin-bottom:10px;">?? HIGH IMPACT CATALYSTS</div>' +
+        data.high.map(c => {
+          const dirColor = c.direction === 'bearish' ? 'var(--accent3)' : c.direction === 'bullish' ? 'var(--accent)' : 'var(--accent2)';
+          const dirLabel = c.direction === 'bearish' ? '?? Bearish Risk' : c.direction === 'bullish' ? '?? Bullish Setup' : '? Both Ways';
+          const urgencyBadge = c.urgency === 'high' ? '<span style="background:rgba(239,68,68,0.15);color:var(--accent3);padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:700;margin-left:6px;">URGENT</span>' : '';
+          const alertBox = c.alert ? `<div style="margin-top:8px;padding:8px 10px;background:rgba(239,68,68,0.08);border-left:3px solid var(--accent3);border-radius:4px;font-size:0.78rem;color:var(--accent3);">${c.alert}</div>` : '';
+          const affectedTags = (c.affected || []).map(a => `<span style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.7rem;color:var(--fg2);">${a.replace('USDT','')}</span>`).join(' ');
+          return `
+            <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(30,37,56,0.4);">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span style="font-size:1.1rem;">${c.emoji}</span>
+                <span style="font-weight:700;font-size:0.9rem;">${c.title}</span>
+                ${urgencyBadge}
+              </div>
+              <div style="font-size:0.78rem;color:var(--fg2);margin-bottom:4px;"><strong>Watch:</strong> ${c.watch}</div>
+              <div style="font-size:0.78rem;color:var(--fg2);margin-bottom:6px;">${c.why}</div>
+              <div style="font-size:0.78rem;color:var(--fg2);margin-bottom:4px;"><strong>Impact:</strong> <span style="color:${dirColor};font-weight:600;">${c.impact}</span></div>
+              <div style="font-size:0.75rem;">${affectedTags}</div>
+              ${alertBox}
+            </div>`;
+        }).join('');
+    } else { highDiv.innerHTML = '<div style="padding:8px;color:var(--fg2);font-size:0.85rem;">No high-impact catalysts</div>'; }
+
+    if (data.readings?.length) {
+      readingsDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--accent2);font-weight:700;margin-bottom:10px;">?? WHAT THE DATA IS TELLING YOU</div>' +
+        '<table style="width:100%;font-size:0.8rem;border-collapse:collapse;">' +
+        '<thead><tr style="color:var(--fg2);font-size:0.7rem;text-align:left;"><th style="padding:4px 0;">Signal</th><th>Reading</th><th>Implication</th></tr></thead><tbody>' +
+        data.readings.map(r => {
+          const sigColor = r.signal === 'contrarian_buy' ? 'var(--accent)' : r.signal === 'short_risk' ? 'var(--accent3)' : r.signal === 'squeeze_potential' ? 'var(--accent)' : 'var(--accent2)';
+          const sigIcon = r.signal === 'contrarian_buy' ? '??' : r.signal === 'short_risk' ? '??' : r.signal === 'squeeze_potential' ? '??' : '?';
+          return `<tr style="border-bottom:1px solid rgba(30,37,56,0.3);"><td style="padding:6px 0;font-weight:600;">${r.label}</td><td style="color:${sigColor};font-weight:700;">${r.value}</td><td style="color:var(--fg2);">${r.implication} ${sigIcon}</td></tr>`;
+        }).join('') + '</tbody></table>';
+    } else { readingsDiv.style.display = 'none'; }
+
+    if (data.levels) {
+      levelsDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--fg2);font-weight:700;margin-bottom:10px;">? KEY PRICE LEVELS TO WATCH</div>' +
+        Object.entries(data.levels).map(([sym, lvl]) =>
+          `<div style="font-size:0.85rem;margin-bottom:6px;"><strong>${sym}:</strong> <span style="color:var(--accent3);">Support ${lvl.support}</span> | <span style="color:var(--accent);">Resistance ${lvl.resistance}</span></div>`
+        ).join('');
+    } else { levelsDiv.style.display = 'none'; }
+
+    if (data.bottomLine) {
+      bottomDiv.innerHTML = '<div style="font-size:0.75rem;color:var(--accent2);font-weight:700;margin-bottom:8px;">?? BOTTOM LINE</div>' +
+        `<div style="font-size:0.85rem;line-height:1.6;color:var(--fg);">${data.bottomLine}</div>`;
+    } else { bottomDiv.style.display = 'none'; }
+
+  } catch (e) {
+    loading.style.display = 'none';
+    content.style.display = 'none';
+    error.style.display = 'block';
+  }
+}
+loadCatalysts();
+setInterval(loadCatalysts, 300000);
+
+// -- Research Agent -----------------------------------
+async function loadResearchAgent() {
+  const loading = document.getElementById('ra-loading');
+  const proposalsContent = document.getElementById('ra-proposals-content');
+  const backtestsContent = document.getElementById('ra-backtests-content');
+  const sourcesContent = document.getElementById('ra-sources-content');
+
+  try {
+    const res = await fetch('/api/research-agent-dashboard');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    if (loading) loading.style.display = 'none';
+
+    // Stats
+    document.getElementById('ra-stat-sources').textContent = data.recentSources?.length ?? '—';
+    document.getElementById('ra-stat-proposals').textContent = data.proposals?.length ?? '—';
+    document.getElementById('ra-stat-backtests').textContent = data.backtests?.length ?? '—';
+    document.getElementById('ra-stat-promoted').textContent = data.promotedStrategies?.length ?? '—';
+
+    // ML Model status
+    const modelEl = document.getElementById('ra-stat-model');
+    if (data.mlModel) {
+      const acc = data.mlModel.metrics?.accuracy != null ? (data.mlModel.metrics.accuracy * 100).toFixed(1) + '%' : '?';
+      modelEl.textContent = `${data.mlModel.name} · acc ${acc}`;
+      modelEl.style.color = 'var(--accent)';
+    } else {
+      modelEl.textContent = 'No model';
+      modelEl.style.color = 'var(--fg2)';
+    }
+
+    // Proposals
+    const propBody = document.getElementById('ra-proposals-body');
+    if (data.proposals?.length) {
+      propBody.innerHTML = data.proposals.map(p => {
+        const status = p.promoted ? '?? Promoted' : p.rejected ? '? Rejected' : p.tested ? '? Tested' : '? Pending';
+        const statusColor = p.promoted ? 'var(--accent)' : p.rejected ? 'var(--accent3)' : 'var(--accent2)';
+        return `<tr>
+          <td style="font-weight:600;font-size:0.85rem;">${p.name}</td>
+          <td style="font-size:0.8rem;">${(p.confidence * 100).toFixed(0)}%</td>
+          <td style="font-size:0.75rem;color:var(--fg2);">${(p.rules || []).slice(0,2).join(', ')}${(p.rules || []).length > 2 ? '…' : ''}</td>
+          <td style="font-size:0.75rem;color:${statusColor};font-weight:600;">${status}</td>
+        </tr>`;
+      }).join('');
+      proposalsContent.style.display = 'block';
+    } else {
+      propBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:16px;">No proposals yet.</td></tr>';
+      proposalsContent.style.display = 'block';
+    }
+
+    // Backtests
+    const btBody = document.getElementById('ra-backtests-body');
+    if (data.backtests?.length) {
+      btBody.innerHTML = data.backtests.map(b => {
+        const retColor = b.totalReturnPct > 0 ? 'var(--accent)' : b.totalReturnPct < 0 ? 'var(--accent3)' : 'var(--fg2)';
+        return `<tr>
+          <td style="font-weight:600;font-size:0.85rem;">${b.strategyName}</td>
+          <td>${b.totalTrades}</td>
+          <td style="color:${retColor};font-weight:700;">${b.totalReturnPct?.toFixed(2) ?? 0}%</td>
+          <td>${((b.winRate || 0) * 100).toFixed(1)}%</td>
+          <td>${b.sharpeRatio?.toFixed(2) ?? '—'}</td>
+        </tr>`;
+      }).join('');
+      backtestsContent.style.display = 'block';
+    } else {
+      btBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--fg2);padding:16px;">No backtests yet.</td></tr>';
+      backtestsContent.style.display = 'block';
+    }
+
+    // Promoted
+    const promotedDiv = document.getElementById('ra-promoted');
+    if (data.promotedStrategies?.length) {
+      promotedDiv.innerHTML = data.promotedStrategies.map(p =>
+        `<span style="display:inline-block;background:rgba(16,185,129,0.12);color:var(--accent);padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:600;margin:0 6px 6px 0;">
+          ?? ${p.name} · ${(p.winRate * 100).toFixed(0)}% WR · $${Number(p.totalPnl).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+        </span>`
+      ).join('');
+    } else {
+      promotedDiv.innerHTML = '<span style="color:var(--fg2);font-size:0.8rem;">No strategies promoted yet. Need =30 trades with =54% win rate.</span>';
+    }
+
+    // Sources
+    const srcBody = document.getElementById('ra-sources-body');
+    if (data.recentSources?.length) {
+      srcBody.innerHTML = data.recentSources.map(s => {
+        const hints = (s.hints || []).slice(0, 3).join(', ');
+        const usedBadge = s.used
+          ? '<span style="background:rgba(16,185,129,0.12);color:var(--accent);padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:600;">USED</span>'
+          : '<span style="background:var(--bg3);color:var(--fg2);padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:600;">NEW</span>';
+        return `<tr>
+          <td style="font-weight:600;font-size:0.85rem;">${s.sourceName}</td>
+          <td style="font-size:0.75rem;color:var(--fg2);">${hints || '—'}</td>
+          <td>${usedBadge}</td>
+          <td style="font-size:0.75rem;color:var(--fg2);">${new Date(s.createdAt).toLocaleString()}</td>
+        </tr>`;
+      }).join('');
+      sourcesContent.style.display = 'block';
+    } else {
+      srcBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--fg2);padding:16px;">No research sources yet.</td></tr>';
+      sourcesContent.style.display = 'block';
+    }
+
+    // ML Health (async, non-blocking)
+    try {
+      const mlRes = await fetch('/api/ml-health');
+      const mlData = await mlRes.json();
+      if (mlData.ok && mlData.model_count != null) {
+        modelEl.textContent += ` · ${mlData.model_count} model${mlData.model_count !== 1 ? 's' : ''} loaded`;
+      }
+    } catch (e) {}
+
+  } catch (e) {
+    if (loading) loading.style.display = 'none';
+    console.error('Research Agent load error:', e);
+  }
+}
+loadResearchAgent();
+setInterval(loadResearchAgent, 60000);
+
+// -- Mock Trading -------------------------------------
+async function loadMockTrading() {
+  try {
+    const res = await fetch('/api/mock-trading-dashboard');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    // Account stats
+    const acc = data.account || {};
+    const bal = acc.balance != null ? '$' + Number(acc.balance).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
+    const peak = acc.peak != null ? '$' + Number(acc.peak).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
+    const ret = acc.totalReturnPct != null ? (acc.totalReturnPct >= 0 ? '+' : '') + acc.totalReturnPct.toFixed(2) + '%' : '—';
+    const retColor = acc.totalReturnPct > 0 ? 'var(--accent)' : acc.totalReturnPct < 0 ? 'var(--accent3)' : 'var(--fg2)';
+
+    document.getElementById('mt-balance').textContent = bal;
+    document.getElementById('mt-peak').textContent = peak;
+    const retEl = document.getElementById('mt-return');
+    retEl.textContent = ret;
+    retEl.style.color = retColor;
+
+    const summary = data.summary || {};
+    const wr = summary.winRate != null ? (summary.winRate * 100).toFixed(1) + '%' : '—';
+    const wrColor = summary.winRate >= 0.54 ? 'var(--accent)' : summary.winRate >= 0.45 ? 'var(--accent2)' : 'var(--accent3)';
+    const wrEl = document.getElementById('mt-winrate');
+    wrEl.textContent = wr;
+    wrEl.style.color = wrColor;
+    document.getElementById('mt-trades').textContent = summary.totalTrades ?? '—';
+    document.getElementById('mt-open').textContent = summary.openTradeCount ?? '—';
+
+    // Open trades
+    const openLoading = document.getElementById('mt-open-loading');
+    const openContent = document.getElementById('mt-open-content');
+    const openBody = document.getElementById('mt-open-body');
+    if (openLoading) openLoading.style.display = 'none';
+    if (data.openTrades?.length) {
+      openBody.innerHTML = data.openTrades.map(t => `
+        <tr>
+          <td><strong>${t.symbol}</strong><br><span style="font-size:0.75rem;color:var(--fg2);">${t.strategy}</span></td>
+          <td><span class="side-badge ${t.side === 'LONG' ? 'side-long' : 'side-short'}">${t.side}</span></td>
+          <td style="font-size:0.85rem;">$${Number(t.entryPrice).toLocaleString(undefined, { maximumFractionDigits: 1 })}</td>
+          <td style="font-size:0.85rem;">$${Number(t.sizeUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+          <td style="font-size:0.85rem;">${t.leverage}x</td>
+        </tr>
+      `).join('');
+      openContent.style.display = 'block';
+    } else {
+      openBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--fg2);padding:16px;">No open positions.</td></tr>';
+      openContent.style.display = 'block';
+    }
+
+    // Closed trades
+    const closedContent = document.getElementById('mt-closed-content');
+    const closedBody = document.getElementById('mt-closed-body');
+    if (data.closedTrades?.length) {
+      closedBody.innerHTML = data.closedTrades.slice(0, 20).map(t => {
+        const pnlColor = t.pnlUsd > 0 ? 'var(--accent)' : t.pnlUsd < 0 ? 'var(--accent3)' : 'var(--fg2)';
+        return `<tr>
+          <td><strong>${t.symbol}</strong><br><span style="font-size:0.75rem;color:var(--fg2);">${t.strategy}</span></td>
+          <td><span class="side-badge ${t.side === 'LONG' ? 'side-long' : 'side-short'}">${t.side}</span></td>
+          <td style="font-size:0.85rem;font-weight:700;">${t.leverage}x</td>
+          <td style="color:${pnlColor};font-weight:700;">$${Number(t.pnlUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+          <td style="color:${pnlColor};font-weight:700;">${t.pnlPct?.toFixed(2) ?? '—'}%</td>
+        </tr>`;
+      }).join('');
+      closedContent.style.display = 'block';
+    } else {
+      closedBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--fg2);padding:16px;">No closed trades yet.</td></tr>';
+      closedContent.style.display = 'block';
+    }
+
+    // Strategy stats
+    const stratContent = document.getElementById('mt-strat-content');
+    const stratBody = document.getElementById('mt-strat-body');
+    if (data.strategyStats?.length) {
+      stratBody.innerHTML = data.strategyStats.map(s => {
+        const pnlColor = s.totalPnl > 0 ? 'var(--accent)' : s.totalPnl < 0 ? 'var(--accent3)' : 'var(--fg2)';
+        return `<tr>
+          <td style="font-weight:600;font-size:0.85rem;">${s.strategy}</td>
+          <td>${s.trades}</td>
+          <td style="color:var(--accent);">${s.wins}</td>
+          <td style="color:var(--accent3);">${s.losses}</td>
+          <td style="font-weight:700;">${(s.winRate * 100).toFixed(1)}%</td>
+          <td style="color:${pnlColor};font-weight:700;">$${Number(s.totalPnl).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+          <td>${s.avgReturn?.toFixed(2) ?? '—'}%</td>
+        </tr>`;
+      }).join('');
+      stratContent.style.display = 'block';
+    } else {
+      stratBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg2);padding:16px;">No strategy stats yet.</td></tr>';
+      stratContent.style.display = 'block';
+    }
+
+    // Analysis
+    const best = summary.bestTrade || 0;
+    const worst = summary.worstTrade || 0;
+    const dd = summary.maxDrawdown || 0;
+    const avg = summary.avgReturn || 0;
+
+    document.getElementById('mt-best').textContent = best > 0 ? '+$' + Number(best).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
+    document.getElementById('mt-worst').textContent = worst < 0 ? '-$' + Math.abs(Number(worst)).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
+    document.getElementById('mt-drawdown').textContent = dd > 0 ? '-$' + Number(dd).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
+    const avgEl = document.getElementById('mt-avg');
+    avgEl.textContent = avg != null ? avg.toFixed(2) + '%' : '—';
+    avgEl.style.color = avg > 0 ? 'var(--accent)' : avg < 0 ? 'var(--accent3)' : 'var(--fg2)';
+
+    // RL Decision (async, non-blocking)
+    try {
+      const rlRes = await fetch('/api/ml-rl', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          marketFeatures: { close: acc.balance || 10000, rsi: 50, atr: 100 },
+          portfolioState: { cash: acc.balance || 10000, position: summary.openTradeCount || 0, drawdown: dd }
+        })
+      });
+      const rlData = await rlRes.json();
+      if (rlData.ok && rlData.decision) {
+        const d = rlData.decision;
+        const actionColor = d.action === 'LONG' ? 'var(--accent)' : d.action === 'SHORT' ? 'var(--accent3)' : 'var(--fg2)';
+        const rlDiv = document.createElement('div');
+        rlDiv.style.cssText = 'margin-top:12px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:0.8rem;';
+        rlDiv.innerHTML = `
+          <div style="font-weight:700;margin-bottom:4px;">?? RL Agent Suggestion</div>
+          <div>Action: <span style="color:${actionColor};font-weight:700;">${d.action}</span> · Size: ${d.size_pct ?? '—'}% · Confidence: ${d.confidence ?? '—'}</div>
+          ${d.reason ? `<div style="color:var(--fg2);margin-top:4px;">${d.reason}</div>` : ''}
+        `;
+        const analysisDiv = document.getElementById('mt-analysis');
+        if (analysisDiv && !analysisDiv.querySelector('.rl-decision')) {
+          rlDiv.classList.add('rl-decision');
+          analysisDiv.appendChild(rlDiv);
+        }
+      }
+    } catch (e) {}
+
+  } catch (e) {
+    console.error('Mock Trading load error:', e);
+  }
+}
+loadMockTrading();
+setInterval(loadMockTrading, 60000);
+
+// -- API Status ---------------------------------------
+async function loadApiStatus() {
+  const loading = document.getElementById('api-status-loading');
+  const content = document.getElementById('api-status-content');
+  const error = document.getElementById('api-status-error');
+  const timeEl = document.getElementById('api-status-time');
+
+  try {
+    const res = await fetch('/api/health');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+    timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+    const renderGroup = (containerId, group) => {
+      const container = document.getElementById(containerId);
+      if (!group || !Object.keys(group).length) {
+        container.innerHTML = '<div style="color:var(--fg2);font-size:0.8rem;">No services configured</div>';
+        return;
+      }
+      container.innerHTML = Object.entries(group).map(([name, s]) => {
+        const isOnline = s.ok;
+        const isWarn = !s.ok && s.configured;
+        const dotClass = isOnline ? 'online' : isWarn ? 'warn' : 'offline';
+        const statusText = isOnline ? 'Online' : s.configured ? 'Offline' : 'Not Configured';
+        const latencyText = s.latency != null ? ` · ${s.latency}ms` : '';
+        const errorText = s.error ? `<div style="font-size:0.7rem;color:var(--accent3);margin-top:2px;">${s.error}</div>` : '';
+        return `
+          <div class="status-item ${isOnline ? '' : 'offline'}">
+            <div class="status-dot-sm ${dotClass}"></div>
+            <div class="status-info">
+              <div style="font-weight:600;font-size:0.85rem;">${name}</div>
+              <div style="font-size:0.75rem;color:var(--fg2);">${statusText}${latencyText}</div>
+              ${errorText}
+            </div>
+          </div>`;
+      }).join('');
+    };
+
+    renderGroup('status-services', data.checks?.services);
+    renderGroup('status-exchanges', data.checks?.exchanges);
+    renderGroup('status-ai', data.checks?.ai);
+    renderGroup('status-data', data.checks?.data_feeds);
+
+  } catch (e) {
+    loading.style.display = 'none';
+    content.style.display = 'none';
+    error.style.display = 'block';
+    timeEl.textContent = 'Check failed';
+  }
+}
+loadApiStatus();
+setInterval(loadApiStatus, 30000);
+
+// -- Diagnostics --------------------------------------
+async function loadDiagnostics() {
+  const loading = document.getElementById('diag-loading');
+  const content = document.getElementById('diag-content');
+  const error = document.getElementById('diag-error');
+  const timeEl = document.getElementById('diag-time');
+
+  try {
+    const res = await fetch('/api/diagnostics');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    loading.style.display = 'none';
+    error.style.display = 'none';
+    content.style.display = 'block';
+    timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+    // News
+    const news = data.news || {};
+    const newsBadge = document.getElementById('diag-news-badge');
+    if (newsBadge) {
+      newsBadge.className = 'diag-badge ' + (news.freshness || 'no-data');
+      newsBadge.textContent = news.freshness === 'fresh' ? 'Fresh' : news.freshness === 'stale' ? 'Stale' : news.freshness === 'warn' ? 'Warning' : 'No Data';
+    }
+    document.getElementById('diag-news-metrics').innerHTML = news.ok ? `
+      <div class="diag-metric"><span class="diag-metric-label">Last Ingest</span><span class="diag-metric-value">${news.lastIngestAgo}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Total Articles</span><span class="diag-metric-value">${news.totalArticles.toLocaleString()}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Active Sources (24h)</span><span class="diag-metric-value">${news.activeSources24h}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Sources</span><span class="diag-metric-value" style="font-size:0.75rem;color:var(--fg2);">${(news.sourceNames || []).join(', ') || '—'}</span></div>
+    ` : `<div style="color:var(--accent3);font-size:0.85rem;">Error: ${news.error}</div>`;
+
+    // Signals
+    const sig = data.signals || {};
+    const sigBadge = document.getElementById('diag-signal-badge');
+    if (sigBadge) {
+      const sr = sig.winRate || 0;
+      sigBadge.className = 'diag-badge ' + (sr >= 0.6 ? 'fresh' : sr >= 0.5 ? 'warn' : 'stale');
+      sigBadge.textContent = (sr * 100).toFixed(0) + '% WR';
+    }
+    document.getElementById('diag-signal-metrics').innerHTML = sig.ok ? `
+      <div class="diag-metric"><span class="diag-metric-label">Signals (7d)</span><span class="diag-metric-value">${sig.signals7d}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">With Outcome</span><span class="diag-metric-value">${sig.withOutcome}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Wins / Losses</span><span class="diag-metric-value" style="color:var(--accent);">${sig.wins}</span> / <span style="color:var(--accent3);">${sig.losses}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Win Rate</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="diag-bar" style="flex:1;"><div class="diag-bar-inner" style="width:${(sig.winRate*100).toFixed(0)}%;background:${sig.winRate>=0.6?'var(--accent)':sig.winRate>=0.5?'var(--accent2)':'var(--accent3)'};"></div></div>
+          <span style="font-size:0.8rem;font-weight:600;">${(sig.winRate*100).toFixed(1)}%</span>
+        </div>
+      </div>
+      <div class="diag-metric"><span class="diag-metric-label">Avg Confidence</span><span class="diag-metric-value">${(sig.avgConfidence*100).toFixed(1)}%</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Top Strategy</span><span class="diag-metric-value" style="font-size:0.75rem;">${sig.topStrategies?.[0]?.name || '—'}</span></div>
+    ` : `<div style="color:var(--accent3);font-size:0.85rem;">Error: ${sig.error}</div>`;
+
+    // Backtests
+    const bt = data.backtests || {};
+    document.getElementById('diag-backtest-metrics').innerHTML = bt.ok ? `
+      <div class="diag-metric"><span class="diag-metric-label">Total Backtests</span><span class="diag-metric-value">${bt.totalBacktests}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Best Strategy</span><span class="diag-metric-value">${bt.bestStrategy || '—'}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Best Return</span><span class="diag-metric-value" style="color:${bt.bestReturnPct>=0?'var(--accent)':'var(--accent3)'}">${bt.bestReturnPct?.toFixed(2) || 0}%</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Best Sharpe</span><span class="diag-metric-value">${bt.bestSharpe?.toFixed(2) || '—'}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Avg Trades / BT</span><span class="diag-metric-value">${Math.round(bt.avgTrades || 0)}</span></div>
+    ` : `<div style="color:var(--accent3);font-size:0.85rem;">Error: ${bt.error}</div>`;
+
+    // Freshness
+    const fresh = data.freshness || [];
+    document.getElementById('diag-freshness-metrics').innerHTML = fresh.map(f => {
+      const badgeClass = f.status;
+      const badgeText = f.status === 'fresh' ? 'Fresh' : f.status === 'warn' ? 'Warning' : f.status === 'stale' ? 'Stale' : f.status === 'error' ? 'Error' : 'No Data';
+      return `
+        <div class="diag-metric">
+          <span class="diag-metric-label">${f.source}</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="diag-badge ${badgeClass}">${badgeText}</span>
+            <span style="font-size:0.75rem;color:var(--fg2);">${f.ageMin != null ? f.ageMin + 'm ago' : '—'}</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    // System
+    const sys = data.system || {};
+    document.getElementById('diag-system-metrics').innerHTML = `
+      <div class="diag-metric"><span class="diag-metric-label">Uptime</span><span class="diag-metric-value">${sys.uptimeFormatted || '—'}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Node</span><span class="diag-metric-value" style="font-size:0.75rem;">${sys.nodeVersion || '—'}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Memory (RSS)</span><span class="diag-metric-value">${sys.memoryMb?.rss || '—'} MB</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Heap Used</span><span class="diag-metric-value">${sys.memoryMb?.heapUsed || '—'} / ${sys.memoryMb?.heapTotal || '—'} MB</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Environment</span><span class="diag-metric-value">${sys.env || '—'} · ${sys.tradingMode || '—'}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">AI Provider</span><span class="diag-metric-value">${sys.aiProvider || '—'}</span></div>
+      <div class="diag-metric"><span class="diag-metric-label">Deployment</span><span class="diag-metric-value">${sys.deploymentTarget || '—'}</span></div>
+    `;
+
+  } catch (e) {
+    loading.style.display = 'none';
+    content.style.display = 'none';
+    error.style.display = 'block';
+    timeEl.textContent = 'Check failed';
+  }
+}
+loadDiagnostics();
+setInterval(loadDiagnostics, 60000);
+
+// -- Bugs to Fix --------------------------------------
+async function loadBugs() {
+  const loading = document.getElementById('bugs-loading');
+  const content = document.getElementById('bugs-content');
+  const timeEl = document.getElementById('bugs-time');
+  try {
+    const res = await fetch('/api/bugs?limit=50');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    const rows = data.bugs || [];
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+    const tbody = document.getElementById('bugs-tbody');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--fg2);">No bugs found. Great job!</td></tr>';
+      return;
+    }
+    const sevColor = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
+    tbody.innerHTML = rows.map(b => `
+      <tr>
+        <td><span style="color:${sevColor[b.severity] || sevColor.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${b.severity}</span></td>
+        <td>${b.title}</td>
+        <td style="font-size:0.8rem;color:var(--fg2);">${b.source || '—'}</td>
+        <td style="font-size:0.8rem;text-transform:capitalize;">${b.status}</td>
+        <td style="font-size:0.8rem;color:var(--fg2);">${new Date(b.created_at).toLocaleString()}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    loading.style.display = 'none';
+    timeEl.textContent = 'Failed to load';
+  }
+}
+loadBugs();
+setInterval(loadBugs, 120000);
+
+// -- API Debugger -------------------------------------
+let apiDbgAllRows = [];
+
+function renderApiDbgStats(rows) {
+  document.getElementById('api-dbg-stat-total').textContent = rows.length;
+  document.getElementById('api-dbg-stat-healthy').textContent = rows.filter(r => r.status === 'healthy').length;
+  document.getElementById('api-dbg-stat-down').textContent = rows.filter(r => r.status === 'down').length;
+  document.getElementById('api-dbg-stat-timeout').textContent = rows.filter(r => r.status === 'timeout').length;
+  document.getElementById('api-dbg-stat-critical').textContent = rows.filter(r => r.severity === 'critical').length;
+}
+
+function renderApiDbgTable(rows) {
+  const tbody = document.getElementById('api-dbg-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--fg2);">No API test results yet.</td></tr>';
+    return;
+  }
+  const statusBadge = s => {
+    const colors = { healthy: '#34d399', degraded: '#fbbf24', down: '#f87171', timeout: '#a78bfa', error: '#f87171' };
+    return `<span style="color:${colors[s] || colors.error};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${s}</span>`;
+  };
+  const sevBadge = s => {
+    const colors = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
+    return `<span style="color:${colors[s] || colors.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${s}</span>`;
+  };
+  tbody.innerHTML = rows.map(r => `
+    <tr style="cursor:pointer" onclick="showApiDbgDetail('${r.id}')">
+      <td style="font-size:0.85rem;">${r.provider}</td>
+      <td style="font-size:0.8rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.endpoint}">${r.endpoint}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td style="font-size:0.8rem;">${r.http_code || '-'}</td>
+      <td style="font-size:0.8rem;">${r.response_time_ms ? r.response_time_ms + 'ms' : '-'}</td>
+      <td style="font-size:0.8rem;">${r.error_category || '-'}</td>
+      <td>${sevBadge(r.severity)}</td>
+      <td style="font-size:0.8rem;color:var(--fg2);">${new Date(r.created_at).toLocaleString()}</td>
+    </tr>
+  `).join('');
+}
+
+function showApiDbgDetail(id) {
+  const r = apiDbgAllRows.find(x => x.id === id);
+  if (!r) return;
+  const el = document.getElementById('api-dbg-detail');
+  const statusBadge = s => {
+    const colors = { healthy: '#34d399', degraded: '#fbbf24', down: '#f87171', timeout: '#a78bfa', error: '#f87171' };
+    return `<span style="color:${colors[s] || colors.error};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${s}</span>`;
+  };
+  const sevBadge = s => {
+    const colors = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
+    return `<span style="color:${colors[s] || colors.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${s}</span>`;
+  };
+  el.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:600;">${r.endpoint}</div>
+    <div style="margin-bottom:8px;">${statusBadge(r.status)} ${sevBadge(r.severity)}</div>
+    ${r.error_message ? `<pre style="background:var(--bg3);padding:10px;border-radius:6px;overflow-x:auto;font-size:0.8rem;color:var(--fg2);">${r.error_message}</pre>` : ''}
+    ${r.request_safe ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--fg2);">Request:</div><pre style="background:var(--bg3);padding:10px;border-radius:6px;overflow-x:auto;font-size:0.8rem;color:var(--fg2);">${JSON.stringify(r.request_safe, null, 2)}</pre>` : ''}
+    ${r.response_safe ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--fg2);">Response:</div><pre style="background:var(--bg3);padding:10px;border-radius:6px;overflow-x:auto;font-size:0.8rem;color:var(--fg2);">${JSON.stringify(r.response_safe, null, 2)}</pre>` : ''}
+  `;
+}
+
+function applyApiDbgFilters() {
+  const provider = document.getElementById('api-dbg-filter-provider').value;
+  const status = document.getElementById('api-dbg-filter-status').value;
+  let rows = apiDbgAllRows;
+  if (provider) rows = rows.filter(r => r.provider === provider);
+  if (status) rows = rows.filter(r => r.status === status);
+  renderApiDbgStats(rows);
+  renderApiDbgTable(rows);
+}
+
+async function triggerApiDebuggerScan() {
+  const btn = document.querySelector('button[onclick="triggerApiDebuggerScan()"]');
+  const originalText = btn.textContent;
+  btn.textContent = 'Scanning…';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/api-debugger?run=1', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      btn.textContent = 'Scan started!';
+      setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+      setTimeout(loadApiDebugger, 3000);
+    } else {
+      btn.textContent = 'Auth required';
+      setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+    }
+  } catch (e) {
+    btn.textContent = 'Error';
+    setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+  }
+}
+
+async function loadApiDebugger() {
+  const loading = document.getElementById('api-dbg-loading');
+  const content = document.getElementById('api-dbg-content');
+  const timeEl = document.getElementById('api-dbg-time');
+  try {
+    const res = await fetch('/api/api-debugger?limit=100');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    apiDbgAllRows = data.results || [];
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+    applyApiDbgFilters();
+  } catch (e) {
+    loading.style.display = 'none';
+    timeEl.textContent = 'Failed to load';
+  }
+}
+
+loadApiDebugger();
+setInterval(loadApiDebugger, 60000);
+
+// Attach filter listeners
+document.getElementById('api-dbg-filter-provider').addEventListener('change', applyApiDbgFilters);
+document.getElementById('api-dbg-filter-status').addEventListener('change', applyApiDbgFilters);
+
+// -- App Development Proposals ------------------------
+let adAllProposals = [];
+
+function renderAdStats(rows) {
+  const total = rows.length;
+  const pending = rows.filter(r => r.status === 'pending').length;
+  const approved = rows.filter(r => r.status === 'approved').length;
+  const inprogress = rows.filter(r => r.status === 'in_progress').length;
+  const implemented = rows.filter(r => r.status === 'implemented').length;
+  const avgImpact = total > 0 ? (rows.reduce((s, r) => s + (r.impactScore || 0), 0) / total).toFixed(1) : '—';
+
+  document.getElementById('ad-stat-total').textContent = total;
+  document.getElementById('ad-stat-pending').textContent = pending;
+  document.getElementById('ad-stat-approved').textContent = approved;
+  document.getElementById('ad-stat-inprogress').textContent = inprogress;
+  document.getElementById('ad-stat-implemented').textContent = implemented;
+  document.getElementById('ad-stat-impact').textContent = avgImpact;
+}
+
+function renderAdTags(rows) {
+  const tagCounts = {};
+  rows.forEach(r => {
+    (r.tags || []).forEach(t => { tagCounts[t] = (tagCounts[t] || 0) + 1; });
+  });
+  const tagsDiv = document.getElementById('ad-tags');
+  const sorted = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
+  if (!sorted.length) {
+    tagsDiv.innerHTML = '<span style="color:var(--fg2);font-size:0.8rem;">No tags yet.</span>';
+    return;
+  }
+  tagsDiv.innerHTML = sorted.map(([tag, count]) =>
+    `<span style="background:var(--bg3);padding:4px 10px;border-radius:999px;font-size:0.75rem;color:var(--fg2);border:1px solid var(--border);">${tag} · ${count}</span>`
+  ).join('');
+}
+
+function openAdModal(id) {
+  const p = adAllProposals.find(x => String(x.id) === String(id));
+  if (!p) return;
+
+  const statusColors = {
+    pending: { bg: 'rgba(234,179,8,0.15)', color: 'var(--accent2)' },
+    approved: { bg: 'rgba(34,197,94,0.15)', color: 'var(--accent)' },
+    rejected: { bg: 'rgba(239,68,68,0.15)', color: 'var(--accent3)' },
+    in_progress: { bg: 'rgba(167,139,250,0.15)', color: '#a78bfa' },
+    implemented: { bg: 'rgba(34,197,94,0.15)', color: 'var(--accent)' }
+  };
+  const st = statusColors[p.status] || statusColors.pending;
+
+  document.getElementById('ad-modal-title').textContent = p.title;
+  document.getElementById('ad-modal-id').textContent = '#' + p.id;
+
+  const badge = document.getElementById('ad-modal-status');
+  badge.textContent = p.status;
+  badge.style.background = st.bg;
+  badge.style.color = st.color;
+  badge.style.border = '1px solid ' + st.color;
+
+  document.getElementById('ad-modal-desc').textContent = p.description || 'No description available.';
+  document.getElementById('ad-modal-category').textContent = p.category || '—';
+  document.getElementById('ad-modal-capability').textContent = p.capabilityArea || '—';
+
+  const impact = (p.impactScore || 0) * 10;
+  document.getElementById('ad-modal-impact').textContent = (p.impactScore || 0).toFixed(1);
+  const impactBar = document.getElementById('ad-modal-impact-bar');
+  impactBar.style.width = impact + '%';
+  impactBar.style.background = impact >= 80 ? 'var(--accent)' : impact >= 50 ? 'var(--accent2)' : 'var(--accent3)';
+
+  document.getElementById('ad-modal-effort').textContent = p.effortEstimate || '—';
+  document.getElementById('ad-modal-proposed').textContent = p.proposedBy || 'System';
+
+  const tagsDiv = document.getElementById('ad-modal-tags');
+  if (p.tags && p.tags.length) {
+    tagsDiv.innerHTML = p.tags.map(t => '<span class="modal-tag">' + t + '</span>').join('');
+  } else {
+    tagsDiv.innerHTML = '<span style="color:var(--fg2);font-size:0.8rem;">No tags</span>';
+  }
+
+  const timelineDiv = document.getElementById('ad-modal-timeline');
+  const steps = [
+    { label: 'Proposed', time: p.createdAt, done: true },
+    { label: 'Reviewed', time: p.reviewedAt, done: !!p.reviewedAt },
+    { label: 'Approved', time: p.approvedAt, done: !!p.approvedAt },
+    { label: 'Implemented', time: p.implementedAt, done: !!p.implementedAt }
+  ];
+  let currentIdx = 0;
+  for (let i = steps.length - 1; i >= 0; i--) {
+    if (steps[i].done) { currentIdx = i + 1; break; }
+  }
+  timelineDiv.innerHTML = steps.map((s, i) => {
+    const dotClass = s.done ? 'done' : (i === currentIdx ? 'current' : '');
+    const timeStr = s.time ? new Date(s.time).toLocaleString() : 'Pending';
+    return '<div class="timeline-item"><div class="timeline-dot ' + dotClass + '"></div><div class="timeline-content"><div class="timeline-label">' + s.label + '</div><div class="timeline-time">' + timeStr + '</div></div></div>';
+  }).join('');
+
+  const reviewSection = document.getElementById('ad-modal-review-section');
+  if (p.reviewNotes) {
+    reviewSection.style.display = 'block';
+    document.getElementById('ad-modal-review').textContent = p.reviewNotes;
+  } else {
+    reviewSection.style.display = 'none';
+  }
+
+  const metaSection = document.getElementById('ad-modal-meta-section');
+  if (p.metadata && Object.keys(p.metadata).length > 0) {
+    metaSection.style.display = 'block';
+    document.getElementById('ad-modal-meta').textContent = JSON.stringify(p.metadata, null, 2);
+  } else {
+    metaSection.style.display = 'none';
+  }
+
+  document.getElementById('ad-modal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAdModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('ad-modal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function renderAdDetail(id) {
+  const p = adAllProposals.find(x => String(x.id) === String(id));
+  if (!p) return;
+  const el = document.getElementById('ad-detail');
+  const statusColors = {
+    pending: 'var(--accent2)',
+    approved: 'var(--accent)',
+    rejected: 'var(--accent3)',
+    in_progress: '#a78bfa',
+    implemented: 'var(--accent)'
+  };
+  const effortVal = p.effortEstimate === 'high' ? 4 : p.effortEstimate === 'medium' ? 2 : 1;
+  const effortStars = '?'.repeat(effortVal) + '?'.repeat(Math.max(0, 5 - effortVal));
+  el.innerHTML = '<div style="margin-bottom:8px;font-weight:700;font-size:0.95rem;">' + p.title + '</div>' +
+    '<div style="margin-bottom:8px;color:' + (statusColors[p.status] || 'var(--fg2)') + ';font-weight:600;text-transform:uppercase;font-size:0.75rem;">' + p.status + '</div>' +
+    '<div style="margin-bottom:10px;line-height:1.5;">' + p.description + '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.8rem;margin-bottom:10px;">' +
+      '<div><span style="color:var(--fg2);">Category:</span> <span style="font-weight:600;">' + p.category + '</span></div>' +
+      '<div><span style="color:var(--fg2);">Capability:</span> <span style="font-weight:600;">' + p.capabilityArea + '</span></div>' +
+      '<div><span style="color:var(--fg2);">Impact Score:</span> <span style="font-weight:600;">' + p.impactScore + '/10</span></div>' +
+      '<div><span style="color:var(--fg2);">Effort:</span> <span style="font-weight:600;">' + effortStars + '</span></div>' +
+    '</div>' +
+    (p.reviewNotes ? '<div style="background:var(--bg3);padding:10px;border-radius:6px;font-size:0.8rem;margin-bottom:10px;"><strong>Review Notes:</strong> ' + p.reviewNotes + '</div>' : '') +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+      (p.tags || []).map(t => '<span style="background:rgba(37,99,235,0.12);color:#60a5fa;padding:2px 8px;border-radius:4px;font-size:0.7rem;">' + t + '</span>').join('') +
+    '</div>' +
+    '<div style="margin-top:12px;">' +
+      '<button onclick="openAdModal(\'' + p.id + '\')" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:600;cursor:pointer;">View Full Details ?</button>' +
+    '</div>';
+}
+
+function renderAdTable(rows) {
+  const tbody = document.getElementById('ad-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--fg2);">No proposals found.</td></tr>';
+    return;
+  }
+  const statusColors = {
+    pending: { color: 'var(--accent2)', label: '? Pending' },
+    approved: { color: 'var(--accent)', label: '? Approved' },
+    rejected: { color: 'var(--accent3)', label: '? Rejected' },
+    in_progress: { color: '#a78bfa', label: '?? In Progress' },
+    implemented: { color: 'var(--accent)', label: '?? Implemented' }
+  };
+  tbody.innerHTML = rows.map(p => {
+    const st = statusColors[p.status] || statusColors.pending;
+    return `<tr style="cursor:pointer" onclick="openAdModal('${p.id}')">
+      <td style="font-weight:600;font-size:0.85rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${p.title}">${p.title}</td>
+      <td style="font-size:0.8rem;color:var(--fg2);">${p.category}</td>
+      <td style="font-size:0.8rem;font-weight:700;">${p.impactScore}/10</td>
+      <td style="font-size:0.8rem;">${p.effortEstimate || '—'}</td>
+      <td style="font-size:0.75rem;color:${st.color};font-weight:600;">${st.label}</td>
+      <td style="font-size:0.75rem;color:var(--fg2);">${p.capabilityArea}</td>
+      <td style="font-size:0.75rem;color:var(--fg2);">${p.createdAt ? new Date(p.createdAt).toLocaleDateString() : '—'}</td>
+      <td style="font-size:0.75rem;">
+        <select onchange="updateProposalStatus('${p.id}', this.value); event.stopPropagation();" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:0.7rem;cursor:pointer;" onclick="event.stopPropagation();">
+          <option value="" disabled selected>Update…</option>
+          <option value="pending">? Pending</option>
+          <option value="approved">? Approved</option>
+          <option value="rejected">? Rejected</option>
+          <option value="in_progress">?? In Progress</option>
+          <option value="implemented">?? Implemented</option>
+        </select>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function updateProposalStatus(id, status) {
+  try {
+    const res = await fetch('/api/app-development-proposals', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      setTimeout(loadAppDevProposals, 500);
+    } else {
+      alert('Failed to update: ' + (data.error || 'Unknown error'));
+    }
+  } catch (e) {
+    alert('Network error updating proposal');
+  }
+}
+
+async function triggerConsolidation() {
+  const btn = document.querySelector('button[onclick="triggerConsolidation()"]');
+  const originalText = btn.textContent;
+  btn.textContent = 'Running…';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/app-development-proposals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trigger: 1 }) });
+    const data = await res.json();
+    if (data.ok) {
+      btn.textContent = 'Consolidation started!';
+      setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+      setTimeout(loadAppDevProposals, 4000);
+    } else {
+      btn.textContent = 'Error';
+      setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+    }
+  } catch (e) {
+    btn.textContent = 'Error';
+    setTimeout(() => { btn.textContent = originalText; btn.disabled = false; }, 2000);
+  }
+}
+
+function applyAdFilters() {
+  const status = document.getElementById('ad-filter-status').value;
+  const category = document.getElementById('ad-filter-category').value;
+  let rows = adAllProposals;
+  if (status) rows = rows.filter(r => r.status === status);
+  if (category) rows = rows.filter(r => r.category === category);
+  renderAdStats(rows);
+  renderAdTable(rows);
+}
+
+async function loadAppDevProposals() {
+  const loading = document.getElementById('ad-loading');
+  const content = document.getElementById('ad-content');
+  const timeEl = document.getElementById('ad-time');
+  try {
+    const res = await fetch('/api/app-development-proposals?limit=200');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    adAllProposals = data.proposals || [];
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+    applyAdFilters();
+    renderAdTags(adAllProposals);
+  } catch (e) {
+    loading.style.display = 'none';
+    timeEl.textContent = 'Failed to load';
+    console.error('App Dev Proposals load error:', e);
+  }
+}
+
+// Attach AD filter listeners
+document.getElementById('ad-filter-status').addEventListener('change', applyAdFilters);
+document.getElementById('ad-filter-category').addEventListener('change', applyAdFilters);
+
+// -- Enhanced Bugs with Clickable Detail -----------------
+let bugsAllRows = [];
+function showBugDetail(bugId) {
+  const b = bugsAllRows.find(x => x.id === bugId);
+  if (!b) return;
+  const el = document.getElementById('bugs-detail');
+  const sevColor = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
+  el.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:600;font-size:1rem;color:var(--fg);">${b.title}</div>
+    <div style="margin-bottom:12px;"><span style="color:${sevColor[b.severity] || sevColor.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${b.severity}</span> <span style="font-size:0.75rem;color:var(--fg2);margin-left:8px;">${b.source || '—'}</span></div>
+    <div style="margin-bottom:12px;"><strong>Description:</strong><div style="margin-top:4px;color:var(--fg2);">${b.description || 'No description available.'}</div></div>
+    <div style="margin-bottom:12px;"><strong>Recommendation:</strong><div style="margin-top:4px;color:var(--fg2);">${b.recommendation || 'No recommendation available.'}</div></div>
+    <div><strong>Fix Notes:</strong><div style="margin-top:4px;color:var(--fg2);">${b.fix_notes || 'No fix notes available.'}</div></div>
+  `;
+}
+async function loadBugsEnhanced() {
+  const loading = document.getElementById('bugs-loading');
+  const content = document.getElementById('bugs-content');
+  const timeEl = document.getElementById('bugs-time');
+  try {
+    const res = await fetch('/api/bugs?limit=50');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    bugsAllRows = data.bugs || [];
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+    const tbody = document.getElementById('bugs-tbody');
+    if (!bugsAllRows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--fg2);">No bugs found. Great job!</td></tr>';
+      return;
+    }
+    const sevColor = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
+    tbody.innerHTML = bugsAllRows.map(b => `
+      <tr style="cursor:pointer;" onclick="showBugDetail('${b.id}')">
+        <td><span style="color:${sevColor[b.severity] || sevColor.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${b.severity}</span></td>
+        <td>${b.title}</td>
+        <td style="font-size:0.8rem;color:var(--fg2);">${b.source || '—'}</td>
+        <td style="font-size:0.8rem;text-transform:capitalize;">${b.status}</td>
+        <td style="font-size:0.8rem;color:var(--fg2);">${new Date(b.created_at).toLocaleString()}</td>
+      </tr>
+    `).join('');
+  } catch (e) {
+    loading.style.display = 'none';
+    timeEl.textContent = 'Failed to load';
+  }
+}
+// Override the original loadBugs
+document.addEventListener('DOMContentLoaded', () => {
+  const orig = window.loadBugs;
+  if (orig) { clearInterval(orig._timer); }
+  loadBugsEnhanced();
+  setInterval(loadBugsEnhanced, 120000);
+});
+
+// -- Enhanced Research Agent with Clickable Proposals ----
+let raProposals = [];
+function showProposalDetail(id) {
+  const p = raProposals.find(x => x.id === id);
+  if (!p) return;
+  const el = document.getElementById('ra-proposals-detail');
+  if (!el) return;
+  const status = p.promoted ? '?? Promoted' : p.rejected ? '? Rejected' : p.tested ? '? Tested' : '? Pending';
+  const statusColor = p.promoted ? 'var(--accent)' : p.rejected ? 'var(--accent3)' : 'var(--accent2)';
+  const rules = (p.rules || []).map(r => `<li style="margin:2px 0;"><code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.75rem;">${r.feature} ${r.operator} ${r.value}${r.weight ? ' (w:'+r.weight+')' : ''}</code></li>`).join('');
+  el.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:600;font-size:1rem;color:var(--fg);">${p.name}</div>
+    <div style="margin-bottom:12px;color:${statusColor};font-weight:600;font-size:0.85rem;">${status} · ${(p.confidence*100).toFixed(0)}% confidence</div>
+    <div style="margin-bottom:12px;"><strong>Description:</strong><div style="margin-top:4px;color:var(--fg2);">${p.description || 'No description.'}</div></div>
+    <div><strong>Rules:</strong><ul style="margin-top:4px;color:var(--fg2);padding-left:18px;">${rules || '<li>No rules defined.</li>'}</ul></div>
+  `;
+}
+
+// -- Autonomous Report Tab -------------------------------
+async function loadAutonomousReport() {
+  const loading = document.getElementById('auto-loading');
+  const content = document.getElementById('auto-content');
+  const timeEl = document.getElementById('auto-time');
+  try {
+    const res = await fetch('/api/debug?detail=autonomous');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    timeEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+    const logs = (data.autonomousLogs || []);
+    document.getElementById('auto-stat-date').textContent = data.sessionDate || new Date().toLocaleDateString();
+    document.getElementById('auto-stat-fixes').textContent = logs.filter(l => l.status === 'fixed' || l.status === 'applied').length;
+    document.getElementById('auto-stat-files').textContent = new Set(logs.map(l => l.file).filter(Boolean)).size;
+    document.getElementById('auto-stat-deploy').textContent = data.deployStatus || 'Pending';
+    document.getElementById('auto-stat-duration').textContent = data.duration || '—';
+
+    const tbody = document.getElementById('auto-tbody');
+    if (!logs.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--fg2);">No autonomous actions recorded yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = logs.map((l, i) => `
+      <tr style="cursor:pointer;" onclick="showAutoDetail(${i})">
+        <td style="font-size:0.8rem;color:var(--fg2);">${i+1}</td>
+        <td style="font-weight:600;font-size:0.85rem;">${l.action}</td>
+        <td style="font-size:0.8rem;color:var(--fg2);">${l.file || '—'}</td>
+        <td style="font-size:0.8rem;"><span style="color:${l.status==='applied'||l.status==='fixed'?'var(--accent)':l.status==='failed'?'var(--accent3)':'var(--accent2)'};font-weight:600;">${l.status}</span></td>
+        <td style="font-size:0.8rem;color:var(--fg2);">${l.summary}</td>
+      </tr>
+    `).join('');
+    window._autoLogs = logs;
+  } catch (e) {
+    loading.style.display = 'none';
+    timeEl.textContent = 'Failed to load';
+  }
+}
+function showAutoDetail(idx) {
+  const l = (window._autoLogs || [])[idx];
+  if (!l) return;
+  const el = document.getElementById('auto-detail');
+  el.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:600;font-size:1rem;color:var(--fg);">${l.action}</div>
+    <div style="margin-bottom:12px;"><span style="color:${l.status==='applied'||l.status==='fixed'?'var(--accent)':l.status==='failed'?'var(--accent3)':'var(--accent2)'};font-weight:600;">${l.status}</span> <span style="font-size:0.75rem;color:var(--fg2);margin-left:8px;">${l.file || ''}</span></div>
+    <div style="margin-bottom:12px;"><strong>Summary:</strong><div style="margin-top:4px;color:var(--fg2);">${l.summary}</div></div>
+    ${l.description ? `<div><strong>Full Description:</strong><div style="margin-top:4px;color:var(--fg2);white-space:pre-wrap;">${l.description}</div></div>` : ''}
+  `;
+}
+// Init autonomous tab when tab is clicked
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'autonomous') loadAutonomousReport();
+  });
+});
+</script>
+
+<!-- PWA Install Banner -->
+<div id="install-banner">
+  <span style="font-size:0.85rem;font-weight:600;">?? Add xsjprd55 to Home Screen</span>
+  <div style="display:flex;gap:8px;">
+    <button class="dismiss" onclick="dismissInstall()">Dismiss</button>
+    <button onclick="triggerInstall()">Install</button>
+  </div>
+</div>
+
+<script>
+// Service Worker Registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW registration failed:', err));
+  });
+}
+
+// PWA Install Prompt
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const banner = document.getElementById('install-banner');
+  if (banner && !localStorage.getItem('pwa-install-dismissed')) {
+    banner.classList.add('show');
+  }
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = 'inline-block';
+});
+function triggerInstall() {
+  if (!deferredPrompt) {
+    // Fallback for browsers that don't support beforeinstallprompt (iOS Safari, in-app browsers)
+    alert('To add to home screen:\n1. Tap the share button (or ? menu)\n2. Select "Add to Home Screen"');
+    return;
+  }
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then((choice) => {
+    if (choice.outcome === 'accepted') {
+      localStorage.setItem('pwa-install-dismissed', '1');
+      document.getElementById('install-banner').classList.remove('show');
+    }
+    deferredPrompt = null;
+  });
+}
+function dismissInstall() {
+  localStorage.setItem('pwa-install-dismissed', '1');
+  document.getElementById('install-banner').classList.remove('show');
+}
+window.addEventListener('appinstalled', () => {
+  localStorage.setItem('pwa-install-dismissed', '1');
+  document.getElementById('install-banner').classList.remove('show');
+  deferredPrompt = null;
+});
+</script>
+
+</body>
+</html>

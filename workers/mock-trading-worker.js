@@ -22,14 +22,41 @@ export async function runMockTradingWorker() {
 
   try {
     // 1. Open new mock trades for recent high-probability signals
-    const { data: recentScores } = await supabase
-      .from('signal_feature_scores')
-      .select('*, signal:signal_id(*)')
-      .gte('final_probability', 65)
-      .order('created_at', { ascending: false })
-      .limit(20);
+    // Fallback: if signal_feature_scores is empty, read signals directly
+    let scoredSignals = [];
+    try {
+      const { data: recentScores } = await supabase
+        .from('signal_feature_scores')
+        .select('*, signal:signal_id(*)')
+        .gte('final_probability', 65)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      scoredSignals = recentScores || [];
+    } catch (e) {
+      logger.debug('[MOCK-WORKER] signal_feature_scores query failed, falling back to signals table');
+    }
 
-    for (const score of recentScores || []) {
+    // Fallback: read recent active signals directly if no feature scores
+    if (scoredSignals.length === 0) {
+      try {
+        const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        const { data: recentSignals } = await supabase
+          .from('signals')
+          .select('*')
+          .eq('status', 'active')
+          .gte('generated_at', cutoff)
+          .order('generated_at', { ascending: false })
+          .limit(20);
+        scoredSignals = (recentSignals || []).map(s => ({
+          signal: s,
+          final_probability: Math.round((s.confidence || 0.5) * 100)
+        }));
+      } catch (e) {
+        logger.warn('[MOCK-WORKER] Fallback signal read failed:', e.message);
+      }
+    }
+
+    for (const score of scoredSignals) {
       const signal = score.signal;
       if (!signal) continue;
 

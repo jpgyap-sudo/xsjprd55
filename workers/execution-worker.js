@@ -118,7 +118,12 @@ async function main() {
   // Ensure account exists
   try {
     const account = await getOrCreateExecutionAccount();
-    logger.info(`[EXEC-WORKER] Account ready — balance=$${Number(account.current_balance).toLocaleString()}`);
+    if (!account) {
+      logger.error('[EXEC-WORKER] Account is null — cannot start');
+      return;
+    }
+    const balance = account.current_balance ?? account.starting_balance ?? 1_000_000;
+    logger.info(`[EXEC-WORKER] Account ready — balance=$${Number(balance).toLocaleString()}`);
   } catch (e) {
     logger.error('[EXEC-WORKER] Account setup failed:', e.message);
   }
