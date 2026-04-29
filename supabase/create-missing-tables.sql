@@ -366,7 +366,7 @@ ON CONFLICT (feature_id) DO NOTHING;
 
 -- Seed a default mock account so trading can start immediately
 INSERT INTO mock_accounts (name, starting_balance, current_balance)
-VALUES ('AI Mock Account', 10000, 10000)
+VALUES ('AI Mock Account', 1000000, 1000000)
 ON CONFLICT DO NOTHING;
 
 -- Seed a default execution profile for common symbols
