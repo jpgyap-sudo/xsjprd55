@@ -357,6 +357,27 @@ module.exports = {
       restart_delay: 3000,
       max_restarts: 10,
       min_uptime: '10s'
+    },
+    {
+      name: 'deploy-checker',
+      script: './workers/deploy-checker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps'
+      },
+      autorestart: false,
+      cron_restart: '*/10 * * * *',
+      max_memory_restart: '128M',
+      log_file: './logs/deploy-checker-combined.log',
+      out_file: './logs/deploy-checker-out.log',
+      error_file: './logs/deploy-checker-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 3,
+      min_uptime: '1s'
     }
   ]
 };

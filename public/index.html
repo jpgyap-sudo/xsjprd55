@@ -103,6 +103,7 @@
     }
     .tab-nav::-webkit-scrollbar { display: none; }
     .tab-btn {
+      flex-shrink: 0;
       padding: 8px 18px;
       border-radius: 999px;
       border: 1px solid var(--border);
@@ -508,6 +509,7 @@
   <button class="tab-btn" data-tab="app-dev">💡 App Dev Proposals</button>
   <button class="tab-btn" data-tab="updates">📝 Product Updates</button>
   <button class="tab-btn" data-tab="product-features">🧩 Product Features</button>
+  <button class="tab-btn" data-tab="deploy-status">🚀 Deploy Status</button>
   <button class="tab-btn" data-tab="autonomous">🤖 Autonomous</button>
 </nav>
 
@@ -1612,6 +1614,54 @@
   </div>
 
   <!-- ════════════════════════════════════════════════════ -->
+  <!-- DEPLOY STATUS TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-deploy-status">
+    <div class="stat-grid" style="margin-bottom:20px;" id="ds-stats">
+      <div class="stat-item"><div class="stat-label">Latest Check</div><div class="stat-value" id="ds-latest">—</div></div>
+      <div class="stat-item"><div class="stat-label">GitHub Commit</div><div class="stat-value" id="ds-gh-commit" style="font-family:monospace;font-size:0.8rem;">—</div></div>
+      <div class="stat-item"><div class="stat-label">VPS Commit</div><div class="stat-value" id="ds-vps-commit" style="font-family:monospace;font-size:0.8rem;">—</div></div>
+      <div class="stat-item"><div class="stat-label">Status</div><div class="stat-value" id="ds-status">—</div></div>
+      <div class="stat-item"><div class="stat-label">Health Check</div><div class="stat-value" id="ds-health">—</div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🚀 Deploy History</span>
+        <div style="display:flex;gap:8px;">
+          <button onclick="loadDeployStatus()" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:0.8rem;cursor:pointer;">🔄 Refresh</button>
+          <button onclick="runDeployCheck()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.8rem;font-weight:600;cursor:pointer;">▶️ Run Check</button>
+        </div>
+      </div>
+      <div class="card-body" style="padding:0;max-height:600px;overflow:auto;">
+        <div id="ds-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading deploy history…</div>
+        <div id="ds-content" style="display:none;">
+          <table class="signal-table" style="min-width:900px;">
+            <thead>
+              <tr>
+                <th>Checked At</th>
+                <th>GitHub Commit</th>
+                <th>GitHub Date</th>
+                <th>VPS Commit</th>
+                <th>VPS Date</th>
+                <th>Status</th>
+                <th>Health</th>
+                <th>Error</th>
+              </tr>
+            </thead>
+            <tbody id="ds-tbody"></tbody>
+          </table>
+        </div>
+        <div id="ds-empty" style="text-align:center;padding:40px 20px;color:var(--fg2);display:none;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">🚀</div>
+          <div style="font-size:1.1rem;font-weight:600;margin-bottom:6px;">No deploy history</div>
+          <div style="font-size:0.9rem;">Run a deploy check to start tracking.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
   <!-- AUTONOMOUS TAB -->
   <!-- ════════════════════════════════════════════════════ -->
   <div class="tab-panel" id="tab-autonomous">
@@ -1844,6 +1894,8 @@ tabBtns.forEach(btn => {
     // Load tab-specific data
     if (tab === 'app-dev') { loadAppDevProposals(); loadDevPipeline(); }
     if (tab === 'updates') { loadProductUpdates(); }
+    if (tab === 'product-features') { loadProductFeatures(); }
+    if (tab === 'deploy-status') { loadDeployStatus(); }
     // Scroll to top of content
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
@@ -4351,6 +4403,113 @@ async function runBulkHealthCheck() {
     loadProductFeatures();
   } catch (e) {
     alert('Bulk check failed: ' + e.message);
+  }
+}
+
+// ── Deploy Status ────────────────────────────────────
+async function loadDeployStatus() {
+  const loading = document.getElementById('ds-loading');
+  const content = document.getElementById('ds-content');
+  const empty = document.getElementById('ds-empty');
+  loading.style.display = 'block';
+  content.style.display = 'none';
+  empty.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/deploy-status?limit=50');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    const deploys = data.deploys || [];
+    const latest = deploys[0] || null;
+
+    document.getElementById('ds-latest').textContent = latest
+      ? new Date(latest.checked_at).toLocaleString()
+      : '—';
+    document.getElementById('ds-gh-commit').textContent = latest?.github_commit
+      ? latest.github_commit.slice(0, 8)
+      : '—';
+    document.getElementById('ds-vps-commit').textContent = latest?.vps_commit
+      ? latest.vps_commit.slice(0, 8)
+      : '—';
+
+    const statusEl = document.getElementById('ds-status');
+    if (!latest) {
+      statusEl.textContent = '—';
+      statusEl.style.color = 'var(--fg2)';
+    } else {
+      statusEl.textContent = latest.status;
+      statusEl.style.color = latest.status === 'synced' ? 'var(--accent)' :
+                              latest.status === 'failed' ? 'var(--accent3)' :
+                              latest.status === 'behind' ? 'var(--accent2)' : 'var(--fg2)';
+    }
+
+    const healthEl = document.getElementById('ds-health');
+    if (!latest) {
+      healthEl.textContent = '—';
+    } else {
+      healthEl.textContent = latest.health_check_ok ? '✅ OK' : '❌ Failed';
+      healthEl.style.color = latest.health_check_ok ? 'var(--accent)' : 'var(--accent3)';
+    }
+
+    loading.style.display = 'none';
+    if (!deploys.length) {
+      empty.style.display = 'block';
+      return;
+    }
+    content.style.display = 'block';
+    renderDeployTable(deploys);
+  } catch (e) {
+    loading.style.display = 'none';
+    empty.style.display = 'block';
+    empty.innerHTML = `<div style="color:var(--accent3);">Failed to load deploy history: ${e.message}</div>`;
+  }
+}
+
+function renderDeployTable(deploys) {
+  const tbody = document.getElementById('ds-tbody');
+  tbody.innerHTML = deploys.map(d => {
+    const statusColor = {
+      synced: 'var(--accent)',
+      behind: 'var(--accent2)',
+      failed: 'var(--accent3)',
+      deploying: '#a855f7',
+      unknown: 'var(--fg2)'
+    }[d.status] || 'var(--fg2)';
+    return `
+      <tr>
+        <td style="font-size:0.8rem;white-space:nowrap;">${new Date(d.checked_at).toLocaleString()}</td>
+        <td><span style="font-family:monospace;font-size:0.8rem;color:var(--fg2);">${d.github_commit ? d.github_commit.slice(0, 10) : '—'}</span></td>
+        <td style="font-size:0.8rem;white-space:nowrap;color:var(--fg2);">${d.github_commit_date ? new Date(d.github_commit_date).toLocaleString() : '—'}</td>
+        <td><span style="font-family:monospace;font-size:0.8rem;color:var(--fg2);">${d.vps_commit ? d.vps_commit.slice(0, 10) : '—'}</span></td>
+        <td style="font-size:0.8rem;white-space:nowrap;color:var(--fg2);">${d.vps_commit_date ? new Date(d.vps_commit_date).toLocaleString() : '—'}</td>
+        <td><span style="font-size:0.75rem;padding:2px 8px;border-radius:12px;background:${statusColor}22;color:${statusColor};font-weight:600;">${d.status}</span></td>
+        <td style="font-size:0.85rem;">${d.health_check_ok ? '✅' : d.health_check_ok === false ? '❌' : '—'}</td>
+        <td style="font-size:0.8rem;color:var(--fg2);max-width:200px;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(d.error_message || '—')}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function runDeployCheck() {
+  if (!confirm('Trigger deploy check? This compares GitHub vs VPS commits and records the result.')) return;
+  try {
+    const res = await fetch('/api/deploy-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        github_commit: 'manual-check',
+        vps_commit: 'manual-check',
+        status: 'unknown',
+        health_check_ok: true,
+        error_message: 'Manual check initiated from dashboard'
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    loadDeployStatus();
+  } catch (e) {
+    alert('Deploy check failed: ' + e.message);
   }
 }
 

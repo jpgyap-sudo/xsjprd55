@@ -13,7 +13,7 @@ Your current VPS has **1 vCPU + 1GB RAM**. The trading bot with 11 workers + Pla
 
 ### Step 2: Find Your Droplet
 1. Click **"Droplets"** in the left sidebar
-2. Find your droplet named `ubuntu-s-1vcpu-1gb-sgp1` (or similar)
+2. Find your droplet named `ubuntu-s-1vcpu-2gb-sgp1`
 3. Click on the droplet name to open its page
 
 ### Step 3: Power Off the Droplet
