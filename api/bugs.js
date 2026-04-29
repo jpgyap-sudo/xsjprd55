@@ -40,8 +40,18 @@ export default async function handler(req, res) {
       const status = url.searchParams.get('status') || undefined;
       const severity = url.searchParams.get('severity') || undefined;
       const limit = Number(url.searchParams.get('limit') || 100);
-      const bugs = await listBugs({ status, severity, limit });
-      return sendJson(res, 200, { ok: true, bugs });
+      let bugs = await listBugs({ status, severity, limit });
+      // Deduplicate by fingerprint — keep the most recent per fingerprint
+      const seen = new Map();
+      for (const b of bugs) {
+        if (!b.fingerprint) { seen.set(b.id, b); continue; }
+        const existing = seen.get(b.fingerprint);
+        if (!existing || new Date(b.detected_at || b.created_at) > new Date(existing.detected_at || existing.created_at)) {
+          seen.set(b.fingerprint, b);
+        }
+      }
+      bugs = Array.from(seen.values()).sort((a, b) => new Date(b.detected_at || b.created_at) - new Date(a.detected_at || a.created_at));
+      return sendJson(res, 200, { ok: true, bugs, deduped: true, total: bugs.length });
     }
 
     if (type === 'create') {

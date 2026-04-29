@@ -2827,17 +2827,84 @@ document.getElementById('ad-filter-category').addEventListener('change', applyAd
 
 // ── Enhanced Bugs with Clickable Detail ─────────────────
 let bugsAllRows = [];
-function showBugDetail(bugId) {
+async function showBugDetail(bugId) {
   const b = bugsAllRows.find(x => x.id === bugId);
   if (!b) return;
   const el = document.getElementById('bugs-detail');
   const sevColor = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
+  const statusBadge = s => {
+    const colors = { new: '#60a5fa', investigating: '#fbbf24', fixing: '#f97316', fixed: '#34d399', verified: '#10b981', wont_fix: '#9ca3af', duplicate: '#9ca3af', blocked: '#f87171' };
+    return `<span style="display:inline-block;background:${colors[s] || colors.new}20;color:${colors[s] || colors.new};padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700;text-transform:uppercase;">${s.replace('_',' ')}</span>`;
+  };
+
+  // Show loading state while fetching history
+  el.innerHTML = '<div style="color:var(--fg2);">Loading bug memory...</div>';
+
+  let history = [];
+  try {
+    const res = await fetch(`/api/bugs?type=history&id=${bugId}`);
+    const data = await res.json();
+    if (data.ok) history = data.history || [];
+  } catch (e) { /* ignore */ }
+
+  // Build status timeline
+  const timelineItems = [];
+  // Start with detected
+  timelineItems.push({
+    time: b.detected_at || b.created_at,
+    label: 'Detected',
+    color: '#60a5fa',
+    note: 'Bug first detected by crawler.'
+  });
+  // History entries
+  for (const h of history) {
+    const colors = { new: '#60a5fa', investigating: '#fbbf24', fixing: '#f97316', fixed: '#34d399', verified: '#10b981', wont_fix: '#9ca3af', duplicate: '#9ca3af', blocked: '#f87171' };
+    timelineItems.push({
+      time: h.changed_at,
+      label: `Status: ${h.new_status.replace('_',' ')}`,
+      color: colors[h.new_status] || '#9ca3af',
+      note: h.note || `Changed by ${h.changed_by || 'system'}`
+    });
+  }
+  // If fixed/verified, add final entry
+  if (b.status === 'fixed') {
+    timelineItems.push({ time: b.fixed_at, label: 'Fixed', color: '#34d399', note: b.fix_notes || 'Marked as fixed.' });
+  }
+  if (b.status === 'verified') {
+    timelineItems.push({ time: b.verified_at, label: 'Verified', color: '#10b981', note: 'Fix verified in production.' });
+  }
+
+  // Sort by time
+  timelineItems.sort((a, b) => new Date(a.time) - new Date(b.time));
+
+  const timelineHtml = timelineItems.map((item, i) => `
+    <div style="display:flex;gap:12px;margin-bottom:10px;position:relative;">
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div style="width:12px;height:12px;border-radius:50%;background:${item.color};border:2px solid var(--bg2);"></div>
+        ${i < timelineItems.length - 1 ? '<div style="width:2px;flex:1;background:var(--border);margin-top:2px;"></div>' : ''}
+      </div>
+      <div style="flex:1;padding-bottom:4px;">
+        <div style="font-size:0.75rem;color:var(--fg2);">${new Date(item.time).toLocaleString()}</div>
+        <div style="font-weight:600;font-size:0.85rem;color:var(--fg);">${item.label}</div>
+        <div style="font-size:0.8rem;color:var(--fg2);margin-top:2px;">${item.note}</div>
+      </div>
+    </div>
+  `).join('');
+
   el.innerHTML = `
     <div style="margin-bottom:8px;font-weight:600;font-size:1rem;color:var(--fg);">${b.title}</div>
-    <div style="margin-bottom:12px;"><span style="color:${sevColor[b.severity] || sevColor.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${b.severity}</span> <span style="font-size:0.75rem;color:var(--fg2);margin-left:8px;">${b.source || '—'}</span></div>
-    <div style="margin-bottom:12px;"><strong>Description:</strong><div style="margin-top:4px;color:var(--fg2);">${b.description || 'No description available.'}</div></div>
-    <div style="margin-bottom:12px;"><strong>Recommendation:</strong><div style="margin-top:4px;color:var(--fg2);">${b.recommendation || 'No recommendation available.'}</div></div>
-    <div><strong>Fix Notes:</strong><div style="margin-top:4px;color:var(--fg2);">${b.fix_notes || 'No fix notes available.'}</div></div>
+    <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="color:${sevColor[b.severity] || sevColor.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${b.severity}</span>
+      ${statusBadge(b.status)}
+      <span style="font-size:0.75rem;color:var(--fg2);">${b.source || '—'} · ${b.file_path ? b.file_path.split('/').pop() : '—'}</span>
+    </div>
+    <div style="margin-bottom:12px;"><strong>Description:</strong><div style="margin-top:4px;color:var(--fg2);line-height:1.5;">${b.description || 'No description available.'}</div></div>
+    <div style="margin-bottom:12px;"><strong>Recommendation:</strong><div style="margin-top:4px;color:var(--fg2);line-height:1.5;">${b.recommendation || 'No recommendation available.'}</div></div>
+    ${b.fix_commit ? `<div style="margin-bottom:12px;"><strong>Fix Commit:</strong> <code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.8rem;">${b.fix_commit}</code></div>` : ''}
+    <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="font-weight:600;font-size:0.9rem;margin-bottom:10px;color:var(--fg);">📋 Fix History Timeline</div>
+      ${timelineHtml || '<div style="color:var(--fg2);font-size:0.85rem;">No history yet. Status changes will be tracked here.</div>'}
+    </div>
   `;
 }
 async function loadBugsEnhanced() {
