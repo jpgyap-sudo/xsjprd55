@@ -96,6 +96,42 @@ function strategy_EMACross(pair, tf, ohlcv) {
   });
 }
 
+// ── Strategy 3: Simple momentum (fires more frequently) ───
+function strategy_Momentum(pair, tf, ohlcv) {
+  const closes = ohlcv.map(c => c[4]);
+  if (closes.length < 30) return null;
+
+  const ema20 = ema(closes, 20);
+  const close = closes[closes.length - 1];
+  const prevClose = closes[closes.length - 2];
+  const ma = ema20[ema20.length - 1];
+  const prevMa = ema20[ema20.length - 2];
+
+  // Price above EMA20 and pulling back toward it = LONG
+  // Price below EMA20 and bouncing up toward it = SHORT (fade)
+  let side = null;
+  if (prevClose > prevMa && close <= ma * 1.002 && close >= ma * 0.998) side = 'LONG';
+  if (prevClose < prevMa && close >= ma * 0.998 && close <= ma * 1.002) side = 'SHORT';
+  if (!side) return null;
+
+  const atr = Math.max(...closes.slice(-14)) - Math.min(...closes.slice(-14));
+  const sl = side === 'LONG' ? close - atr * 0.6 : close + atr * 0.6;
+  const tp = side === 'LONG' ? close + atr * 1.0 : close - atr * 1.0;
+
+  return buildSignal({
+    symbol: pair.replace('/',''),
+    side,
+    entry_price: close,
+    stop_loss: parseFloat(sl.toFixed(4)),
+    take_profit: [parseFloat(tp.toFixed(4))],
+    confidence: 0.60,
+    strategy: 'Momentum_EMA20',
+    timeframe: tf,
+    source: 'binance_futures',
+    ttl_minutes: tf === '15m' ? 60 : tf === '1h' ? 240 : 960
+  });
+}
+
 function strategy_RSIBounce(pair, tf, ohlcv) {
   const closes = ohlcv.map(c => c[4]);
   if (closes.length < 20) return null;
@@ -163,7 +199,7 @@ export default async function handler(req, res) {
           }, { onConflict: 'symbol,exchange,timeframe,timestamp' });
 
           // Run strategies
-          const strategies = [strategy_EMACross, strategy_RSIBounce];
+          const strategies = [strategy_EMACross, strategy_RSIBounce, strategy_Momentum];
           for (const stratFn of strategies) {
             const rawSignal = stratFn(pair, tf, ohlcv);
             if (!rawSignal) continue;
