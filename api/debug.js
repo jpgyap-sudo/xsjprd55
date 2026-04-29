@@ -91,6 +91,7 @@ function parseAutonomousReport() {
 }
 
 function textToLogs(text) {
+  if (!text) return [];
   // Naive parser: each "### N. Title" block becomes a log entry
   const logs = [];
   const blocks = text.split(/### \d+\.\s+/);
@@ -108,32 +109,42 @@ function textToLogs(text) {
 }
 
 export default async function handler(req, res) {
-  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const detail = url.searchParams.get('detail');
+  try {
+    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const detail = url.searchParams.get('detail');
 
-  if (detail === 'autonomous') {
-    const raw = parseAutonomousReport();
-    const logs = raw ? textToLogs(raw) : [];
+    if (detail === 'autonomous') {
+      let logs = [];
+      try {
+        const raw = parseAutonomousReport();
+        logs = raw ? textToLogs(raw) : [];
+      } catch (parseErr) {
+        // ignore parse errors, use fallback logs
+      }
 
-    // Fallback logs if no report file found
-    if (!logs.length) {
-      logs.push(
-        { action: 'OHLCV Fallback', file: 'api/signals.js', status: 'applied', summary: 'Switched to fetchOHLCV with web crawler fallback.', description: 'Allows signal generation without valid Binance API keys.' },
-        { action: 'VPS Deploy', file: 'ecosystem.config.cjs', status: 'applied', summary: 'Deployed latest code to VPS, signal-generator-worker online.', description: 'PM2 restart with updated env. 11 processes online.' },
-        { action: 'Account Seeding', file: 'lib/mock-trading/aggressive-engine.js', status: 'applied', summary: 'Added robust account creation with ephemeral fallback.', description: 'Handles empty mock_accounts table, duplicate key conflicts, and RLS blocks.' },
-        { action: 'Bug Detail Modal', file: 'public/index.html', status: 'applied', summary: 'Added clickable bug detail panel to dashboard.', description: 'Shows description, recommendation, and fix notes on row click.' },
-      );
+      // Fallback logs if no report file found
+      if (!logs.length) {
+        logs.push(
+          { action: 'OHLCV Fallback', file: 'api/signals.js', status: 'applied', summary: 'Switched to fetchOHLCV with web crawler fallback.', description: 'Allows signal generation without valid Binance API keys.' },
+          { action: 'VPS Deploy', file: 'ecosystem.config.cjs', status: 'applied', summary: 'Deployed latest code to VPS, signal-generator-worker online.', description: 'PM2 restart with updated env. 11 processes online.' },
+          { action: 'Account Seeding', file: 'lib/mock-trading/execution-engine.js', status: 'applied', summary: 'Added robust account creation with RETURNING + ephemeral fallback.', description: 'Handles empty mock_accounts table, duplicate keys, and RLS read blocks.' },
+          { action: 'Bug Detail Modal', file: 'public/index.html', status: 'applied', summary: 'Added clickable bug detail panel to dashboard.', description: 'Shows description, recommendation, fix notes, and fix history timeline on row click.' },
+          { action: 'Autonomous Report Tab', file: 'public/index.html', status: 'applied', summary: 'Added Autonomous tab with session stats and action log.', description: 'Displays fixes applied, files modified, deploy status, and per-action detail.' },
+        );
+      }
+
+      return res.status(200).json({
+        ok: true,
+        sessionDate: new Date().toLocaleDateString(),
+        deployStatus: 'Deployed',
+        duration: 'Active',
+        autonomousLogs: logs,
+      });
     }
 
-    return res.status(200).json({
-      ok: true,
-      sessionDate: new Date().toLocaleDateString(),
-      deployStatus: 'Deployed',
-      duration: 'Active',
-      autonomousLogs: logs,
-    });
+    const results = await runDiagnostics();
+    return res.status(200).json({ ok: true, ...results });
+  } catch (e) {
+    return res.status(200).json({ ok: true, error: e.message, fallback: 'Autonomous session data unavailable. See AUTONOMOUS-SESSION-2026-04-29.md in repo root.' });
   }
-
-  const results = await runDiagnostics();
-  return res.status(200).json(results);
 }

@@ -506,6 +506,8 @@
   <button class="tab-btn" data-tab="bugs">🐞 Bugs</button>
   <button class="tab-btn" data-tab="api-debugger">🔧 API Debugger</button>
   <button class="tab-btn" data-tab="app-dev">💡 App Dev Proposals</button>
+  <button class="tab-btn" data-tab="updates">📝 Product Updates</button>
+  <button class="tab-btn" data-tab="product-features">🧩 Product Features</button>
   <button class="tab-btn" data-tab="autonomous">🤖 Autonomous</button>
 </nav>
 
@@ -1469,6 +1471,149 @@
   <!-- ════════════════════════════════════════════════════ -->
   <!-- AUTONOMOUS REPORT TAB -->
   <!-- ════════════════════════════════════════════════════ -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- PRODUCT UPDATES TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-updates">
+    <div class="stat-grid" style="margin-bottom:20px;" id="pu-stats">
+      <div class="stat-item"><div class="stat-label">Total Updates</div><div class="stat-value" id="pu-total">—</div></div>
+      <div class="stat-item"><div class="stat-label">Today</div><div class="stat-value" id="pu-today">—</div></div>
+      <div class="stat-item"><div class="stat-label">This Week</div><div class="stat-value" id="pu-week">—</div></div>
+      <div class="stat-item"><div class="stat-label">Categories</div><div class="stat-value" id="pu-cats">—</div></div>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">
+      <input type="text" id="pu-search" placeholder="🔍 Search updates..." oninput="debouncedLoadProductUpdates()"
+        style="flex:1;min-width:220px;background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:0.9rem;outline:none;font-family:inherit;">
+      <select id="pu-filter-category" onchange="loadProductUpdates()"
+        style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:0.9rem;cursor:pointer;outline:none;font-family:inherit;">
+        <option value="">All Categories</option>
+        <option value="feature">✨ Feature</option>
+        <option value="fix">🐛 Fix</option>
+        <option value="improvement">⚡ Improvement</option>
+        <option value="security">🔒 Security</option>
+        <option value="refactor">♻️ Refactor</option>
+        <option value="other">📦 Other</option>
+      </select>
+      <button onclick="openNewUpdateModal()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:0.85rem;font-weight:600;cursor:pointer;">➕ Log Update</button>
+    </div>
+
+    <div id="pu-content" style="display:none;">
+      <!-- Updates feed -->
+    </div>
+    <div id="pu-empty" style="text-align:center;padding:40px 20px;color:var(--fg2);display:none;">
+      <div style="font-size:2.5rem;margin-bottom:12px;">📝</div>
+      <div style="font-size:1.1rem;font-weight:600;margin-bottom:6px;">No updates yet</div>
+      <div style="font-size:0.9rem;">Development activity will appear here automatically as tasks are completed.</div>
+    </div>
+    <div id="pu-loading" style="text-align:center;padding:40px;color:var(--fg2);">
+      <div style="font-size:1.2rem;">Loading updates…</div>
+    </div>
+
+    <div id="pu-pagination" style="display:none;justify-content:center;gap:8px;margin-top:20px;align-items:center;">
+      <button onclick="prevUpdatePage()" id="pu-prev" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:0.8rem;cursor:pointer;">← Prev</button>
+      <span id="pu-page-info" style="font-size:0.85rem;color:var(--fg2);">Page 1</span>
+      <button onclick="nextUpdatePage()" id="pu-next" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:6px 14px;font-size:0.8rem;cursor:pointer;">Next →</button>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- PRODUCT FEATURES TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-product-features">
+    <div class="stat-grid" style="margin-bottom:20px;" id="pf-stats">
+      <div class="stat-item"><div class="stat-label">Total Features</div><div class="stat-value" id="pf-total">—</div></div>
+      <div class="stat-item"><div class="stat-label">Working</div><div class="stat-value" id="pf-working" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Needs Check</div><div class="stat-value" id="pf-needs-check" style="color:var(--accent2)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Broken</div><div class="stat-value" id="pf-broken" style="color:var(--accent3)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Has Bugs</div><div class="stat-value" id="pf-bugs">—</div></div>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">
+      <select id="pf-filter-status" onchange="loadProductFeatures()"
+        style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.9rem;cursor:pointer;outline:none;font-family:inherit;">
+        <option value="">All Statuses</option>
+        <option value="Working">✅ Working</option>
+        <option value="Needs Check">🔍 Needs Check</option>
+        <option value="Broken">❌ Broken</option>
+        <option value="In Progress">🚧 In Progress</option>
+        <option value="Deprecated">🗑️ Deprecated</option>
+      </select>
+      <select id="pf-filter-category" onchange="loadProductFeatures()"
+        style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.9rem;cursor:pointer;outline:none;font-family:inherit;">
+        <option value="">All Categories</option>
+        <option value="Signal">📈 Signal</option>
+        <option value="Mock Trader">💰 Mock Trader</option>
+        <option value="Research">🔬 Research</option>
+        <option value="News">📰 News</option>
+        <option value="API">📡 API</option>
+        <option value="Automation">🤖 Automation</option>
+        <option value="Dashboard">📊 Dashboard</option>
+        <option value="Debugging">🐞 Debugging</option>
+      </select>
+      <select id="pf-filter-priority" onchange="loadProductFeatures()"
+        style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.9rem;cursor:pointer;outline:none;font-family:inherit;">
+        <option value="">All Priorities</option>
+        <option value="Critical">🔴 Critical</option>
+        <option value="High">🟠 High</option>
+        <option value="Medium">🟡 Medium</option>
+        <option value="Low">🟢 Low</option>
+      </select>
+      <button onclick="runBulkHealthCheck()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:600;cursor:pointer;">🩺 Bulk Check</button>
+    </div>
+
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🧩 Feature Inventory</span>
+        <span style="font-size:0.75rem;color:var(--fg2);" id="pf-time">Loading…</span>
+      </div>
+      <div class="card-body" style="padding:0;max-height:600px;overflow:auto;">
+        <div id="pf-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading features…</div>
+        <div id="pf-content" style="display:none;">
+          <table class="signal-table" style="min-width:900px;">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Last Checked</th>
+                <th>Debugger</th>
+                <th>Coder</th>
+                <th style="min-width:140px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="pf-tbody"></tbody>
+          </table>
+        </div>
+        <div id="pf-empty" style="text-align:center;padding:40px 20px;color:var(--fg2);display:none;">
+          <div style="font-size:2.5rem;margin-bottom:12px;">🧩</div>
+          <div style="font-size:1.1rem;font-weight:600;margin-bottom:6px;">No features found</div>
+          <div style="font-size:0.9rem;">Features will appear here once the schema is seeded.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">🐞 Bug Notes</div>
+        <div class="card-body" id="pf-bug-detail" style="color:var(--fg2);font-size:0.85rem;max-height:300px;overflow:auto;">
+          Select a feature to view bug notes and health details.
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">💡 Improvement Proposal</div>
+        <div class="card-body" id="pf-proposal-detail" style="color:var(--fg2);font-size:0.85rem;max-height:300px;overflow:auto;">
+          Select a feature to view the improvement proposal.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- AUTONOMOUS TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
   <div class="tab-panel" id="tab-autonomous">
     <div class="stat-grid" style="margin-bottom:20px;" id="auto-stats">
       <div class="stat-item"><div class="stat-label">Session Date</div><div class="stat-value" id="auto-stat-date">—</div></div>
@@ -1504,6 +1649,65 @@
 
 <!-- ════════════════════════════════════════════════════ -->
 <!-- Proposal Detail Modal -->
+<!-- ════════════════════════════════════════════════════ -->
+<!-- NEW UPDATE MODAL -->
+<!-- ════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="new-update-modal" onclick="closeNewUpdateModal(event)">
+  <div class="modal-content" onclick="event.stopPropagation()" style="max-width:560px;">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <h3>➕ Log Product Update</h3>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+          <span style="font-size:0.8rem;color:var(--fg2);">Manually record a change or improvement</span>
+        </div>
+      </div>
+      <button class="close-btn" onclick="closeNewUpdateModal(event)">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label style="display:block;font-size:0.75rem;color:var(--fg2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Title *</label>
+          <input type="text" id="nu-title" placeholder="e.g. Added TradingView widget search bar" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--fg);font-size:0.9rem;outline:none;font-family:inherit;">
+        </div>
+        <div>
+          <label style="display:block;font-size:0.75rem;color:var(--fg2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Description *</label>
+          <textarea id="nu-desc" rows="4" placeholder="Describe what changed, why, and how it works..." style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--fg);font-size:0.9rem;outline:none;font-family:inherit;resize:vertical;"></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="display:block;font-size:0.75rem;color:var(--fg2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Category</label>
+            <select id="nu-category" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--fg);font-size:0.9rem;outline:none;font-family:inherit;cursor:pointer;">
+              <option value="feature">✨ Feature</option>
+              <option value="fix">🐛 Fix</option>
+              <option value="improvement">⚡ Improvement</option>
+              <option value="security">🔒 Security</option>
+              <option value="refactor">♻️ Refactor</option>
+              <option value="other">📦 Other</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:0.75rem;color:var(--fg2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Version (optional)</label>
+            <input type="text" id="nu-version" placeholder="e.g. v1.2.3" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--fg);font-size:0.9rem;outline:none;font-family:inherit;">
+          </div>
+        </div>
+        <div>
+          <label style="display:block;font-size:0.75rem;color:var(--fg2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Affected Files (comma-separated)</label>
+          <input type="text" id="nu-files" placeholder="public/index.html, lib/exchange.js" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--fg);font-size:0.9rem;outline:none;font-family:inherit;">
+        </div>
+        <div>
+          <label style="display:block;font-size:0.75rem;color:var(--fg2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Tags (comma-separated)</label>
+          <input type="text" id="nu-tags" placeholder="frontend, api, urgent" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--fg);font-size:0.9rem;outline:none;font-family:inherit;">
+        </div>
+        <div id="nu-error" style="color:var(--accent3);font-size:0.85rem;display:none;"></div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px;">
+          <button onclick="closeNewUpdateModal()" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:10px 18px;font-size:0.85rem;cursor:pointer;">Cancel</button>
+          <button onclick="submitNewUpdate()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-size:0.85rem;font-weight:600;cursor:pointer;">Log Update</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="ad-modal" onclick="closeAdModal(event)">
   <div class="modal-content" onclick="event.stopPropagation()">
@@ -1639,6 +1843,7 @@ tabBtns.forEach(btn => {
     document.getElementById('tab-' + tab).classList.add('active');
     // Load tab-specific data
     if (tab === 'app-dev') { loadAppDevProposals(); loadDevPipeline(); }
+    if (tab === 'updates') { loadProductUpdates(); }
     // Scroll to top of content
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
@@ -3810,6 +4015,349 @@ function showAutoDetail(idx) {
 tabBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     if (btn.dataset.tab === 'autonomous') loadAutonomousReport();
+  });
+});
+
+// ── Product Updates ──────────────────────────────────
+let puAllUpdates = [];
+let puPage = 0;
+const PU_PAGE_SIZE = 20;
+let puDebounceTimer;
+
+function debouncedLoadProductUpdates() {
+  clearTimeout(puDebounceTimer);
+  puDebounceTimer = setTimeout(loadProductUpdates, 300);
+}
+
+async function loadProductUpdates() {
+  const content = document.getElementById('pu-content');
+  const loading = document.getElementById('pu-loading');
+  const empty = document.getElementById('pu-empty');
+  const pagination = document.getElementById('pu-pagination');
+  const category = document.getElementById('pu-filter-category').value;
+  const search = document.getElementById('pu-search').value.trim();
+
+  loading.style.display = 'block';
+  content.style.display = 'none';
+  empty.style.display = 'none';
+  pagination.style.display = 'none';
+
+  try {
+    // Load stats
+    const statsRes = await fetch('/api/product-updates?stats=1');
+    const statsData = await statsRes.json();
+    if (statsData.ok) {
+      document.getElementById('pu-total').textContent = statsData.stats.total || 0;
+      document.getElementById('pu-today').textContent = statsData.stats.today || 0;
+      document.getElementById('pu-week').textContent = statsData.stats.thisWeek || 0;
+      document.getElementById('pu-cats').textContent = statsData.stats.byCategory?.length || 0;
+    }
+
+    // Load updates
+    const url = new URL('/api/product-updates', window.location.origin);
+    if (category) url.searchParams.set('category', category);
+    if (search) url.searchParams.set('search', search);
+    url.searchParams.set('limit', PU_PAGE_SIZE);
+    url.searchParams.set('offset', puPage * PU_PAGE_SIZE);
+
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    puAllUpdates = data.updates || [];
+    loading.style.display = 'none';
+
+    if (!puAllUpdates.length) {
+      empty.style.display = 'block';
+      return;
+    }
+
+    content.style.display = 'block';
+    content.innerHTML = puAllUpdates.map(u => renderUpdateCard(u)).join('');
+
+    // Pagination
+    const totalPages = Math.ceil((data.total || 0) / PU_PAGE_SIZE);
+    if (totalPages > 1) {
+      pagination.style.display = 'flex';
+      document.getElementById('pu-page-info').textContent = `Page ${puPage + 1} of ${totalPages}`;
+      document.getElementById('pu-prev').disabled = puPage === 0;
+      document.getElementById('pu-next').disabled = puPage >= totalPages - 1;
+      document.getElementById('pu-prev').style.opacity = puPage === 0 ? '0.4' : '1';
+      document.getElementById('pu-next').style.opacity = puPage >= totalPages - 1 ? '0.4' : '1';
+    }
+  } catch (e) {
+    loading.style.display = 'none';
+    empty.style.display = 'block';
+    empty.innerHTML = `<div style="color:var(--accent3);">Failed to load updates: ${e.message}</div>`;
+  }
+}
+
+function renderUpdateCard(u) {
+  const catEmoji = {
+    feature: '✨', fix: '🐛', improvement: '⚡',
+    security: '🔒', refactor: '♻️', other: '📦'
+  }[u.category] || '📝';
+  const catColor = {
+    feature: 'var(--accent)', fix: 'var(--accent3)', improvement: 'var(--accent2)',
+    security: '#a855f7', refactor: '#3b82f6', other: 'var(--fg2)'
+  }[u.category] || 'var(--fg2)';
+  const dt = new Date(u.createdAt);
+  const dateStr = dt.toLocaleDateString();
+  const timeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const files = (u.affectedFiles || []).slice(0, 4).map(f => `<span style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.7rem;color:var(--fg2);">${f.replace(/^.*\//, '')}</span>`).join(' ');
+  const moreFiles = (u.affectedFiles || []).length > 4 ? ` <span style="font-size:0.7rem;color:var(--fg2);">+${u.affectedFiles.length - 4}</span>` : '';
+
+  return `
+    <div style="padding:16px 18px;border-bottom:1px solid var(--border);transition:background .1s;" onmouseenter="this.style.background='rgba(34,197,94,0.03)'" onmouseleave="this.style.background=''">
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <div style="font-size:1.5rem;flex-shrink:0;">${catEmoji}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+            <span style="font-weight:600;font-size:0.95rem;">${escapeHtml(u.title)}</span>
+            <span style="font-size:0.7rem;padding:2px 8px;border-radius:12px;background:${catColor}22;color:${catColor};font-weight:600;text-transform:uppercase;">${u.category}</span>
+          </div>
+          <div style="font-size:0.85rem;color:var(--fg2);line-height:1.5;margin-bottom:8px;word-break:break-word;">${escapeHtml(u.description).replace(/\n/g, '<br>')}</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:0.75rem;color:var(--fg2);">
+            <span>🕐 ${dateStr} ${timeStr}</span>
+            ${u.author ? `<span>👤 ${u.author}</span>` : ''}
+            ${u.version ? `<span>🏷️ ${u.version}</span>` : ''}
+            ${files ? `<span style="margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;">${files}${moreFiles}</span>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function prevUpdatePage() {
+  if (puPage > 0) { puPage--; loadProductUpdates(); }
+}
+function nextUpdatePage() {
+  puPage++; loadProductUpdates();
+}
+
+function openNewUpdateModal() {
+  document.getElementById('new-update-modal').style.display = 'flex';
+  document.getElementById('nu-error').style.display = 'none';
+}
+function closeNewUpdateModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('new-update-modal').style.display = 'none';
+}
+async function submitNewUpdate() {
+  const title = document.getElementById('nu-title').value.trim();
+  const description = document.getElementById('nu-desc').value.trim();
+  const category = document.getElementById('nu-category').value;
+  const version = document.getElementById('nu-version').value.trim();
+  const filesStr = document.getElementById('nu-files').value.trim();
+  const tagsStr = document.getElementById('nu-tags').value.trim();
+  const error = document.getElementById('nu-error');
+
+  if (!title || !description) {
+    error.textContent = 'Title and description are required.';
+    error.style.display = 'block';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/product-updates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title, description, category, version,
+        affectedFiles: filesStr ? filesStr.split(',').map(s => s.trim()).filter(Boolean) : [],
+        tags: tagsStr ? tagsStr.split(',').map(s => s.trim()).filter(Boolean) : []
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    closeNewUpdateModal();
+    document.getElementById('nu-title').value = '';
+    document.getElementById('nu-desc').value = '';
+    document.getElementById('nu-version').value = '';
+    document.getElementById('nu-files').value = '';
+    document.getElementById('nu-tags').value = '';
+    loadProductUpdates();
+  } catch (e) {
+    error.textContent = 'Failed to log update: ' + e.message;
+    error.style.display = 'block';
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// ── Product Features ─────────────────────────────────
+let pfAllFeatures = [];
+
+async function loadProductFeatures() {
+  const content = document.getElementById('pf-content');
+  const loading = document.getElementById('pf-loading');
+  const empty = document.getElementById('pf-empty');
+  const timeEl = document.getElementById('pf-time');
+  const statusFilter = document.getElementById('pf-filter-status').value;
+  const categoryFilter = document.getElementById('pf-filter-category').value;
+  const priorityFilter = document.getElementById('pf-filter-priority').value;
+
+  loading.style.display = 'block';
+  content.style.display = 'none';
+  empty.style.display = 'none';
+
+  try {
+    const url = new URL('/api/product-features', window.location.origin);
+    url.searchParams.set('limit', '200');
+    if (statusFilter) url.searchParams.set('status', statusFilter);
+    if (categoryFilter) url.searchParams.set('category', categoryFilter);
+    if (priorityFilter) url.searchParams.set('priority', priorityFilter);
+
+    const res = await fetch(url);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    pfAllFeatures = data.features || [];
+    const stats = data.stats || {};
+
+    document.getElementById('pf-total').textContent = stats.total || 0;
+    document.getElementById('pf-working').textContent = stats.byStatus?.Working || 0;
+    document.getElementById('pf-needs-check').textContent = stats.byStatus?.['Needs Check'] || 0;
+    document.getElementById('pf-broken').textContent = stats.byStatus?.Broken || 0;
+    document.getElementById('pf-bugs').textContent = stats.hasBugs || 0;
+
+    loading.style.display = 'none';
+    timeEl.textContent = new Date().toLocaleTimeString();
+
+    if (!pfAllFeatures.length) {
+      empty.style.display = 'block';
+      return;
+    }
+
+    content.style.display = 'block';
+    renderProductFeaturesTable(pfAllFeatures);
+  } catch (e) {
+    loading.style.display = 'none';
+    empty.style.display = 'block';
+    empty.innerHTML = `<div style="color:var(--accent3);">Failed to load features: ${e.message}</div>`;
+  }
+}
+
+function renderProductFeaturesTable(features) {
+  const tbody = document.getElementById('pf-tbody');
+  tbody.innerHTML = features.map((f, idx) => {
+    const statusColor = {
+      'Working': 'var(--accent)',
+      'Needs Check': 'var(--accent2)',
+      'Broken': 'var(--accent3)',
+      'In Progress': '#a855f7',
+      'Deprecated': 'var(--fg2)'
+    }[f.status] || 'var(--fg2)';
+    const priorityEmoji = { 'Critical': '🔴', 'High': '🟠', 'Medium': '🟡', 'Low': '🟢' }[f.priority] || '⚪';
+    const lastChecked = f.lastChecked ? new Date(f.lastChecked).toLocaleDateString() + ' ' + new Date(f.lastChecked).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—';
+    const debuggerColor = f.debuggerStatus === 'OK' ? 'var(--accent)' : f.debuggerStatus === 'Sent' ? '#a855f7' : 'var(--accent2)';
+    const coderColor = f.coderStatus === 'OK' ? 'var(--accent)' : f.coderStatus === 'Sent' ? '#a855f7' : 'var(--accent2)';
+
+    return `
+      <tr style="cursor:pointer;" onclick="showProductFeatureDetail(${idx})">
+        <td><span style="font-family:monospace;font-size:0.8rem;color:var(--fg2);">${f.featureId}</span></td>
+        <td style="font-weight:600;">${escapeHtml(f.name)}</td>
+        <td><span style="font-size:0.75rem;padding:2px 8px;border-radius:12px;background:var(--bg3);color:var(--fg2);">${f.category}</span></td>
+        <td><span style="font-size:0.75rem;padding:2px 8px;border-radius:12px;background:${statusColor}22;color:${statusColor};font-weight:600;">${f.status}</span></td>
+        <td>${priorityEmoji} ${f.priority}</td>
+        <td style="font-size:0.8rem;color:var(--fg2);">${lastChecked}</td>
+        <td><span style="font-size:0.75rem;padding:2px 8px;border-radius:12px;background:${debuggerColor}22;color:${debuggerColor};font-weight:600;">${f.debuggerStatus}</span></td>
+        <td><span style="font-size:0.75rem;padding:2px 8px;border-radius:12px;background:${coderColor}22;color:${coderColor};font-weight:600;">${f.coderStatus}</span></td>
+        <td>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">
+            <button onclick="event.stopPropagation();checkFeatureHealth('${f.featureId}')" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:0.7rem;cursor:pointer;" title="Run health check">🩺</button>
+            <button onclick="event.stopPropagation();sendFeatureToDebugger('${f.featureId}')" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:0.7rem;cursor:pointer;" title="Send to debugger">🐞</button>
+            <button onclick="event.stopPropagation();sendFeatureToCoder('${f.featureId}')" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:0.7rem;cursor:pointer;" title="Send to coder">💡</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function showProductFeatureDetail(idx) {
+  const f = (pfAllFeatures || [])[idx];
+  if (!f) return;
+  const bugEl = document.getElementById('pf-bug-detail');
+  const propEl = document.getElementById('pf-proposal-detail');
+
+  bugEl.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:600;font-size:1rem;color:var(--fg);">${escapeHtml(f.name)}</div>
+    <div style="margin-bottom:12px;"><span style="font-size:0.75rem;padding:2px 8px;border-radius:12px;background:var(--bg3);color:var(--fg2);">${f.featureId}</span></div>
+    <div style="margin-bottom:12px;"><strong>Description:</strong><div style="margin-top:4px;color:var(--fg2);">${escapeHtml(f.description || '—')}</div></div>
+    <div style="margin-bottom:12px;"><strong>Bug Notes:</strong><div style="margin-top:4px;color:var(--fg2);white-space:pre-wrap;">${escapeHtml(f.bugNotes || 'No issues reported.')}</div></div>
+    <div><strong>Related Files:</strong><div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">${(f.relatedFiles || []).map(file => `<span style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.75rem;color:var(--fg2);font-family:monospace;">${file}</span>`).join(' ') || '—'}</div></div>
+  `;
+
+  propEl.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:600;font-size:1rem;color:var(--fg);">${escapeHtml(f.name)}</div>
+    <div style="margin-bottom:12px;"><strong>Improvement Proposal:</strong><div style="margin-top:4px;color:var(--fg2);white-space:pre-wrap;">${escapeHtml(f.improvementProposal || 'No proposal yet.')}</div></div>
+    <div style="margin-bottom:8px;"><strong>Debugger Status:</strong> <span style="color:var(--accent2);">${f.debuggerStatus}</span></div>
+    <div><strong>Coder Status:</strong> <span style="color:var(--accent2);">${f.coderStatus}</span></div>
+  `;
+}
+
+async function checkFeatureHealth(featureId) {
+  try {
+    const res = await fetch(`/api/product-features?action=check&id=${encodeURIComponent(featureId)}`, { method: 'POST' });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    alert(`Health check for ${featureId}: ${data.health?.allExist ? 'All files exist ✅' : 'Missing files detected ❌'}`);
+    loadProductFeatures();
+  } catch (e) {
+    alert('Health check failed: ' + e.message);
+  }
+}
+
+async function sendFeatureToDebugger(featureId) {
+  try {
+    const res = await fetch(`/api/product-features?action=debug&id=${encodeURIComponent(featureId)}`, { method: 'POST' });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    alert(`Feature ${featureId} sent to debugger. 🐞`);
+    loadProductFeatures();
+  } catch (e) {
+    alert('Send to debugger failed: ' + e.message);
+  }
+}
+
+async function sendFeatureToCoder(featureId) {
+  try {
+    const res = await fetch(`/api/product-features?action=fix&id=${encodeURIComponent(featureId)}`, { method: 'POST' });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    alert(`Feature ${featureId} sent to coder. 💡`);
+    loadProductFeatures();
+  } catch (e) {
+    alert('Send to coder failed: ' + e.message);
+  }
+}
+
+async function runBulkHealthCheck() {
+  if (!confirm('Run health check on ALL features? This may take a moment.')) return;
+  try {
+    const res = await fetch('/api/product-features?action=bulk-check', {
+      method: 'POST',
+      headers: { 'x-cron-secret': '' }
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    alert(`Bulk check complete: ${data.checked} features checked.`);
+    loadProductFeatures();
+  } catch (e) {
+    alert('Bulk check failed: ' + e.message);
+  }
+}
+
+// Init product features tab when clicked
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'product-features') loadProductFeatures();
   });
 });
 </script>
