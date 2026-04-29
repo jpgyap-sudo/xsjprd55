@@ -36,15 +36,15 @@ export async function runMockTradingWorker() {
       logger.debug('[MOCK-WORKER] signal_feature_scores query failed, falling back to signals table');
     }
 
-    // Fallback: read recent active signals directly if no feature scores
+    // Fallback: read valid active signals directly if no feature scores
     if (scoredSignals.length === 0) {
       try {
-        const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        const now = new Date().toISOString();
         const { data: recentSignals } = await supabase
           .from('signals')
           .select('*')
           .eq('status', 'active')
-          .gte('generated_at', cutoff)
+          .gt('valid_until', now)
           .order('generated_at', { ascending: false })
           .limit(20);
         scoredSignals = (recentSignals || []).map(s => ({

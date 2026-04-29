@@ -16,7 +16,7 @@ import {
 } from '../lib/mock-trading/execution-engine.js';
 
 const POLL_INTERVAL_MS = Number(process.env.EXECUTION_POLL_INTERVAL_MS || 30_000);
-const MAX_SIGNAL_AGE_MINUTES = 10;
+const MAX_SIGNAL_AGE_MINUTES = Number(process.env.MAX_SIGNAL_AGE_MINUTES || 720); // 12h default — processes any signal still valid
 const ENABLED = config.ENABLE_MOCK_TRADING_WORKER !== false;
 
 let isRunning = false;
@@ -26,12 +26,13 @@ async function pollAndExecute() {
   isRunning = true;
 
   try {
-    // 1. Fetch recent unprocessed signals (last 10 min)
-    const cutoff = new Date(Date.now() - MAX_SIGNAL_AGE_MINUTES * 60_000).toISOString();
+    // 1. Fetch signals that are still valid (not expired) and haven't been traded yet
+    const now = new Date().toISOString();
     const { data: signals, error } = await supabase
       .from('signals')
-      .select('id, symbol, side, entry_price, stop_loss, take_profit, confidence, strategy, timeframe, generated_at, metadata')
-      .gte('generated_at', cutoff)
+      .select('id, symbol, side, entry_price, stop_loss, take_profit, confidence, strategy, timeframe, generated_at, metadata, valid_until')
+      .eq('status', 'active')
+      .gt('valid_until', now)
       .order('generated_at', { ascending: false })
       .limit(20);
 
