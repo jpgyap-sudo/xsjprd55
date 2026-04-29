@@ -235,6 +235,48 @@ module.exports = {
       min_uptime: '10s'
     },
     {
+      name: 'continuous-backtester',
+      script: './workers/continuous-backtester.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/backtester-combined.log',
+      out_file: './logs/backtester-out.log',
+      error_file: './logs/backtester-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
+    },
+    {
+      name: 'aggressive-mock-worker',
+      script: './workers/aggressive-mock-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps',
+        ENABLE_MOCK_TRADING_WORKER: 'true',
+        ENABLE_TV_TA_SCAN: 'true'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/aggressive-mock-combined.log',
+      out_file: './logs/aggressive-mock-out.log',
+      error_file: './logs/aggressive-mock-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
+    },
+    {
       name: 'secretary',
       script: './scripts/secretary.js',
       instances: 1,
