@@ -9,7 +9,7 @@ import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
 import { calculateProbability } from '../lib/scoring/probability-engine.js';
 import { runBacktest } from '../lib/backtest/backtest-engine.js';
-import { createExchange } from '../lib/trading.js';
+import { fetchOHLCV } from '../lib/exchange.js';
 import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
 
 const INTERVAL_MS = 5 * 60 * 1000;
@@ -31,8 +31,6 @@ export async function runContinuousBacktester() {
       .limit(50);
 
     if (error) throw error;
-
-    const ex = createExchange('binance');
 
     for (const signal of signals || []) {
       // Skip if already backtested
@@ -75,7 +73,7 @@ export async function runContinuousBacktester() {
 
       // Fetch forward candles for backtest simulation
       const since = new Date(signal.generated_at).getTime();
-      const candles = await ex.fetchOHLCV(signal.symbol, signal.timeframe, since, 100);
+      const candles = await fetchOHLCV('binance', signal.symbol, signal.timeframe, 100);
 
       if (candles && candles.length > 5) {
         const { trades, summary } = runBacktest({

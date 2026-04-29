@@ -8,7 +8,6 @@ import { supabase } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
 import { getOrCreateMockAccount, openMockTrade, closeMockTrade } from '../lib/mock-trading/mock-account-engine.js';
-import { createExchange } from '../lib/trading.js';
 import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
 
 const INTERVAL_MS = 3 * 60 * 1000;
@@ -60,11 +59,12 @@ export async function runMockTradingWorker() {
       .select('*')
       .eq('status', 'open');
 
-    const ex = createExchange('binance');
     for (const trade of openTrades || []) {
       try {
-        const ticker = await ex.fetchTicker(trade.symbol);
-        const price = ticker.last;
+        // Public price fetch — no API key needed
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${trade.symbol}`);
+        const json = await res.json();
+        const price = Number(json.price);
         const sl = Number(trade.stop_loss);
         const tp = Number(trade.take_profit);
 
