@@ -39,8 +39,9 @@ export default async function handler(req, res) {
     if (type === 'list') {
       const status = url.searchParams.get('status') || undefined;
       const severity = url.searchParams.get('severity') || undefined;
+      const excludeStatus = url.searchParams.get('exclude_status') || undefined;
       const limit = Number(url.searchParams.get('limit') || 100);
-      let bugs = await listBugs({ status, severity, limit });
+      let bugs = await listBugs({ status, severity, excludeStatus, limit });
       // Deduplicate by fingerprint — keep the most recent per fingerprint
       const seen = new Map();
       for (const b of bugs) {

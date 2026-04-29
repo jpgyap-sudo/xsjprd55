@@ -1222,6 +1222,34 @@
       </div>
     </div>
     <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🧠 Bug Memory</span>
+        <select id="bugs-memory-filter" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:0.75rem;cursor:pointer;">
+          <option value="fixed">Recently Fixed</option>
+          <option value="verified">Verified</option>
+          <option value="wont_fix">Won't Fix</option>
+          <option value="all">All Resolved</option>
+        </select>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div id="bugs-memory-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading memory…</div>
+        <div id="bugs-memory-content" style="display:none;">
+          <table class="signal-table">
+            <thead>
+              <tr>
+                <th>Severity</th>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Fixed At</th>
+                <th>By</th>
+              </tr>
+            </thead>
+            <tbody id="bugs-memory-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
       <div class="card-header">📋 Bug Detail</div>
       <div class="card-body" id="bugs-detail" style="color:var(--fg2);font-size:0.85rem;">Click a bug row to view description, recommendation, and fix notes.</div>
     </div>
@@ -2875,8 +2903,7 @@ async function loadBugs() {
     timeEl.textContent = 'Failed to load';
   }
 }
-loadBugs();
-setInterval(loadBugs, 120000);
+// loadBugs() replaced by loadBugsEnhanced below
 
 // ── API Debugger ─────────────────────────────────────
 let apiDbgAllRows = [];
@@ -3558,16 +3585,20 @@ function renderBugsTable() {
     return;
   }
   const sevColor = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
+  const statusColors = { new: '#60a5fa', investigating: '#fbbf24', fixing: '#f97316', fixed: '#34d399', verified: '#10b981', wont_fix: '#9ca3af', duplicate: '#9ca3af', blocked: '#f87171', queued_for_fix: '#a78bfa' };
   tbody.innerHTML = rows.map(b => {
-    const canQueue = ['critical','high'].includes(b.severity) && !['queued_for_fix','fixed','verified'].includes(b.status);
+    const canQueue = ['critical','high'].includes(b.severity) && !['queued_for_fix','fixed','verified','wont_fix','duplicate'].includes(b.status);
     const queueBtn = canQueue
       ? `<button onclick="event.stopPropagation(); queueBugForFix('${b.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:0.7rem;font-weight:600;cursor:pointer;">🔧 Fix</button>`
       : (b.status === 'queued_for_fix' ? '<span style="font-size:0.7rem;color:var(--accent2);">⏳ Queued</span>' : '');
-    return `<tr style="cursor:pointer;" onclick="showBugDetail('${b.id}')">
+    const stColor = statusColors[b.status] || statusColors.new;
+    const stLabel = b.status.replace(/_/g,' ');
+    const rowOpacity = (b.status === 'fixed' || b.status === 'verified') ? 'opacity:0.65;' : '';
+    return `<tr style="cursor:pointer;${rowOpacity}" onclick="showBugDetail('${b.id}')">
       <td><span style="color:${sevColor[b.severity] || sevColor.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${b.severity}</span></td>
       <td>${b.title}</td>
       <td style="font-size:0.8rem;color:var(--fg2);">${b.source || '—'}</td>
-      <td style="font-size:0.8rem;text-transform:capitalize;">${b.status.replace('_',' ')}</td>
+      <td style="font-size:0.8rem;"><span style="display:inline-block;background:${stColor}22;color:${stColor};padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700;text-transform:capitalize;">${stLabel}</span></td>
       <td style="font-size:0.8rem;color:var(--fg2);">${new Date(b.created_at).toLocaleString()}</td>
       <td style="font-size:0.75rem;">${queueBtn}</td>
     </tr>`;
@@ -3654,12 +3685,65 @@ async function triggerBugFixCycle() {
   }
 }
 
+// ── Bug Memory: Recently Fixed / Verified panel ─────────
+let bugsMemoryRows = [];
+let _bugsMemoryFilter = 'fixed';
+
+async function loadBugMemory() {
+  const loading = document.getElementById('bugs-memory-loading');
+  const content = document.getElementById('bugs-memory-content');
+  try {
+    const res = await fetch('/api/bugs?limit=200');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    const all = data.bugs || [];
+    const resolved = ['fixed','verified','wont_fix','duplicate'];
+    bugsMemoryRows = all.filter(b => resolved.includes(b.status));
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    renderBugMemory();
+  } catch (e) {
+    loading.textContent = 'Failed to load memory';
+  }
+}
+
+function renderBugMemory() {
+  const tbody = document.getElementById('bugs-memory-tbody');
+  let rows = bugsMemoryRows;
+  if (_bugsMemoryFilter !== 'all') rows = rows.filter(b => b.status === _bugsMemoryFilter);
+  rows = rows.sort((a, b) => new Date(b.fixed_at || b.verified_at || b.updated_at) - new Date(a.fixed_at || a.verified_at || a.updated_at));
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">No resolved bugs in this category.</td></tr>';
+    return;
+  }
+  const sevColor = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
+  const statusColors = { fixed: '#34d399', verified: '#10b981', wont_fix: '#9ca3af', duplicate: '#9ca3af' };
+  tbody.innerHTML = rows.map(b => {
+    const stColor = statusColors[b.status] || '#9ca3af';
+    const fixedTime = b.fixed_at || b.verified_at || b.updated_at;
+    return `<tr style="cursor:pointer;opacity:0.75;" onclick="showBugDetail('${b.id}')">
+      <td><span style="color:${sevColor[b.severity] || sevColor.medium};font-weight:700;text-transform:uppercase;font-size:0.7rem;">${b.severity}</span></td>
+      <td style="font-size:0.85rem;">${b.title}</td>
+      <td><span style="display:inline-block;background:${stColor}22;color:${stColor};padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700;text-transform:capitalize;">${b.status.replace(/_/g,' ')}</span></td>
+      <td style="font-size:0.8rem;color:var(--fg2);">${fixedTime ? new Date(fixedTime).toLocaleString() : '—'}</td>
+      <td style="font-size:0.8rem;color:var(--fg2);">${b.fixed_by || '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('bugs-memory-filter')?.addEventListener('change', function() {
+  _bugsMemoryFilter = this.value;
+  renderBugMemory();
+});
+
 // Override the original loadBugs
 document.addEventListener('DOMContentLoaded', () => {
   const orig = window.loadBugs;
   if (orig) { clearInterval(orig._timer); }
   loadBugsEnhanced();
   setInterval(loadBugsEnhanced, 120000);
+  loadBugMemory();
+  setInterval(loadBugMemory, 120000);
 });
 
 // ── Enhanced Research Agent with Clickable Proposals ────
