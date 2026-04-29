@@ -130,6 +130,8 @@
       <option value="">All Providers</option>
       <option value="kimi">Kimi</option>
       <option value="claude">Claude</option>
+      <option value="binance">Binance</option>
+      <option value="bybit">Bybit</option>
       <option value="internal">Internal</option>
     </select>
     <select id="filter-status">
@@ -140,6 +142,7 @@
       <option value="timeout">Timeout</option>
       <option value="error">Error</option>
     </select>
+    <input type="text" id="filter-search" placeholder="Search API name or endpoint..." style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.9rem;min-width:220px;" />
     <button class="primary" onclick="refresh()">Refresh</button>
     <button onclick="triggerScan()">Run Scan Now</button>
   </div>
@@ -262,9 +265,18 @@
   function applyFilters() {
     const provider = document.getElementById('filter-provider').value;
     const status = document.getElementById('filter-status').value;
+    const search = document.getElementById('filter-search').value.trim().toLowerCase();
     let rows = allResults;
     if (provider) rows = rows.filter(r => r.provider === provider);
     if (status) rows = rows.filter(r => r.status === status);
+    if (search) {
+      rows = rows.filter(r =>
+        (r.provider || '').toLowerCase().includes(search) ||
+        (r.endpoint || '').toLowerCase().includes(search) ||
+        (r.error_category || '').toLowerCase().includes(search) ||
+        (r.error_message || '').toLowerCase().includes(search)
+      );
+    }
     renderStats(rows);
     renderTable(rows);
   }
@@ -295,6 +307,7 @@
 
   document.getElementById('filter-provider').addEventListener('change', applyFilters);
   document.getElementById('filter-status').addEventListener('change', applyFilters);
+  document.getElementById('filter-search').addEventListener('input', applyFilters);
 
   refresh();
 </script>
