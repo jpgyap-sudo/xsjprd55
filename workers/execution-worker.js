@@ -26,15 +26,22 @@ async function pollAndExecute() {
   isRunning = true;
 
   try {
-    // 1. Fetch signals that are still valid (not expired) and haven't been traded yet
+    // 1. Fetch active signals (paper mode: include expired too for backfill)
     const now = new Date().toISOString();
-    const { data: signals, error } = await supabase
+    const isPaper = config.TRADING_MODE === 'paper' || !config.TRADING_MODE;
+    let query = supabase
       .from('signals')
-      .select('id, symbol, side, entry_price, stop_loss, take_profit, confidence, strategy, timeframe, generated_at, metadata, valid_until')
+      .select('id, symbol, side, entry_price, stop_loss, take_profit, confidence, strategy, timeframe, generated_at, metadata, valid_until, mode')
       .eq('status', 'active')
-      .gt('valid_until', now)
       .order('generated_at', { ascending: false })
-      .limit(20);
+      .limit(50);
+
+    // In live mode, only pick non-expired signals. In paper mode, be permissive.
+    if (!isPaper) {
+      query = query.gt('valid_until', now);
+    }
+
+    const { data: signals, error } = await query;
 
     if (error) {
       logger.error('[EXEC-WORKER] Signal fetch error:', error.message);

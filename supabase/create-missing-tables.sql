@@ -42,12 +42,14 @@ CREATE TABLE IF NOT EXISTS signal_feature_scores (
 -- 3. MOCK_ACCOUNTS (paper trading balance tracking)
 CREATE TABLE IF NOT EXISTS mock_accounts (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name              TEXT DEFAULT 'AI Mock Account',
-  starting_balance  NUMERIC DEFAULT 1000,
-  current_balance   NUMERIC DEFAULT 1000,
+  name              TEXT UNIQUE NOT NULL DEFAULT 'AI Mock Account',
+  starting_balance  NUMERIC DEFAULT 1000000,
+  current_balance   NUMERIC DEFAULT 1000000,
+  peak_balance      NUMERIC DEFAULT 1000000,
   realized_pnl      NUMERIC DEFAULT 0,
   unrealized_pnl    NUMERIC DEFAULT 0,
   max_drawdown      NUMERIC DEFAULT 0,
+  metadata          JSONB DEFAULT '{}',
   created_at        TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -365,9 +367,9 @@ VALUES
 ON CONFLICT (feature_id) DO NOTHING;
 
 -- Seed a default mock account so trading can start immediately
-INSERT INTO mock_accounts (name, starting_balance, current_balance)
-VALUES ('AI Mock Account', 1000000, 1000000)
-ON CONFLICT DO NOTHING;
+INSERT INTO mock_accounts (name, starting_balance, current_balance, peak_balance)
+VALUES ('AI Mock Account', 1000000, 1000000, 1000000)
+ON CONFLICT (name) DO NOTHING;
 
 -- Seed a default execution profile for common symbols
 INSERT INTO execution_profiles (symbol, base_leverage, win_rate, avg_rr, optimal_sl_pct, optimal_tp_pct)
