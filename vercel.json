@@ -11,6 +11,10 @@
     {
       "path": "/api/bot?type=learn&secret=${CRON_SECRET}",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/signals",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

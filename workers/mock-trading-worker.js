@@ -34,6 +34,15 @@ export async function runMockTradingWorker() {
       const signal = score.signal;
       if (!signal) continue;
 
+      // Normalize side to lowercase for mock_trades compatibility
+      const normalizedSignal = {
+        ...signal,
+        side: (signal.side || '').toLowerCase(),
+        best_leverage: 2,
+        stop_loss_pct: 1.2,
+        take_profit_pct: 2.5
+      };
+
       // Check if already mocked
       const { data: existing } = await supabase
         .from('mock_trades')
@@ -42,10 +51,7 @@ export async function runMockTradingWorker() {
         .limit(1);
       if (existing?.length) continue;
 
-      await openMockTrade(
-        { ...signal, best_leverage: 2, stop_loss_pct: 1.2, take_profit_pct: 2.5 },
-        { finalProbability: score.final_probability }
-      );
+      await openMockTrade(normalizedSignal, { finalProbability: score.final_probability });
     }
 
     // 2. Monitor open mock trades for SL/TP or time exit
