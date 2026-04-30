@@ -5,7 +5,7 @@
 // ============================================================
 
 import fetch from 'node-fetch';
-import { supabase } from '../lib/supabase.js';
+import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
 import { getOrCreateMockAccount, openMockTrade, closeMockTrade } from '../lib/mock-trading/mock-account-engine.js';
@@ -16,6 +16,11 @@ const INTERVAL_MS = 3 * 60 * 1000;
 export async function runMockTradingWorker() {
   if (!config.ENABLE_MOCK_TRADING_WORKER) {
     logger.debug('[MOCK-WORKER] Disabled by config');
+    return;
+  }
+
+  if (isSupabaseNoOp()) {
+    logger.error('[MOCK-WORKER] Supabase is in NO-OP mode. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars.');
     return;
   }
 

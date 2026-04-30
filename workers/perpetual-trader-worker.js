@@ -4,7 +4,7 @@
 // Runs every 60s on VPS via PM2.
 // ============================================================
 
-import { supabase } from '../lib/supabase.js';
+import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { openPerpetualTrade, monitorPerpetualTrades, resetDailyStats } from '../lib/perpetual-trader/engine.js';
 
@@ -108,6 +108,10 @@ async function checkDailyReset() {
 
 export async function runPerpetualTraderCycle() {
   const started = Date.now();
+  if (isSupabaseNoOp()) {
+    logger.error('[perp-worker] Supabase is in NO-OP mode. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars.');
+    return { ok: false, error: 'Supabase NO-OP' };
+  }
   logger.info('[perp-worker] Starting cycle...');
 
   await checkDailyReset();

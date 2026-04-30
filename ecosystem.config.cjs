@@ -121,7 +121,8 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps'
+        DEPLOYMENT_TARGET: 'vps',
+        ENABLE_MOCK_TRADING_WORKER: 'true'
       },
       autorestart: true,
       max_memory_restart: '256M',
