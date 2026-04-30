@@ -1,0 +1,85 @@
+{
+  "version": "1.0.0",
+  "last_updated": "2026-04-30T23:30:00Z",
+  "coders": [
+    {
+      "id": "sb",
+      "name": "Senior Builder",
+      "role": "Lead Developer",
+      "signature": "[SB]",
+      "responsibilities": [
+        "End-to-end code ownership",
+        "Architecture decisions",
+        "Production deployments"
+      ],
+      "active": true
+    },
+    {
+      "id": "sa",
+      "name": "Signal Analyst",
+      "role": "Signal Logic",
+      "signature": "[SA]",
+      "responsibilities": [
+        "Indicator calculations",
+        "Strategy logic validation",
+        "Signal quality review"
+      ],
+      "active": true
+    },
+    {
+      "id": "rs",
+      "name": "Risk & Security",
+      "role": "Security Reviewer",
+      "signature": "[RS]",
+      "responsibilities": [
+        "Secrets management",
+        "API rate limits",
+        "Trading safety gates"
+      ],
+      "active": true
+    },
+    {
+      "id": "vd",
+      "name": "VPS Deployer",
+      "role": "DevOps",
+      "signature": "[VD]",
+      "responsibilities": [
+        "VPS deployment",
+        "PM2 management",
+        "Health monitoring"
+      ],
+      "active": true
+    },
+    {
+      "id": "doc",
+      "name": "Documentation",
+      "role": "Docs Maintainer",
+      "signature": "[DOC]",
+      "responsibilities": [
+        "README updates",
+        "Changelog maintenance",
+        "Onboarding guides"
+      ],
+      "active": true
+    }
+  ],
+  "commit_template": {
+    "format": "[<SIGNATURE>] <type>(<scope>): <description>",
+    "types": [
+      "feat",
+      "fix",
+      "docs",
+      "deploy",
+      "refactor",
+      "test",
+      "chore"
+    ],
+    "example": "[SB] fix(perpetual-trader): add limit to duplicate checks"
+  },
+  "deployment_rules": {
+    "require_signature": true,
+    "require_changelog_update": true,
+    "auto_deploy_branch": "auto-improvement/*",
+    "manual_deploy_branch": "main"
+  }
+}
