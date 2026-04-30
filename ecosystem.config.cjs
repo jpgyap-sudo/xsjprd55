@@ -115,6 +115,27 @@ module.exports = {
       min_uptime: '10s'
     },
     {
+      name: 'bug-hunter-worker',
+      script: './workers/bug-hunter-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps',
+        BUG_HUNTER_ENABLED: 'true'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/bug-hunter-combined.log',
+      out_file: './logs/bug-hunter-out.log',
+      error_file: './logs/bug-hunter-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
+    },
+    {
       name: 'mock-trading-worker',
       script: './workers/mock-trading-worker.js',
       instances: 1,

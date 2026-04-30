@@ -37,10 +37,34 @@ export default async function handler(req, res) {
         .order('generated_at', { ascending: false })
         .limit(50);
       if (error) throw error;
+      
+      // Enrich signals with clickable details
+      const enrichedSignals = (activeSignals || []).map(signal => ({
+        ...signal,
+        // Clickable URL to TradingView chart
+        chartUrl: generateTradingViewUrl(signal.symbol, signal.timeframe),
+        // Detailed description
+        description: generateSignalDescription(signal),
+        // Risk metrics
+        riskReward: signal.take_profit && signal.stop_loss ?
+          ((signal.take_profit[0] - signal.entry_price) / (signal.entry_price - signal.stop_loss)).toFixed(2) :
+          null,
+        // Time remaining
+        timeRemaining: signal.valid_until ?
+          Math.max(0, Math.floor((new Date(signal.valid_until) - new Date()) / 60000)) :
+          null,
+        // Metadata enrichment
+        metadata: {
+          ...signal.metadata,
+          sourceIcon: getSignalSourceIcon(signal.source),
+          strategyDescription: getStrategyDescription(signal.strategy),
+        }
+      }));
+      
       return res.status(200).json({
         ok: true,
-        signals: activeSignals || [],
-        count: (activeSignals || []).length,
+        signals: enrichedSignals,
+        count: enrichedSignals.length,
         ts: new Date().toISOString()
       });
     } catch (err) {
@@ -144,4 +168,76 @@ export default async function handler(req, res) {
     console.error('Signal scan fatal error:', err);
     return res.status(500).json({ ok: false, error: err.message });
   }
+}
+
+// ── Helper Functions for Signal Enrichment ──────────────────
+
+function generateTradingViewUrl(symbol, timeframe) {
+  const tvSymbol = symbol.replace(/\//g, '');
+  const interval = timeframe === '15m' ? '15' :
+                   timeframe === '1h' ? '60' :
+                   timeframe === '4h' ? '240' : 'D';
+  return `https://www.tradingview.com/chart/?symbol=BINANCE:${tvSymbol}&interval=${interval}`;
+}
+
+function generateSignalDescription(signal) {
+  const parts = [
+    `📊 *${signal.symbol}* - ${signal.side} Signal`,
+    ``,
+    `🎯 *Entry:* $${signal.entry_price}`,
+  ];
+  
+  if (signal.stop_loss) {
+    parts.push(`🛑 *Stop Loss:* $${signal.stop_loss}`);
+  }
+  
+  if (signal.take_profit) {
+    const tpArray = Array.isArray(signal.take_profit) ? signal.take_profit : [signal.take_profit];
+    parts.push(`✅ *Take Profit:* ${tpArray.map(tp => `$${tp}`).join(', ')}`);
+  }
+  
+  parts.push(`📈 *Strategy:* ${signal.strategy}`);
+  parts.push(`⏱️ *Timeframe:* ${signal.timeframe}`);
+  parts.push(`🎲 *Confidence:* ${Math.round((signal.confidence || 0) * 100)}%`);
+  parts.push(`📡 *Source:* ${signal.source}`);
+  parts.push(`⏰ *Generated:* ${new Date(signal.generated_at).toLocaleString()}`);
+  
+  if (signal.valid_until) {
+    const timeLeft = Math.max(0, Math.floor((new Date(signal.valid_until) - new Date()) / 60000));
+    parts.push(`⌛ *Valid for:* ${timeLeft} minutes`);
+  }
+  
+  if (signal.metadata?.explanation) {
+    parts.push(`\n📝 *Analysis:* ${signal.metadata.explanation}`);
+  }
+  
+  return parts.join('\n');
+}
+
+function getSignalSourceIcon(source) {
+  const icons = {
+    'binance_futures': '🔶',
+    'bybit': '🔷',
+    'okx': '⭕',
+    'hyperliquid': '💧',
+    'tradingview': '📊',
+    'manual': '✋',
+    'research_agent': '🔬',
+    'default': '📡'
+  };
+  return icons[source] || icons.default;
+}
+
+function getStrategyDescription(strategy) {
+  const descriptions = {
+    'EMA_Cross': 'Trend-following strategy using EMA crossovers',
+    'RSI_Bounce': 'Mean reversion strategy using RSI oversold/overbought levels',
+    'Momentum_EMA20': 'Momentum strategy using price action around EMA20',
+    'EMA_Cross_15m': 'EMA Cross strategy optimized for 15-minute timeframe',
+    'Volume_Breakout': 'Breakout strategy using volume confirmation',
+    'MACD_Divergence': 'Trend reversal strategy using MACD divergences',
+    'Bollinger_Squeeze': 'Volatility breakout strategy using Bollinger Bands',
+    'default': 'Technical analysis-based trading strategy'
+  };
+  return descriptions[strategy] || descriptions.default;
 }

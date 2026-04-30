@@ -8,6 +8,20 @@ import { db } from '../lib/ml/db.js';
 import { initMlDb } from '../lib/ml/db.js';
 import { rankAllStrategies } from '../lib/ml/strategyEvaluator.js';
 import { loadActiveModel } from '../lib/ml/model.js';
+import { getAllSourceConfigs } from '../lib/ml/enhancedSourceCrawler.js';
+
+// Helper to get icon for source
+function getSourceIcon(sourceName) {
+  const icons = {
+    cryptopanic: '📰',
+    coingecko_global: '🌍',
+    binance_funding: '💰',
+    lunarcrush: '📊',
+    tradingview_ideas: '📈',
+    default: '📄'
+  };
+  return icons[sourceName] || icons.default;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -65,17 +79,33 @@ export default async function handler(req, res) {
     // Built-in strategy rankings
     const ranked = rankAllStrategies();
 
-    return res.status(200).json({
-      ok: true,
-      recentSources: recentSources.map(s => ({
+    // Parse enhanced metadata if available
+    const enhancedSources = recentSources.map(s => {
+      const metadata = s.extracted_hints_json ?
+        (s.extracted_hints_json.startsWith('{') ? JSON.parse(s.extracted_hints_json) : { hints: JSON.parse(s.extracted_hints_json) }) :
+        {};
+      
+      return {
         id: s.id,
         createdAt: s.created_at,
         sourceName: s.source_name,
         sourceUrl: s.source_url,
         contentPreview: s.content?.slice(0, 200),
-        hints: JSON.parse(s.extracted_hints_json || '[]'),
+        hints: metadata.hints || (Array.isArray(metadata) ? metadata : []),
         used: !!s.used,
-      })),
+        // Enhanced fields
+        displayName: metadata.displayName || s.source_name,
+        description: metadata.description || s.content?.slice(0, 500),
+        category: metadata.category || 'other',
+        relevanceScore: metadata.relevanceScore || 0.5,
+        snapshotUrl: metadata.snapshotUrl || null,
+        icon: getSourceIcon(s.source_name),
+      };
+    });
+
+    return res.status(200).json({
+      ok: true,
+      recentSources: enhancedSources,
       proposals: proposals.map(p => ({
         id: p.id,
         createdAt: p.created_at,
@@ -121,6 +151,7 @@ export default async function handler(req, res) {
         version: model.version,
         metrics: model.metrics,
       } : null,
+      sourceConfigs: getAllSourceConfigs(),
       ts: new Date().toISOString(),
     });
   } catch (err) {

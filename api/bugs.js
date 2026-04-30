@@ -45,6 +45,7 @@ export default async function handler(req, res) {
       // Deduplicate by fingerprint — keep the most recent per fingerprint
       const seen = new Map();
       for (const b of bugs) {
+        if (!b.id) continue; // skip rows with no ID
         if (!b.fingerprint) { seen.set(b.id, b); continue; }
         const existing = seen.get(b.fingerprint);
         if (!existing || new Date(b.detected_at || b.created_at) > new Date(existing.detected_at || existing.created_at)) {

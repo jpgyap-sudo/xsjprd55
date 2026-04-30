@@ -90,6 +90,107 @@ Responsibilities:
 
 ---
 
+## Secondary Agent: VPS Deployer Agent (Auto-Deploy)
+
+**Scope:** Automated deployment to VPS with change tracking and zero-downtime updates.
+
+**Permissions:** Full SSH access to VPS, PM2 process control, Git operations, file system access.
+
+**Responsibilities:**
+- **Track Every Change:** Monitor all bug fixes, updates, and commits in real-time
+- **Crawl Undeployed Changes:** Continuously check GitHub latest commit vs VPS deployed commit
+- **Auto-Deploy on Commit:** Automatically deploy to VPS on every new commit to main branch
+- **Zero-Downtime Deployments:** Use PM2 reload for seamless worker restarts
+- **Deployment Verification:** Verify health checks pass after each deployment
+- **Rollback Capability:** Automatically rollback if deployment fails health checks
+- **Change Documentation:** Log every deployment with commit hash, timestamp, and change summary
+
+**Deployment Tracking Table (deploy_history):**
+```sql
+CREATE TABLE IF NOT EXISTS deploy_history (
+  id BIGSERIAL PRIMARY KEY,
+  commit_sha TEXT NOT NULL,
+  commit_message TEXT,
+  commit_author TEXT,
+  deployed_at TIMESTAMPTZ DEFAULT NOW(),
+  deploy_status TEXT CHECK (deploy_status IN ('pending', 'success', 'failed', 'rolled_back')),
+  vps_ip TEXT,
+  previous_commit TEXT,
+  files_changed TEXT[],
+  deploy_log TEXT,
+  health_check_passed BOOLEAN DEFAULT FALSE,
+  pm2_restarted BOOLEAN DEFAULT FALSE
+);
+```
+
+**Auto-Deploy Workflow:**
+1. **Poll:** Every 2 minutes, check GitHub latest commit vs VPS current commit
+2. **Detect:** If commits differ, queue auto-deployment
+3. **Pre-Deploy:**
+   - Record current PM2 process status
+   - Create backup of critical config files
+   - Log deployment start to deploy_history
+4. **Deploy:**
+   - `git pull origin main` on VPS
+   - `npm install` if package.json changed
+   - Run any pending database migrations
+5. **Post-Deploy:**
+   - `pm2 reload all` (zero-downtime restart)
+   - Verify health endpoint returns 200
+   - Check all workers are running in PM2
+6. **Verify:**
+   - Wait 30 seconds for workers to stabilize
+   - Run health checks on all workers
+   - Update deploy_history with status
+7. **Alert:** Send Telegram notification with deploy result
+
+**Auto-Deploy Safety Gates:**
+- NEVER auto-deploy if health checks are currently failing
+- NEVER auto-deploy between 23:00-06:00 (configurable maintenance window)
+- ALWAYS require manual approval for database schema changes (detected by *.sql file changes)
+- ALWAYS keep last 5 deployments for quick rollback
+- PAUSE auto-deploy if 2 consecutive deployments fail
+
+**Change Detection & Tracking:**
+- Track every file changed in each commit
+- Categorize changes: `bugfix`, `feature`, `schema`, `config`, `docs`
+- Log which workers are affected by each change
+- Build deployment dependency graph (which workers need restart)
+- Smart deploy: Only restart workers affected by changed files
+
+**VPS Deployer Agent Commands:**
+```bash
+# Check for undeployed changes
+node workers/deploy-checker.js
+
+# Force immediate deployment
+node workers/deploy-checker.js --force-deploy
+
+# Check deployment status
+node workers/deploy-checker.js --status
+
+# Rollback to previous deployment
+node workers/deploy-checker.js --rollback
+
+# View deployment history
+node workers/deploy-checker.js --history
+```
+
+**Configuration (Environment Variables):**
+```env
+VPS_IP=165.22.110.111
+VPS_USER=root
+VPS_SSH_KEY=/root/.ssh/id_ed25519
+GITHUB_REPO=jpgyap-sudo/xsjprd55
+ENABLE_AUTO_DEPLOY=true
+AUTO_DEPLOY_INTERVAL_MINUTES=2
+DEPLOY_MAINTENANCE_START_HOUR=23
+DEPLOY_MAINTENANCE_END_HOUR=6
+TELEGRAM_DEPLOY_NOTIFICATIONS=true
+```
+
+---
+
 ## Secondary Agent: MCP Connector
 
 **Scope:** Manages Model Context Protocol (MCP) connections to external tools.

@@ -12,7 +12,9 @@
     "debug-crawler": "node workers/debug-crawler-worker.js --once",
     "debug-crawler:watch": "node workers/debug-crawler-worker.js",
     "api-debugger": "node workers/api-debugger-worker.js --once",
-    "api-debugger:watch": "node workers/api-debugger-worker.js"
+    "api-debugger:watch": "node workers/api-debugger-worker.js",
+    "bug-hunter": "node workers/bug-hunter-worker.js --once",
+    "bug-hunter:watch": "node workers/bug-hunter-worker.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

@@ -367,7 +367,10 @@ async function executeSql(sql) {
   }
 
   try {
-    // Use Supabase's /rpc/exec_sql if available, otherwise use pg directly
+    // First ensure exec_sql function exists
+    await ensureExecSqlFunction();
+    
+    // Use Supabase's /rpc/exec_sql if available
     const resp = await fetch(`${state.supabaseUrl}/rest/v1/rpc/exec_sql`, {
       method: 'POST',
       headers: {
@@ -390,6 +393,143 @@ async function executeSql(sql) {
     log(fail(`SQL execution error: ${e.message}`));
     return false;
   }
+}
+
+// ── Create exec_sql RPC function if it doesn't exist ────────
+async function ensureExecSqlFunction() {
+  const createFunctionSql = `
+CREATE OR REPLACE FUNCTION exec_sql(query TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  result JSONB;
+BEGIN
+  EXECUTE query;
+  result := '{"success": true}'::JSONB;
+  RETURN result;
+EXCEPTION WHEN OTHERS THEN
+  result := jsonb_build_object(
+    'success', false,
+    'error', SQLERRM,
+    'detail', SQLSTATE
+  );
+  RETURN result;
+END;
+$$;
+`;
+
+  try {
+    // Try to create the function via REST
+    const resp = await fetch(`${state.supabaseUrl}/rest/v1/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': state.supabaseKey,
+        'Authorization': `Bearer ${state.supabaseKey}`,
+        'Prefer': 'tx=commit'
+      },
+      body: JSON.stringify({ query: createFunctionSql })
+    });
+    
+    // Function may already exist, that's fine
+    return true;
+  } catch (e) {
+    // Silently fail - function might already exist or user lacks permission
+    return true;
+  }
+}
+
+// ── Execute SQL file with statements split ───────────────────
+async function executeSqlFile(filePath) {
+  if (!state.supabaseConnected) {
+    log(fail('Cannot execute SQL — Supabase not connected'));
+    return false;
+  }
+
+  try {
+    const sql = await readFile(filePath, 'utf-8');
+    const statements = splitSqlStatements(sql);
+    
+    log(info(`Executing ${statements.length} SQL statements from ${filePath}...`));
+    
+    let success = 0;
+    let failed = 0;
+    
+    for (let i = 0; i < statements.length; i++) {
+      const stmt = statements[i].trim();
+      if (!stmt) continue;
+      
+      process.stdout.write(`  [${i + 1}/${statements.length}] Executing... `);
+      
+      const ok = await executeSql(stmt);
+      if (ok) {
+        success++;
+        console.log(`${C.green}✓${C.reset}`);
+      } else {
+        failed++;
+        console.log(`${C.red}✗${C.reset}`);
+      }
+    }
+    
+    log(`\n${ok(`Executed: ${success} succeeded, ${failed} failed`)}`);
+    return failed === 0;
+  } catch (e) {
+    log(fail(`Failed to read/execute SQL file: ${e.message}`));
+    return false;
+  }
+}
+
+// ── Split SQL into individual statements ─────────────────────
+function splitSqlStatements(sql) {
+  const statements = [];
+  let current = '';
+  let inFunction = false;
+  let functionDepth = 0;
+  
+  const lines = sql.split('\n');
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    
+    // Skip comments and empty lines
+    if (trimmed.startsWith('--') || trimmed.startsWith('/*') || trimmed === '') {
+      current += line + '\n';
+      continue;
+    }
+    
+    // Track function body depth
+    if (/CREATE\s+(OR\s+REPLACE\s+)?FUNCTION/i.test(trimmed)) {
+      inFunction = true;
+    }
+    
+    if (inFunction) {
+      if (trimmed.includes('$$')) {
+        functionDepth = functionDepth === 0 ? 1 : 0;
+        if (functionDepth === 0 && /LANGUAGE\s+plpgsql/i.test(current)) {
+          inFunction = false;
+        }
+      }
+      if (trimmed.includes('BEGIN')) functionDepth++;
+      if (trimmed.includes('END')) functionDepth--;
+    }
+    
+    current += line + '\n';
+    
+    // Statement terminator (but not inside function)
+    if (trimmed.endsWith(';') && !inFunction && functionDepth === 0) {
+      statements.push(current.trim());
+      current = '';
+    }
+  }
+  
+  // Add any remaining statement
+  if (current.trim()) {
+    statements.push(current.trim());
+  }
+  
+  return statements.filter(s => s.length > 0);
 }
 
 // ── Phase 9: Summary ────────────────────────────────────────
@@ -444,10 +584,35 @@ async function main() {
   if (doExec && targetFile) {
     header(`Executing: ${targetFile}`);
     const sqlPath = resolve(ROOT, 'supabase', targetFile);
-    const sql = await readFile(sqlPath, 'utf-8');
-    const ok = await executeSql(sql);
-    if (ok) {
-      log(ok(`Executed ${targetFile} successfully`));
+    const result = await executeSqlFile(sqlPath);
+    if (result) {
+      log(ok(`✓ Successfully executed ${targetFile}`));
+    } else {
+      log(fail(`✗ Failed to execute ${targetFile}`));
+      state.errors++;
+    }
+  }
+  
+  // Execute trader fix specifically
+  if (args.includes('--fix-trader')) {
+    header('Executing Trader Fix');
+    const traderFixPath = resolve(ROOT, 'supabase', 'fix-trader-not-trading.sql');
+    log(info('This will fix:'));
+    log('  • Create execution_profiles table');
+    log('  • Seed mock accounts');
+    log('  • Fix side constraint case sensitivity');
+    log('  • Add missing columns to mock_trades');
+    log('');
+    
+    const result = await executeSqlFile(traderFixPath);
+    if (result) {
+      log(ok('✓ Trader fix applied successfully!'));
+      log(info('Next steps:'));
+      log('  1. Run: node scripts/seed-test-signals.mjs');
+      log('  2. Restart workers: pm2 restart execution-worker');
+    } else {
+      log(fail('✗ Trader fix failed'));
+      state.errors++;
     }
   }
 

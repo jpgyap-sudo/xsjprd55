@@ -129,27 +129,37 @@ async function main() {
   }
 
   // Ensure account exists
+  let account;
   try {
-    const account = await getOrCreateExecutionAccount();
+    account = await getOrCreateExecutionAccount();
     if (!account) {
-      logger.error('[EXEC-WORKER] Account is null — cannot start');
+      logger.error('[EXEC-WORKER] CRITICAL: Account is null — cannot start. Check Supabase connection and mock_accounts table.');
+      logger.error('[EXEC-WORKER] Run: node scripts/seed-mock-accounts.mjs OR run SQL from supabase/fix-trader-not-trading.sql');
       return;
     }
     const balance = account.current_balance ?? account.starting_balance ?? 1_000_000;
-    logger.info(`[EXEC-WORKER] Account ready — balance=$${Number(balance).toLocaleString()}`);
+    logger.info(`[EXEC-WORKER] Account ready — id=${account.id}, name=${account.name}, balance=$${Number(balance).toLocaleString()}`);
   } catch (e) {
     logger.error('[EXEC-WORKER] Account setup failed:', e.message);
+    logger.error('[EXEC-WORKER] Cannot start worker without valid account');
+    return;
   }
 
-  logger.info(`[EXEC-WORKER] Starting — poll every ${POLL_INTERVAL_MS}ms`);
+  logger.info(`[EXEC-WORKER] Starting — poll every ${POLL_INTERVAL_MS}ms, trading mode=${config.TRADING_MODE || 'paper'}`);
 
   // Immediate first runs
-  await pollAndExecute();
-  await monitorLoop();
+  try {
+    await pollAndExecute();
+    await monitorLoop();
+  } catch (e) {
+    logger.error('[EXEC-WORKER] Initial execution failed:', e.message);
+  }
 
   // Loops
   setInterval(pollAndExecute, POLL_INTERVAL_MS);
   setInterval(monitorLoop, 15_000); // Monitor every 15s
+  
+  logger.info('[EXEC-WORKER] Worker is now RUNNING and actively polling for signals');
 }
 
 main().catch((e) => {
