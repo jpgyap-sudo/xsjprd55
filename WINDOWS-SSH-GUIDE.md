@@ -182,3 +182,4 @@ docker system prune -f
 2. Go to **Account** → **API Management**
 3. Create a new API key with **read-only** permissions
 4. Copy the API Key and Secret Key
+
