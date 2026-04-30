@@ -36,28 +36,41 @@ export async function syncBacktestData() {
 
     if (supabaseRuns?.length > 0) {
       const insertRun = db.prepare(`
-        INSERT OR REPLACE INTO backtest_results 
-        (id, run_at, strategy_name, symbol, total_return_pct, total_trades, win_rate, sharpe_ratio, max_drawdown_pct, profit_factor, trade_log_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO backtest_results
+        (run_at, strategy_name, symbol, total_return_pct, total_trades, win_rate, sharpe_ratio, max_drawdown_pct, profit_factor, trade_log_json)
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        WHERE NOT EXISTS (
+          SELECT 1 FROM backtest_results
+          WHERE run_at = ? AND strategy_name = ? AND symbol = ?
+        )
       `);
 
       const transaction = db.transaction((runs) => {
         for (const run of runs) {
           try {
-            insertRun.run(
-              run.id,
-              run.created_at || run.run_at,
-              run.strategy_name,
-              run.symbol,
-              run.total_return_pct || 0,
+            const runAt = run.created_at || run.run_at;
+            const strategyName = run.strategy_name || 'unknown_strategy';
+            const symbol = run.symbol || 'UNKNOWN';
+            const result = insertRun.run(
+              runAt,
+              strategyName,
+              symbol,
+              run.total_return_pct ?? run.avg_pnl ?? 0,
               run.total_trades || 0,
               run.win_rate || 0,
               run.sharpe_ratio || 0,
-              run.max_drawdown || run.max_drawdown_pct || 0,
+              run.max_drawdown ?? run.max_drawdown_pct ?? 0,
               run.profit_factor || 0,
-              JSON.stringify(run.config || {})
+              JSON.stringify({
+                source: 'supabase.backtest_runs',
+                source_id: run.id,
+                config: run.config || {},
+              }),
+              runAt,
+              strategyName,
+              symbol
             );
-            stats.backtestRuns++;
+            stats.backtestRuns += result.changes;
           } catch (e) {
             logger.warn(`[BACKTEST-SYNC] Failed to insert run ${run.id}: ${e.message}`);
             stats.errors++;
@@ -102,9 +115,13 @@ export async function syncBacktestData() {
       const signalMap = new Map((signals || []).map(s => [s.id, s]));
 
       const insertSnapshot = db.prepare(`
-        INSERT OR REPLACE INTO signal_snapshots
-        (id, created_at, symbol, timeframe, price, signal_side, rule_probability, ml_probability, final_probability, features_json, rationale_json, outcome_label, outcome_return_pct, outcome_checked_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO signal_snapshots
+        (created_at, symbol, timeframe, price, signal_side, rule_probability, ml_probability, final_probability, features_json, rationale_json, outcome_label, outcome_return_pct, outcome_checked_at)
+        SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        WHERE NOT EXISTS (
+          SELECT 1 FROM signal_snapshots
+          WHERE created_at = ? AND symbol = ? AND timeframe = ? AND signal_side = ?
+        )
       `);
 
       const transaction = db.transaction((scores) => {
@@ -119,14 +136,16 @@ export async function syncBacktestData() {
               liquidity: score.liquidity_score,
               strategyHistory: score.strategy_history_score,
             };
+            const symbol = signal.symbol || 'UNKNOWN';
+            const timeframe = signal.timeframe || '1h';
+            const side = signal.side || 'LONG';
 
-            insertSnapshot.run(
-              score.id,
+            const result = insertSnapshot.run(
               score.created_at,
-              signal.symbol || 'UNKNOWN',
-              signal.timeframe || '1h',
+              symbol,
+              timeframe,
               signal.entry_price || 0,
-              signal.side || 'LONG',
+              side,
               signal.confidence || 0.5,
               score.final_probability,
               score.final_probability,
@@ -134,9 +153,13 @@ export async function syncBacktestData() {
               JSON.stringify(score.score_breakdown || {}),
               null, // outcome_label - not known yet
               null, // outcome_return_pct
-              null  // outcome_checked_at
+              null, // outcome_checked_at
+              score.created_at,
+              symbol,
+              timeframe,
+              side
             );
-            stats.signalScores++;
+            stats.signalScores += result.changes;
           } catch (e) {
             logger.warn(`[BACKTEST-SYNC] Failed to insert score ${score.id}: ${e.message}`);
             stats.errors++;

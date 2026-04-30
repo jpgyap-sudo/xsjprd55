@@ -13,6 +13,20 @@ function sleep(ms) {
 }
 
 const PROCESSED_SIGNALS = new Set();
+const TRANSIENT_SKIP_REASONS = [
+  'Price unavailable',
+  'Could not fetch price',
+  'network',
+  'timeout',
+  'fetch',
+  'schema cache',
+  'does not exist',
+];
+
+function shouldRetrySignal(reason = '') {
+  const normalized = String(reason).toLowerCase();
+  return TRANSIENT_SKIP_REASONS.some((item) => normalized.includes(item.toLowerCase()));
+}
 
 /**
  * Poll for new unprocessed signals and open trades
@@ -21,24 +35,30 @@ async function pollAndTrade() {
   const results = { processed: 0, opened: 0, skipped: 0, errors: 0 };
 
   try {
+    const nowMs = Date.now();
+    const recentWindowIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
     // Get recent signals not yet traded by perpetual trader
     const { data: signals, error } = await supabase
       .from('signals')
       .select('*')
       .eq('status', 'active')
-      .gte('generated_at', new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()) // Last 4h
+      .gte('generated_at', recentWindowIso)
       .order('generated_at', { ascending: false })
       .limit(20);
 
     if (error) throw error;
-    if (!signals || signals.length === 0) return results;
+    const tradableSignals = (signals || []).filter((signal) => {
+      if (!signal.valid_until) return true;
+      return new Date(signal.valid_until).getTime() >= nowMs;
+    });
+    if (tradableSignals.length === 0) return results;
 
-    for (const signal of signals) {
+    for (const signal of tradableSignals) {
       if (PROCESSED_SIGNALS.has(signal.id)) {
         results.skipped++;
         continue;
       }
-      PROCESSED_SIGNALS.add(signal.id);
 
       try {
         // Check if already have an open trade for this signal
@@ -49,16 +69,21 @@ async function pollAndTrade() {
           .maybeSingle();
 
         if (existing) {
+          PROCESSED_SIGNALS.add(signal.id);
           results.skipped++;
           continue;
         }
 
         const result = await openPerpetualTrade(signal);
         if (result.ok) {
+          PROCESSED_SIGNALS.add(signal.id);
           results.opened++;
         } else {
           results.skipped++;
           logger.info(`[perp-worker] Skipped ${signal.symbol}: ${result.reason}`);
+          if (!shouldRetrySignal(result.reason)) {
+            PROCESSED_SIGNALS.add(signal.id);
+          }
         }
       } catch (e) {
         results.errors++;
@@ -66,7 +91,7 @@ async function pollAndTrade() {
       }
     }
 
-    results.processed = signals.length;
+    results.processed = tradableSignals.length;
     return results;
   } catch (e) {
     logger.error(`[perp-worker] Poll failed: ${e.message}`);

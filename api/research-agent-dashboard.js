@@ -47,11 +47,12 @@ export default async function handler(req, res) {
       LIMIT 30
     `).all();
 
-    // Recent backtest results for research strategies
+    // Recent backtest results for research strategies.
+    // Research-extracted strategies are named extracted_* and composite_*,
+    // so filtering only research_* hides valid completed backtests.
     const backtests = db.prepare(`
       SELECT run_at, strategy_name, symbol, total_return_pct, total_trades, win_rate, sharpe_ratio, max_drawdown_pct, profit_factor
       FROM backtest_results
-      WHERE strategy_name LIKE 'research_%'
       ORDER BY run_at DESC
       LIMIT 20
     `).all();

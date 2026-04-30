@@ -237,6 +237,7 @@ export default async function handler(req, res) {
               .eq('symbol', rawSignal.symbol)
               .eq('side', rawSignal.side)
               .eq('status', 'active')
+              .gte('valid_until', new Date().toISOString())
               .maybeSingle();
             if (dup) continue;
 

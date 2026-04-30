@@ -55,6 +55,11 @@ Cause: Too many requests in signal scan or backtest.
 Fix: Pause signal generation for 60s, implement request queue with backoff.
 Prevention: Track API usage per exchange and respect rate limits.
 
+### Research Agent shows tested proposals but "No backtests yet"
+Cause: The dashboard queried local SQLite `backtest_results` with `strategy_name LIKE 'research_%'`, but extracted research strategies are named `extracted_*` or `composite_*`. The Supabase-to-SQLite sync worker also tried to write Supabase UUID ids into SQLite integer ids, so synced backtest runs and signal snapshots could be rejected before reaching the dashboard.
+Fix: Read recent `backtest_results` without the stale `research_%` filter, and let SQLite assign local integer ids while preserving the Supabase backtest id inside `trade_log_json`.
+Prevention: Keep strategy-name filters aligned with extractor naming conventions, and never map external UUID primary keys into local integer primary keys.
+
 ### Signal sent without stop-loss
 Cause: Risk filter bypassed or validation missing.
 Fix: Enforce stop-loss field in signal schema validation before broadcast.
