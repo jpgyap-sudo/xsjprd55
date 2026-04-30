@@ -4,12 +4,12 @@
 // Runs every 3 minutes on VPS.
 // ============================================================
 
-import fetch from 'node-fetch';
 import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
 import { getOrCreateMockAccount, openMockTrade, closeMockTrade } from '../lib/mock-trading/mock-account-engine.js';
 import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
+import { fetchPublicPrice } from '../lib/market-price.js';
 
 const INTERVAL_MS = 3 * 60 * 1000;
 
@@ -109,11 +109,8 @@ export async function runMockTradingWorker() {
 
     for (const trade of openTrades || []) {
       try {
-        // Public price fetch — no API key needed; Binance requires no slash (BTCUSDT not BTC/USDT)
-        const binanceSymbol = trade.symbol.replace('/', '');
-        const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${binanceSymbol}`);
-        const json = await res.json();
-        const price = Number(json.price);
+        const { price, source } = await fetchPublicPrice(trade.symbol);
+        logger.debug(`[MOCK-WORKER] ${trade.symbol} price from ${source}: ${price}`);
         const sl = Number(trade.stop_loss);
         const tp = Number(trade.take_profit);
 

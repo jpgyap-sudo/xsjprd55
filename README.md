@@ -141,8 +141,8 @@ Vercel is **not recommended** for this project. The VPS handles everything: API,
 - **VPS**: Ubuntu 22.04+, 2 vCPU / 2GB RAM minimum, public IP
 - [Supabase](https://supabase.com) project
 - [Telegram bot](https://t.me/BotFather) token and a group chat ID
-- [Binance](https://www.binance.com) account + **read-only** API key (recommended)
-- Optional: Bybit, OKX read-only keys for multi-exchange fallback
+- Exchange API keys are optional for paper/mock monitoring. Public price feeds use `PRICE_SOURCE_ORDER=hyperliquid,binance,bybit,okx` by default.
+- Optional: Binance, Bybit, or OKX **read-only** keys for higher rate limits and exchange-specific data. Never enable trading permissions unless live trading is explicitly intended.
 
 ### 2. Clone and install on VPS
 
