@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS agent_changes (
     deploy_finished_at TIMESTAMPTZ,
     
     -- Deployment details
-    deployed_to TEXT, -- 'vps', 'vercel', 'staging', 'production'
+    deployed_to TEXT, -- 'vps', 'staging', 'production'
     deploy_log TEXT,
     deploy_error TEXT,
     
@@ -126,7 +126,6 @@ CREATE TABLE IF NOT EXISTS deployment_queue (
     -- Deployment target
     target TEXT NOT NULL DEFAULT 'vps' CHECK (target IN (
         'vps',
-        'vercel',
         'staging',
         'production'
     )),

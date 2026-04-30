@@ -22,6 +22,7 @@ function isAuthorized(req) {
 }
 
 async function readBody(req) {
+  if (req.body && typeof req.body === 'object') return req.body;
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   const raw = Buffer.concat(chunks).toString('utf8');

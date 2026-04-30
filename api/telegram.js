@@ -176,7 +176,7 @@ async function cmdStatus(chatId) {
 async function cmdScan(chatId) {
   await sendTelegram(chatId, '🔍 Triggering signal scan...');
   try {
-    const base = process.env.APP_URL || process.env.VERCEL_PRODUCTION_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const base = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
     const res = await fetch(`${base}/api/signal`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
     const data = await res.json();
     return sendTelegram(chatId, `🔔 Scan done. Signals: ${data.signals?.length || 0} | Errors: ${data.errors?.length || 0}`);
@@ -277,7 +277,7 @@ async function cmdNews(chatId) {
 async function cmdNewsScan(chatId) {
   try {
     await sendTelegram(chatId, '🔍 Scanning news for trade signals...');
-    const base = process.env.APP_URL || process.env.VERCEL_PRODUCTION_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const base = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
     const res = await fetch(`${base}/api/news-signal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
@@ -312,7 +312,7 @@ async function cmdNewsScan(chatId) {
 
 async function cmdCatalysts(chatId) {
   try {
-    const base = process.env.APP_URL || process.env.VERCEL_PRODUCTION_URL || `http://localhost:${process.env.PORT || 3000}`;
+    const base = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
     const res = await fetch(`${base}/api/catalyst`);
     const data = await res.json();
     if (!data.ok) throw new Error(data.error);
@@ -386,7 +386,7 @@ async function cmdSuggestions(chatId) {
     msg += `_${s.description.slice(0, 120)}${s.description.length > 120 ? '...' : ''}_\n`;
     msg += `Expected impact: ${s.expected_impact || 'TBD'}\n\n`;
   }
-  msg += 'View all in dashboard: https://xsjprd55.vercel.app';
+  msg += `View all in dashboard: ${process.env.APP_URL || 'https://bot.abcx124.xyz'}`;
   return sendTelegram(chatId, msg);
 }
 

@@ -381,6 +381,49 @@ module.exports = {
       min_uptime: '10s'
     },
     {
+      name: 'learning-loop-worker',
+      script: './workers/learning-loop-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps',
+        LEARNING_INTERVAL_HOURS: '6'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/learning-loop-combined.log',
+      out_file: './logs/learning-loop-out.log',
+      error_file: './logs/learning-loop-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
+    },
+    {
+      name: 'news-signal-worker',
+      script: './workers/news-signal-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps'
+      },
+      autorestart: false,
+      // Run daily at 1 AM UTC (same schedule as old vercel.json cron)
+      cron_restart: '0 1 * * *',
+      max_memory_restart: '256M',
+      log_file: './logs/news-signal-combined.log',
+      out_file: './logs/news-signal-out.log',
+      error_file: './logs/news-signal-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 3,
+      min_uptime: '1s'
+    },
+    {
       name: 'deploy-checker',
       script: './workers/deploy-checker.js',
       instances: 1,

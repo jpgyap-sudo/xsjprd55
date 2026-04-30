@@ -7,13 +7,13 @@ insert into bugs_to_fix (source_agent, title, description, severity, status, fil
 values
   (
     'signal_analyst',
-    'Missing signal scan cron in vercel.json',
-    'The vercel.json cron schedule only includes news ingest, news signal, and learning loop. There is no cron job to trigger /api/signals, which means the signals table never gets populated on Vercel deployments. Without signals, all downstream mock trading, execution, and Telegram alerts are dead.',
+    'Missing signal scan cron — VPS workers must handle schedule',
+    'App has migrated fully to VPS (Express/PM2). vercel.json has been removed. Signal scan cron must now be handled by signal-generator-worker in ecosystem.config.cjs or an external cron (cron-job.org) calling POST /api/signals every 15 minutes. Without this, signals table stays empty and all downstream mock trading, execution, and Telegram alerts are dead.',
     'critical',
     'new',
-    'vercel.json',
+    'ecosystem.config.cjs',
     'Signal Generation Pipeline',
-    'Add a /api/signals cron entry to vercel.json with schedule "*/15 * * * *" to run every 15 minutes.',
+    'Ensure signal-generator-worker is in ecosystem.config.cjs and running, or add a cron-job.org entry for POST /api/signals every 15 minutes.',
     '{"discovered_during":"mock_trader_debug","impact":"complete_signal_pipeline_failure"}'
   ),
   (

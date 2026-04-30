@@ -35,7 +35,6 @@ COPY public/ ./public/
 COPY scripts/ ./scripts/
 COPY server.js ./
 COPY ecosystem.config.cjs ./
-COPY vercel.json ./
 
 # Expose the application port
 EXPOSE 3000

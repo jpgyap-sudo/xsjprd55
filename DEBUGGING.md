@@ -2,6 +2,21 @@
 
 Update this file when a bug fix is reusable.
 
+## Deployment Notes — VPS Only (as of 2026-05-01)
+
+- **Platform:** DigitalOcean VPS — Express server via `server.js` + PM2 (`ecosystem.config.cjs`)
+- **URL:** `https://bot.abcx124.xyz` — set `APP_URL=https://bot.abcx124.xyz` in `.env.prod`
+- **Vercel removed:** `vercel.json` deleted. No Vercel deployment. All crons must run as VPS PM2 workers or via cron-job.org.
+- **Cron replacement:** The 4 Vercel crons now need VPS equivalents:
+  - `*/5 * * * *` → news ingest worker (`workers/news-ingest-worker.js`)
+  - `*/15 * * * *` → signal generator worker (`workers/signal-generator-worker.js`)
+  - `0 1 * * *` → news signal (cron-job.org → POST `/api/news-signal`)
+  - `0 4 * * *` → learning loop worker (`workers/learning-loop-worker.js`)
+- **Body parsing:** All API handlers get `req.body` pre-parsed by `express.json()` — never read the raw stream in handlers.
+- **Supabase:** Use `SUPABASE_SERVICE_ROLE_KEY` (not anon key) for all server-side writes.
+
+---
+
 ## Template
 
 ### Problem
@@ -21,19 +36,19 @@ Describe how to avoid it next time.
 ## Common Issues
 
 ### Telegram webhook returns 404
-Cause: Vercel route path does not match webhook URL.
-Fix: Confirm API route path and reset webhook to the deployed URL.
-Prevention: Store webhook path in `WORKFLOW.md` and `.env.example`.
+Cause: Webhook URL does not match the Express route path or APP_URL is wrong.
+Fix: Confirm `APP_URL=https://bot.abcx124.xyz` in `.env.prod`, then reset webhook via `GET /api/telegram?action=set-webhook&secret=CRON_SECRET`.
+Prevention: Set APP_URL in .env.prod; verify webhook URL with Telegram getWebhookInfo.
 
 ### Supabase insert fails silently
 Cause: RLS policy blocks insert or wrong key is used.
 Fix: Review RLS policy and server/client key usage.
 Prevention: Add Supabase golden path test.
 
-### Vercel build fails after adding package
-Cause: TypeScript, missing env vars, or runtime mismatch.
-Fix: Reproduce locally, check build logs, and patch smallest cause.
-Prevention: Run `npm run build` before deploy.
+### VPS deploy fails after adding package
+Cause: Missing package in package.json, PM2 not restarted, or port conflict.
+Fix: Run `npm install` on VPS, then `pm2 restart all`. Check `pm2 logs` for errors.
+Prevention: Always `npm install` before `pm2 restart`; pin Node >=18 in package.json engines.
 
 ### Signal cron fails silently
 Cause: Exchange API rate limit hit or market data fetch timeout.

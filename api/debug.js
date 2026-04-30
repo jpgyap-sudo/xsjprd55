@@ -64,7 +64,8 @@ async function runDiagnostics() {
     service_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
     telegram_token: !!process.env.TELEGRAM_BOT_TOKEN,
     node_env: process.env.NODE_ENV,
-    vercel_env: process.env.VERCEL_ENV,
+    deployment_target: process.env.DEPLOYMENT_TARGET || 'vps',
+    app_url: process.env.APP_URL || '(not set)',
   };
 
   results.timestamp = new Date().toISOString();

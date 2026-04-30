@@ -2924,7 +2924,7 @@ async function loadBugs() {
       <tr>
         <td><span style="color:${sevColor[b.severity] || sevColor.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${b.severity}</span></td>
         <td>${b.title}</td>
-        <td style="font-size:0.8rem;color:var(--fg2);">${b.source || '—'}</td>
+        <td style="font-size:0.8rem;color:var(--fg2);">${b.source_agent || b.source || '—'}</td>
         <td style="font-size:0.8rem;text-transform:capitalize;">${b.status}</td>
         <td style="font-size:0.8rem;color:var(--fg2);">${new Date(b.created_at).toLocaleString()}</td>
       </tr>
@@ -3633,7 +3633,7 @@ async function showBugDetail(bugId) {
     <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <span style="color:${sevColor[b.severity] || sevColor.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${b.severity}</span>
       ${statusBadge(b.status)}
-      <span style="font-size:0.75rem;color:var(--fg2);">${b.source || '—'} · ${b.file_path ? b.file_path.split('/').pop() : '—'}</span>
+      <span style="font-size:0.75rem;color:var(--fg2);">${b.source_agent || b.source || '—'} · ${b.file_path ? b.file_path.split('/').pop() : '—'}</span>
     </div>
     <div style="margin-bottom:12px;"><strong>Description:</strong><div style="margin-top:4px;color:var(--fg2);line-height:1.5;">${b.description || 'No description available.'}</div></div>
     <div style="margin-bottom:12px;"><strong>Recommendation:</strong><div style="margin-top:4px;color:var(--fg2);line-height:1.5;">${b.recommendation || 'No recommendation available.'}</div></div>
@@ -3686,7 +3686,7 @@ function renderBugsTable() {
     return `<tr style="cursor:pointer;${rowOpacity}" onclick="showBugDetail('${b.id}')">
       <td><span style="color:${sevColor[b.severity] || sevColor.medium};font-weight:700;text-transform:uppercase;font-size:0.75rem;">${b.severity}</span></td>
       <td>${b.title}</td>
-      <td style="font-size:0.8rem;color:var(--fg2);">${b.source || '—'}</td>
+      <td style="font-size:0.8rem;color:var(--fg2);">${b.source_agent || b.source || '—'}</td>
       <td style="font-size:0.8rem;"><span style="display:inline-block;background:${stColor}22;color:${stColor};padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700;text-transform:capitalize;">${stLabel}</span></td>
       <td style="font-size:0.8rem;color:var(--fg2);">${new Date(b.created_at).toLocaleString()}</td>
       <td style="font-size:0.75rem;">${queueBtn}</td>
