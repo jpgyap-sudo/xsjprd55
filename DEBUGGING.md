@@ -60,6 +60,11 @@ Cause: The dashboard queried local SQLite `backtest_results` with `strategy_name
 Fix: Read recent `backtest_results` without the stale `research_%` filter, and let SQLite assign local integer ids while preserving the Supabase backtest id inside `trade_log_json`.
 Prevention: Keep strategy-name filters aligned with extractor naming conventions, and never map external UUID primary keys into local integer primary keys.
 
+### Perpetual trader active but opens no positions
+Cause: `perpetual-trader-worker` marked a signal as processed before `openPerpetualTrade()` actually opened a trade. Temporary failures such as price API timeouts, network errors, missing schema cache, or insert failures caused the running worker to skip that signal forever. Expired active signals could also block new signals because generator duplicate checks ignored `valid_until`.
+Fix: Mark signals processed only after an existing trade is found, a trade opens, or a deterministic risk rejection occurs. Retry transient skips. Poll active signals from the last 24h and filter out expired `valid_until` values in memory. Update signal duplicate checks to only block still-valid active signals.
+Prevention: Processed/dedup sets should represent completed work, not attempted work; duplicate signal checks must include TTL/expiry.
+
 ### Signal sent without stop-loss
 Cause: Risk filter bypassed or validation missing.
 Fix: Enforce stop-loss field in signal schema validation before broadcast.

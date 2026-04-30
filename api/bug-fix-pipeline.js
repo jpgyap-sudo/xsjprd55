@@ -25,6 +25,8 @@ function isAuthorized(req) {
 }
 
 async function readBody(req) {
+  // Express pre-parses req.body via express.json() middleware — use it directly
+  if (req.body && typeof req.body === 'object') return req.body;
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   const raw = Buffer.concat(chunks).toString('utf8');

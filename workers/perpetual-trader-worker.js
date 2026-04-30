@@ -23,7 +23,7 @@ const TRANSIENT_SKIP_REASONS = [
   'does not exist',
 ];
 
-function shouldRetrySignal(reason = '') {
+export function shouldRetrySignal(reason = '') {
   const normalized = String(reason).toLowerCase();
   return TRANSIENT_SKIP_REASONS.some((item) => normalized.includes(item.toLowerCase()));
 }
@@ -66,6 +66,7 @@ async function pollAndTrade() {
           .from('perpetual_mock_trades')
           .select('id')
           .eq('signal_id', signal.id)
+          .limit(1)
           .maybeSingle();
 
         if (existing) {
