@@ -422,6 +422,7 @@ CREATE TABLE IF NOT EXISTS mock_trades (
   exit_reason         TEXT,
   probability_at_entry NUMERIC,
   score_breakdown     JSONB DEFAULT '{}',
+  metadata            JSONB DEFAULT '{}',
   trailing_stop_pct   NUMERIC DEFAULT 0.35,
   highest_price       NUMERIC,
   lowest_price        NUMERIC,

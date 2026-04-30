@@ -6,26 +6,48 @@
 // Cron: */10 * * * * cd ~/xsjprd55 && node workers/deploy-checker.js
 // ============================================================
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import fetch from 'node-fetch';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import '../lib/env.js';
 
 const VPS_IP = process.env.VPS_IP || '165.22.110.111';
 const VPS_USER = process.env.VPS_USER || 'root';
 const GITHUB_REPO = process.env.GITHUB_REPO || 'jpgyap-sudo/xsjprd55';
 const GITHUB_BRANCH = process.env.GITHUB_BRANCH || 'main';
-const API_BASE = process.env.API_BASE || `http://localhost:3000`;
+const API_BASE = process.env.API_BASE || process.env.APP_URL || `http://localhost:3000`;
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const SSH_TIMEOUT_MS = Number(process.env.DEPLOY_CHECK_SSH_TIMEOUT_MS || 15_000);
+const HTTP_TIMEOUT_MS = Number(process.env.DEPLOY_CHECK_HTTP_TIMEOUT_MS || 10_000);
+const DEFAULT_SSH_KEY = path.join(os.homedir(), '.ssh', 'id_ed25519_roo');
+const VPS_SSH_KEY = process.env.VPS_SSH_KEY || (fs.existsSync(DEFAULT_SSH_KEY) ? DEFAULT_SSH_KEY : '');
 
 function log(...args) {
   console.log(`[deploy-checker] ${new Date().toISOString()}`, ...args);
 }
 
 function sshCommand(cmd) {
-  return execSync(
-    `ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new ${VPS_USER}@${VPS_IP} "${cmd}"`,
-    { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }
-  ).trim();
+  const args = [
+    '-o', 'BatchMode=yes',
+    '-o', 'ConnectionAttempts=1',
+    '-o', 'ConnectTimeout=8',
+    '-o', 'ServerAliveInterval=5',
+    '-o', 'ServerAliveCountMax=1',
+    '-o', 'StrictHostKeyChecking=accept-new',
+  ];
+
+  if (VPS_SSH_KEY) args.push('-i', VPS_SSH_KEY);
+
+  args.push(`${VPS_USER}@${VPS_IP}`, cmd);
+
+  return execFileSync('ssh', args, {
+    encoding: 'utf8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+    timeout: SSH_TIMEOUT_MS,
+  }).trim();
 }
 
 async function getGithubLatestCommit() {
@@ -35,7 +57,8 @@ async function getGithubLatestCommit() {
       headers: {
         'Accept': 'application/vnd.github.v3+json',
         'User-Agent': 'xsjprd55-deploy-checker'
-      }
+      },
+      signal: AbortSignal.timeout(HTTP_TIMEOUT_MS)
     });
     if (!res.ok) throw new Error(`GitHub API ${res.status}`);
     const data = await res.json();
@@ -63,7 +86,7 @@ async function getVpsCommit() {
 
 async function getVpsHealth() {
   try {
-    const output = sshCommand(`curl -sf http://localhost:3000/api/health && echo 'OK' || echo 'FAIL'`);
+    const output = sshCommand(`curl -sf --max-time 8 http://localhost:3000/api/health && echo 'OK' || echo 'FAIL'`);
     return output.includes('OK');
   } catch (e) {
     return false;
@@ -92,7 +115,8 @@ async function recordDeployStatus(payload) {
     const res = await fetch(`${API_BASE}/api/deploy-status`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(HTTP_TIMEOUT_MS)
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error);
@@ -114,7 +138,8 @@ async function sendTelegram(message) {
         chat_id: TELEGRAM_CHAT_ID,
         text: message,
         parse_mode: 'Markdown'
-      })
+      }),
+      signal: AbortSignal.timeout(HTTP_TIMEOUT_MS)
     });
   } catch (e) {
     log('Telegram send failed:', e.message);

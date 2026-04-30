@@ -5,7 +5,7 @@
 // Runs continuously on VPS (pm2) or as Vercel cron.
 // ============================================================
 
-import { supabase } from '../lib/supabase.js';
+import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
 import {
@@ -120,6 +120,11 @@ async function monitorLoop() {
 async function main() {
   if (!ENABLED) {
     logger.info('[EXEC-WORKER] Disabled via config');
+    return;
+  }
+
+  if (isSupabaseNoOp()) {
+    logger.error('[EXEC-WORKER] Supabase is in NO-OP mode. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars.');
     return;
   }
 

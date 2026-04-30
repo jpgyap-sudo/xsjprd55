@@ -1495,6 +1495,37 @@
           </table>
         </div>
       </div>
+      <!-- Product Dev Memory Panel -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>🧠 Product Dev Memory</span>
+          <select id="dev-memory-filter" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:0.75rem;cursor:pointer;">
+            <option value="">All Categories</option>
+            <option value="feature">✨ Feature</option>
+            <option value="fix">🐛 Fix</option>
+            <option value="improvement">⚡ Improvement</option>
+            <option value="security">🔒 Security</option>
+            <option value="refactor">♻️ Refactor</option>
+          </select>
+        </div>
+        <div class="card-body" style="padding:0;max-height:400px;overflow:auto;">
+          <div id="dev-memory-loading" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">Loading memory…</div>
+          <div id="dev-memory-content" style="display:none;">
+            <table class="signal-table" style="min-width:700px;">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Title</th>
+                  <th>Description</th>
+                  <th>Date</th>
+                  <th>Author</th>
+                </tr>
+              </thead>
+              <tbody id="dev-memory-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1920,7 +1951,7 @@ tabBtns.forEach(btn => {
     btn.classList.add('active');
     document.getElementById('tab-' + tab).classList.add('active');
     // Load tab-specific data
-    if (tab === 'app-dev') { loadAppDevProposals(); loadDevPipeline(); }
+    if (tab === 'app-dev') { loadAppDevProposals(); loadDevPipeline(); loadDevMemory(); }
     if (tab === 'updates') { loadProductUpdates(); }
     if (tab === 'product-features') { loadProductFeatures(); }
     if (tab === 'deploy-status') { loadDeployStatus(); }
@@ -2503,7 +2534,7 @@ async function loadResearchAgent() {
     }
 
     // Backtests
-    let raBacktests = data.backtests || [];
+    raBacktests = data.backtests || [];
     const btBody = document.getElementById('ra-backtests-body');
     if (raBacktests.length) {
       btBody.innerHTML = raBacktests.map((b, idx) => {
@@ -3474,6 +3505,63 @@ function viewTaskDetail(taskId) {
   alert('Task #' + taskId + ' detail view coming soon. Check the API for task actions.');
 }
 
+// ── Product Dev Memory ──────────────────────────────────
+let devMemoryRows = [];
+let _devMemoryFilter = '';
+
+async function loadDevMemory() {
+  const loading = document.getElementById('dev-memory-loading');
+  const content = document.getElementById('dev-memory-content');
+  try {
+    const res = await fetch('/api/product-updates?limit=50');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    devMemoryRows = data.updates || [];
+    loading.style.display = 'none';
+    content.style.display = 'block';
+    renderDevMemory();
+  } catch (e) {
+    loading.textContent = 'Failed to load memory';
+  }
+}
+
+function renderDevMemory() {
+  const tbody = document.getElementById('dev-memory-tbody');
+  let rows = devMemoryRows;
+  if (_devMemoryFilter) rows = rows.filter(u => u.category === _devMemoryFilter);
+  rows = rows.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">No updates in this category.</td></tr>';
+    return;
+  }
+  const catEmoji = {
+    feature: '✨', fix: '🐛', improvement: '⚡',
+    security: '🔒', refactor: '♻️', other: '📦'
+  };
+  const catColor = {
+    feature: 'var(--accent)', fix: 'var(--accent3)', improvement: 'var(--accent2)',
+    security: '#a855f7', refactor: '#3b82f6', other: 'var(--fg2)'
+  };
+  tbody.innerHTML = rows.map(u => {
+    const dt = new Date(u.createdAt);
+    const dateStr = dt.toLocaleDateString();
+    const color = catColor[u.category] || catColor.other;
+    const emoji = catEmoji[u.category] || '📝';
+    return `<tr style="cursor:pointer;opacity:0.85;" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='0.85'">
+      <td><span style="color:${color};font-weight:700;text-transform:uppercase;font-size:0.7rem;">${emoji} ${u.category}</span></td>
+      <td style="font-weight:600;font-size:0.85rem;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(u.title)}">${escapeHtml(u.title)}</td>
+      <td style="font-size:0.8rem;color:var(--fg2);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(u.description)}">${escapeHtml(u.description)}</td>
+      <td style="font-size:0.8rem;color:var(--fg2);">${dateStr}</td>
+      <td style="font-size:0.8rem;color:var(--fg2);">${u.author || '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('dev-memory-filter')?.addEventListener('change', function() {
+  _devMemoryFilter = this.value;
+  renderDevMemory();
+});
+
 // ── Enhanced Bugs with Clickable Detail ─────────────────
 let bugsAllRows = [];
 async function showBugDetail(bugId) {
@@ -3587,6 +3675,7 @@ function renderBugsTable() {
   const sevColor = { critical: '#f87171', high: '#fbbf24', medium: '#60a5fa', low: '#34d399', info: '#9ca3af' };
   const statusColors = { new: '#60a5fa', investigating: '#fbbf24', fixing: '#f97316', fixed: '#34d399', verified: '#10b981', wont_fix: '#9ca3af', duplicate: '#9ca3af', blocked: '#f87171', queued_for_fix: '#a78bfa' };
   tbody.innerHTML = rows.map(b => {
+    if (!b.id) return ''; // skip rows with no ID
     const canQueue = ['critical','high'].includes(b.severity) && !['queued_for_fix','fixed','verified','wont_fix','duplicate'].includes(b.status);
     const queueBtn = canQueue
       ? `<button onclick="event.stopPropagation(); queueBugForFix('${b.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:4px;padding:3px 8px;font-size:0.7rem;font-weight:600;cursor:pointer;">🔧 Fix</button>`
@@ -3639,6 +3728,10 @@ async function loadBugsEnhanced() {
 }
 
 async function queueBugForFix(bugId) {
+  if (!bugId || bugId === 'undefined' || bugId === 'null') {
+    alert('❌ Error: Missing bugId — this bug has no ID and cannot be queued.');
+    return;
+  }
   try {
     const res = await fetch('/api/bug-fix-pipeline?action=queue', {
       method: 'POST',

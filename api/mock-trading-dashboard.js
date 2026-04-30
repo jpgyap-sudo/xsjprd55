@@ -5,7 +5,7 @@
 // NOTE: Reads from Supabase (where mock-trading-worker writes).
 // ============================================================
 
-import { supabase } from '../lib/supabase.js';
+import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -13,6 +13,13 @@ export default async function handler(req, res) {
   }
 
   try {
+    const diagnostics = {
+      supabaseNoOp: isSupabaseNoOp(),
+      errors: [],
+      schema: {},
+      signals: {},
+    };
+
     // Account stats
     const { data: account, error: accountErr } = await supabase
       .from('mock_accounts')
@@ -20,7 +27,10 @@ export default async function handler(req, res) {
       .limit(1)
       .maybeSingle();
 
-    if (accountErr) console.error('[mock-trading-dashboard] account error:', accountErr.message);
+    if (accountErr) {
+      console.error('[mock-trading-dashboard] account error:', accountErr.message);
+      diagnostics.errors.push({ scope: 'mock_accounts', message: accountErr.message, code: accountErr.code });
+    }
 
     // Open trades
     const { data: openTrades, error: openErr } = await supabase
@@ -30,7 +40,10 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (openErr) console.error('[mock-trading-dashboard] open trades error:', openErr.message);
+    if (openErr) {
+      console.error('[mock-trading-dashboard] open trades error:', openErr.message);
+      diagnostics.errors.push({ scope: 'open_mock_trades', message: openErr.message, code: openErr.code });
+    }
 
     // Recent closed trades
     const { data: closedTrades, error: closedErr } = await supabase
@@ -40,7 +53,10 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (closedErr) console.error('[mock-trading-dashboard] closed trades error:', closedErr.message);
+    if (closedErr) {
+      console.error('[mock-trading-dashboard] closed trades error:', closedErr.message);
+      diagnostics.errors.push({ scope: 'closed_mock_trades', message: closedErr.message, code: closedErr.code });
+    }
 
     // Per-strategy performance
     const { data: strategyStats, error: statsErr } = await supabase
@@ -48,7 +64,40 @@ export default async function handler(req, res) {
       .select('strategy_name, pnl_usd')
       .eq('status', 'closed');
 
-    if (statsErr) console.error('[mock-trading-dashboard] stats error:', statsErr.message);
+    if (statsErr) {
+      console.error('[mock-trading-dashboard] stats error:', statsErr.message);
+      diagnostics.errors.push({ scope: 'strategy_stats', message: statsErr.message, code: statsErr.code });
+    }
+
+    // Schema smoke check for columns used by the v3 execution/aggressive engines.
+    const { error: metadataErr } = await supabase
+      .from('mock_trades')
+      .select('id, metadata')
+      .limit(1);
+    diagnostics.schema.mockTradesMetadata = !metadataErr;
+    if (metadataErr) {
+      diagnostics.errors.push({ scope: 'schema.mock_trades.metadata', message: metadataErr.message, code: metadataErr.code });
+    }
+
+    // Signal freshness tells us if workers have anything to trade.
+    const { data: latestSignals, error: signalsErr } = await supabase
+      .from('signals')
+      .select('id, symbol, side, confidence, generated_at, valid_until, status')
+      .eq('status', 'active')
+      .order('generated_at', { ascending: false })
+      .limit(10);
+    if (signalsErr) {
+      diagnostics.errors.push({ scope: 'signals', message: signalsErr.message, code: signalsErr.code });
+    }
+    const latestSignalAt = latestSignals?.[0]?.generated_at || null;
+    diagnostics.signals = {
+      activeSampleCount: latestSignals?.length || 0,
+      latestSignalAt,
+      latestSignalAgeMinutes: latestSignalAt
+        ? Math.round((Date.now() - new Date(latestSignalAt).getTime()) / 60000)
+        : null,
+      sample: (latestSignals || []).slice(0, 5),
+    };
 
     // Compute strategy aggregates in JS
     const strategyMap = new Map();
@@ -83,7 +132,10 @@ export default async function handler(req, res) {
       .eq('status', 'closed')
       .gte('closed_at', thirtyDaysAgo);
 
-    if (dailyErr) console.error('[mock-trading-dashboard] daily error:', dailyErr.message);
+    if (dailyErr) {
+      console.error('[mock-trading-dashboard] daily error:', dailyErr.message);
+      diagnostics.errors.push({ scope: 'daily_pnl', message: dailyErr.message, code: dailyErr.code });
+    }
 
     const dayMap = new Map();
     for (const t of dailyRaw || []) {
@@ -171,6 +223,7 @@ export default async function handler(req, res) {
       })),
       strategyStats: strategyStatsList,
       dailyPnl,
+      diagnostics,
       ts: new Date().toISOString(),
     });
   } catch (err) {

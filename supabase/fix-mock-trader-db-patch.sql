@@ -51,6 +51,7 @@ ALTER TABLE mock_trades ADD COLUMN IF NOT EXISTS trailing_stop_pct NUMERIC DEFAU
 ALTER TABLE mock_trades ADD COLUMN IF NOT EXISTS highest_price NUMERIC;
 ALTER TABLE mock_trades ADD COLUMN IF NOT EXISTS lowest_price NUMERIC;
 ALTER TABLE mock_trades ADD COLUMN IF NOT EXISTS score_breakdown JSONB DEFAULT '{}';
+ALTER TABLE mock_trades ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
 ALTER TABLE mock_trades ADD COLUMN IF NOT EXISTS entry_reason TEXT;
 ALTER TABLE mock_trades ADD COLUMN IF NOT EXISTS exit_reason TEXT;
 ALTER TABLE mock_trades ADD COLUMN IF NOT EXISTS probability_at_entry NUMERIC;

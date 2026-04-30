@@ -5,7 +5,7 @@
 // Runs every 90 seconds.
 // ============================================================
 
-import { supabase } from '../lib/supabase.js';
+import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
 import {
@@ -24,6 +24,11 @@ const TV_SCAN_BATCH_SIZE = 15;
 export async function runAggressiveWorker() {
   if (!config.ENABLE_MOCK_TRADING_WORKER) {
     logger.debug('[AGGRESSIVE-WORKER] Disabled by config');
+    return;
+  }
+
+  if (isSupabaseNoOp()) {
+    logger.error('[AGGRESSIVE-WORKER] Supabase is in NO-OP mode. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars.');
     return;
   }
 
@@ -47,7 +52,7 @@ export async function runAggressiveWorker() {
       .limit(30);
 
     const account = await getOrCreateAggressiveAccount();
-    const openCount = (await supabase.from('mock_trades').select('id', { count: 'exact', head: true }).eq('status', 'open')).count || 0;
+    let openCount = (await supabase.from('mock_trades').select('id', { count: 'exact', head: true }).eq('status', 'open')).count || 0;
 
     for (const signal of recentSignals || []) {
       // Skip if already traded

@@ -69,6 +69,22 @@ Prevention: Add mode gate at every action point; log mode on every signal.
 
 ## Bug Log (with dates)
 
+### Mock trader workers run but open no trades
+**Found:** 2026-04-30 10:00 UTC
+**Status:** FIX APPLIED, pending real env + DB migration on target
+**Problem:** Mock trader processes can start without opening positions even when signals exist.
+**Cause:** `server.js` loaded dotenv, but standalone PM2 workers did not. Workers could enter Supabase no-op mode because `SUPABASE_URL` / service key were unavailable. Additional blockers: `aggressive-mock-worker` mutated a `const openCount`, and execution/aggressive close paths write `mock_trades.metadata` even though the migration did not add that column.
+**Fix:** Added shared env bootstrap in `lib/env.js`, imported it from `lib/supabase.js` and `lib/config.js`, supported both `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_SERVICE_KEY`, changed `openCount` to `let`, added `mock_trades.metadata` to migrations, and removed a hardcoded Supabase key from `test-mock-pipeline.mjs`.
+**Prevention:** Worker startup checks should fail loudly when Supabase is no-op; keep `.env.example` aligned with required worker env vars; run schema additions before restarting PM2 workers.
+
+### Deploy checker hangs or records unknown commit status
+**Found:** 2026-04-30 11:20 UTC
+**Status:** FIX APPLIED, pending deploy
+**Problem:** `workers/deploy-checker.js` can hang while checking GitHub/VPS and `/api/deploy-status` records `status: unknown` with null commits.
+**Cause:** SSH did not force batch mode and did not have an exec timeout, so a blocked SSH prompt or unreachable VPS could stall the whole check.
+**Fix:** Added dotenv loading, SSH batch mode, documented deploy-key autodetection (`~/.ssh/id_ed25519_roo`), one connection attempt, server-alive limits, exec timeout, curl max-time, and HTTP abort timeouts for GitHub/deploy-status/Telegram calls.
+**Prevention:** All external deployment probes must have explicit timeouts and return a degraded status instead of hanging.
+
 ### Execution-worker: `Cannot read properties of null (reading 'current_balance')`
 **Found:** 2026-04-28 04:15 UTC
 **Status:** IN PROGRESS
