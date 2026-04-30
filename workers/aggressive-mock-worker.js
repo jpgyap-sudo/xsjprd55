@@ -1,6 +1,6 @@
 // ============================================================
 // Aggressive Mock Trading Worker v3
-// Trades ALL Binance perpetuals using ML-adaptive leverage.
+// Trades public perpetual symbols using ML-adaptive leverage.
 // Integrates with TV TA, ML service, and RL agent.
 // Runs every 90 seconds.
 // ============================================================
