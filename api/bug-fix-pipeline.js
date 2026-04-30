@@ -29,50 +29,50 @@ async function readBody(req) {
   for await (const chunk of req) chunks.push(chunk);
   const raw = Buffer.concat(chunks).toString('utf8');
   if (!raw) return {};
-  return JSON.parse(raw);
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return {};
+  }
 }
 
 export default async function handler(req, res) {
-  initBugFixPipelineTables();
+  try {
+    initBugFixPipelineTables();
 
-  const url = new URL(req.url, 'http://localhost');
-  const action = url.searchParams.get('action') || 'stats';
+    const url = new URL(req.url, 'http://localhost');
+    const action = url.searchParams.get('action') || 'stats';
 
-  // ── GET: Stats ─────────────────────────────────────────────
-  if (req.method === 'GET') {
-    try {
+    // ── GET: Stats ─────────────────────────────────────────────
+    if (req.method === 'GET') {
       const stats = await getBugFixPipelineStats();
       return sendJson(res, 200, { ok: true, stats });
-    } catch (e) {
-      return sendJson(res, 500, { ok: false, error: e.message });
     }
-  }
 
-  // ── POST: Run cycle or queue bug ──────────────────────────
-  if (req.method === 'POST') {
-    if (action === 'run') {
-      if (!isAuthorized(req)) return sendJson(res, 401, { ok: false, error: 'Unauthorized' });
-      try {
+    // ── POST: Run cycle or queue bug ──────────────────────────
+    if (req.method === 'POST') {
+      if (action === 'run') {
+        if (!isAuthorized(req)) return sendJson(res, 401, { ok: false, error: 'Unauthorized' });
         const result = await runBugAutoFixCycle();
         return sendJson(res, 200, { ok: true, result });
-      } catch (e) {
-        return sendJson(res, 500, { ok: false, error: e.message });
       }
-    }
 
-    if (action === 'queue') {
-      const body = await readBody(req);
-      if (!body.bugId) return sendJson(res, 400, { ok: false, error: 'Missing bugId' });
-      try {
-        const result = await manualQueueBugForFix(body.bugId);
+      if (action === 'queue') {
+        const body = await readBody(req);
+        const bugId = body.bugId || body.id || body.bug_id;
+        if (!bugId || bugId === 'undefined' || bugId === 'null') {
+          return sendJson(res, 400, { ok: false, error: 'Missing bugId' });
+        }
+        const result = await manualQueueBugForFix(bugId);
         return sendJson(res, 200, { ok: true, result });
-      } catch (e) {
-        return sendJson(res, 500, { ok: false, error: e.message });
       }
+
+      return sendJson(res, 400, { ok: false, error: 'Unknown action. Use: run, queue' });
     }
 
-    return sendJson(res, 400, { ok: false, error: 'Unknown action. Use: run, queue' });
+    return sendJson(res, 405, { ok: false, error: 'Method not allowed' });
+  } catch (e) {
+    console.error('[api/bug-fix-pipeline] error:', e);
+    return sendJson(res, 500, { ok: false, error: e.message });
   }
-
-  return sendJson(res, 405, { ok: false, error: 'Method not allowed' });
 }

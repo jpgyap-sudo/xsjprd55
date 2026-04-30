@@ -22,11 +22,13 @@ const TIMEFRAMES = config.TIMEFRAMES;
 
 // ── Telegram helpers ────────────────────────────────────────
 async function sendTelegram(text) {
-  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+  const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: GROUP_ID, text, parse_mode: 'Markdown' })
   });
+  const data = await res.json();
+  if (!data.ok) logger.warn(`[SIGNALS] Telegram sendMessage failed: ${data.description}`);
 }
 
 // ── Technical indicators (lightweight) ─────────────────────

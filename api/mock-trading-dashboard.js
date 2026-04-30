@@ -75,19 +75,20 @@ export default async function handler(req, res) {
       }))
       .sort((a, b) => b.totalPnl - a.totalPnl);
 
-    // Daily PnL (last 30 days)
+    // Daily PnL (last 30 days) — grouped by closed_at, not created_at
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const { data: dailyRaw, error: dailyErr } = await supabase
       .from('mock_trades')
-      .select('created_at, pnl_usd')
+      .select('closed_at, pnl_usd')
       .eq('status', 'closed')
-      .gte('created_at', thirtyDaysAgo);
+      .gte('closed_at', thirtyDaysAgo);
 
     if (dailyErr) console.error('[mock-trading-dashboard] daily error:', dailyErr.message);
 
     const dayMap = new Map();
     for (const t of dailyRaw || []) {
-      const day = t.created_at.slice(0, 10);
+      const day = (t.closed_at || '').slice(0, 10);
+      if (!day) continue;
       const d = dayMap.get(day) || { trades: 0, wins: 0, pnl: 0 };
       d.trades++;
       if (t.pnl_usd > 0) d.wins++;

@@ -34,19 +34,22 @@ export default async function handler(req, res) {
           .range(Number(offset), Number(offset) + Number(limit) - 1);
         if (status) query = query.eq('status', status);
         if (category) query = query.eq('category', category);
-        const { data, error } = await query;
+
+        // Separate count query for accurate totals (not limited to current page)
+        let countQuery = supabase.from('app_suggestions').select('status');
+        if (category) countQuery = countQuery.eq('category', category);
+        const [{ data, error }, { data: allStatuses }] = await Promise.all([query, countQuery]);
         if (error) throw error;
 
-        // Compute stats
-        const all = data || [];
+        const counts = (allStatuses || []);
         const stats = {
-          total: all.length,
-          pending: all.filter(s => s.status === 'pending').length,
-          approved: all.filter(s => s.status === 'approved').length,
-          rejected: all.filter(s => s.status === 'rejected').length,
-          implemented: all.filter(s => s.status === 'implemented').length,
+          total: counts.length,
+          pending: counts.filter(s => s.status === 'pending').length,
+          approved: counts.filter(s => s.status === 'approved').length,
+          rejected: counts.filter(s => s.status === 'rejected').length,
+          implemented: counts.filter(s => s.status === 'implemented').length,
         };
-        return res.status(200).json({ ok: true, suggestions: all, stats, count: all.length });
+        return res.status(200).json({ ok: true, suggestions: data || [], stats, count: counts.length });
       }
 
       if (req.method === 'POST') {

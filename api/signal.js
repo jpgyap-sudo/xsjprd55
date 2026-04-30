@@ -49,13 +49,9 @@ export default async function handler(req, res) {
     }
   }
 
-  // ── POST : manual scan (also used by cron with x-cron-secret) ──
-  const cronSecret = process.env.CRON_SECRET;
-  const provided = req.headers['x-cron-secret'];
-  if (cronSecret && provided !== cronSecret) {
-    return res.status(401).json({ error: 'Unauthorized cron request' });
-  }
-
+  // ── POST : manual scan ──
+  // Auth for the GET (cron) path is handled by server.js middleware.
+  // POSTs are manual triggers (e.g. Telegram /scan) — no secret required.
   const pairs    = req.body?.pairs || DEFAULT_PAIRS;
   const tfs      = req.body?.timeframes || TIMEFRAMES;
   const mode     = (req.body?.mode || process.env.TRADING_MODE || 'paper').trim();

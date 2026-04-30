@@ -64,24 +64,36 @@ export async function runMockTradingWorker() {
       const signal = score.signal;
       if (!signal) continue;
 
-      // Normalize side to lowercase for mock_trades compatibility
+      const normalizedSide = (signal.side || '').toLowerCase();
+
+      // Dedup by open position for this symbol+side (works for both signal sources)
+      const { data: existing } = await supabase
+        .from('mock_trades')
+        .select('id')
+        .eq('symbol', signal.symbol)
+        .eq('side', normalizedSide)
+        .eq('status', 'open')
+        .limit(1);
+      if (existing?.length) continue;
+
+      // Normalize signal — null out id when it comes from signal_logs (not signals table)
+      // to avoid FK violation on mock_trades.signal_id → signals(id)
+      const isFromSignalsTable = !score.signal_id; // feature_scores path has signal_id FK to signal_logs
       const normalizedSignal = {
         ...signal,
-        side: (signal.side || '').toLowerCase(),
+        id: isFromSignalsTable ? signal.id : null,
+        side: normalizedSide,
+        strategy: signal.strategy || signal.strategy_name,
         best_leverage: 2,
         stop_loss_pct: 1.2,
         take_profit_pct: 2.5
       };
 
-      // Check if already mocked
-      const { data: existing } = await supabase
-        .from('mock_trades')
-        .select('id')
-        .eq('signal_id', signal.id)
-        .limit(1);
-      if (existing?.length) continue;
-
-      await openMockTrade(normalizedSignal, { finalProbability: score.final_probability });
+      try {
+        await openMockTrade(normalizedSignal, { finalProbability: score.final_probability });
+      } catch (e) {
+        logger.warn(`[MOCK-WORKER] openMockTrade failed for ${signal.symbol}: ${e.message}`);
+      }
     }
 
     // 2. Monitor open mock trades for SL/TP or time exit
@@ -92,8 +104,9 @@ export async function runMockTradingWorker() {
 
     for (const trade of openTrades || []) {
       try {
-        // Public price fetch — no API key needed
-        const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${trade.symbol}`);
+        // Public price fetch — no API key needed; Binance requires no slash (BTCUSDT not BTC/USDT)
+        const binanceSymbol = trade.symbol.replace('/', '');
+        const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${binanceSymbol}`);
         const json = await res.json();
         const price = Number(json.price);
         const sl = Number(trade.stop_loss);

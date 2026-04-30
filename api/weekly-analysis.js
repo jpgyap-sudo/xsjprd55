@@ -28,11 +28,11 @@ export default async function handler(req, res) {
   const weekAgoISO = weekAgo.toISOString();
 
   try {
-    // ── Weekly trades ─────────────────────────────────────────
+    // ── Weekly trades — use closed_at so trades closed this week are counted ──
     const { data: trades, error: tradesErr } = await supabase
       .from('trades')
       .select('*')
-      .gte('opened_at', weekAgoISO)
+      .or(`closed_at.gte.${weekAgoISO},and(status.eq.open,opened_at.gte.${weekAgoISO})`)
       .order('opened_at', { ascending: false });
 
     if (tradesErr) throw tradesErr;
