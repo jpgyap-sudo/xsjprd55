@@ -443,6 +443,28 @@ module.exports = {
       restart_delay: 3000,
       max_restarts: 3,
       min_uptime: '1s'
+    },
+    {
+      name: 'continuous-test-monitor',
+      script: './workers/continuous-test-monitor.cjs',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps',
+        VPS_IP: '165.22.110.111',
+        API_BASE_URL: 'http://localhost:3000'
+      },
+      autorestart: true,
+      max_memory_restart: '512M',
+      log_file: './logs/test-monitor-combined.log',
+      out_file: './logs/test-monitor-out.log',
+      error_file: './logs/test-monitor-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
     }
   ]
 };
