@@ -212,6 +212,7 @@ export default async function handler(req, res) {
       closedTrades: closed.map(t => ({
         id: t.id,
         createdAt: t.created_at,
+        closedAt: t.closed_at,
         symbol: t.symbol,
         strategy: t.strategy_name,
         side: t.side,
@@ -221,6 +222,7 @@ export default async function handler(req, res) {
         leverage: t.leverage,
         pnlUsd: t.pnl_usd,
         pnlPct: t.pnl_pct,
+        exitReason: t.exit_reason,
       })),
       strategyStats: strategyStatsList,
       dailyPnl,
