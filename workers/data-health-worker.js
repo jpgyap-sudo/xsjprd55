@@ -10,6 +10,7 @@ import { config } from '../lib/config.js';
 import { createExchange } from '../lib/trading.js';
 import { updateSourceHealth } from '../lib/data-health.js';
 import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 const SOURCES = [
   { name: 'Binance', type: 'exchange' },
@@ -82,7 +83,7 @@ export async function runDataHealthWorker() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   logger.info('[HEALTH-WORKER] Starting loop...');
   await runDataHealthWorker();
   setInterval(runDataHealthWorker, INTERVAL_MS);

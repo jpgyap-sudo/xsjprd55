@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
 import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 const INTERVAL_MS = 10 * 60 * 1000;
 
@@ -156,7 +157,7 @@ export async function runDiagnosticWorker() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   logger.info('[DIAG-WORKER] Starting loop...');
   await runDiagnosticWorker();
   setInterval(runDiagnosticWorker, INTERVAL_MS);

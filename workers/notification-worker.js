@@ -7,6 +7,7 @@
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
 import { processUnsentNotifications } from '../lib/notification-engine.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 const INTERVAL_MS = 60 * 1000;
 
@@ -19,7 +20,7 @@ export async function runNotificationWorker() {
   await processUnsentNotifications();
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   logger.info('[NOTIFY-WORKER] Starting loop...');
   await runNotificationWorker();
   setInterval(runNotificationWorker, INTERVAL_MS);

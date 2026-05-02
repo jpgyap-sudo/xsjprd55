@@ -17,6 +17,7 @@ import {
 import { fetchTvAnalysisBatch, tvAnalysisToResearchItem } from '../lib/tradingview-ta.js';
 import { storeResearchItem } from '../lib/ml/researchAgent.js';
 import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 const INTERVAL_MS = 90 * 1000;
 const TV_SCAN_BATCH_SIZE = 15;
@@ -179,7 +180,7 @@ async function reportDailySummary() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   logger.info('[AGGRESSIVE-WORKER] Starting loop...');
   await runAggressiveWorker();
   setInterval(runAggressiveWorker, INTERVAL_MS);

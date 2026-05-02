@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
 import { generateSuggestions, saveSuggestions } from '../lib/advisor/app-improvement-advisor.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 const INTERVAL_MS = 60 * 60 * 1000;
 
@@ -57,7 +58,7 @@ export async function runAppImprovementWorker() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   logger.info('[ADVISOR-WORKER] Starting loop...');
   await runAppImprovementWorker();
   setInterval(runAppImprovementWorker, INTERVAL_MS);

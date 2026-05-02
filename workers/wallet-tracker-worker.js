@@ -11,6 +11,7 @@ import { config } from '../lib/config.js';
 import { runWalletTracker } from '../lib/wallet-tracker.js';
 import { sendTelegram, formatSignalMessage } from '../lib/telegram.js';
 import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 const INTERVAL_MS = config.WALLET_TRACKER_INTERVAL_MS || 5 * 60 * 1000;
 
@@ -199,7 +200,7 @@ export async function runWalletTrackerWorker() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   logger.info('[WALLET-TRACKER-WORKER] Starting loop...');
   await runWalletTrackerWorker();
   setInterval(runWalletTrackerWorker, INTERVAL_MS);

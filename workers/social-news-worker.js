@@ -10,6 +10,7 @@ import { scoreEventImpact, buildAgentPayload } from '../lib/event-impact-scorer.
 import { broadcastSocialIntel } from '../lib/agent-signal-bus.js';
 import { insertPostIfNew, insertNeuralEvent, upsertSourceHealth } from '../lib/social-intel-store.js';
 import { logger } from '../lib/logger.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -101,6 +102,6 @@ async function main() {
   } while (true);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main();
 }

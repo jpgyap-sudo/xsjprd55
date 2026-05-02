@@ -9,6 +9,7 @@ import { config } from '../lib/config.js';
 import { runSocialCrawl } from '../lib/social-crawler.js';
 import { supabase } from '../lib/supabase.js';
 import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 const INTERVAL_MS = 15 * 60 * 1000;
 
@@ -88,7 +89,7 @@ export async function runSocialCrawlerWorker() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   logger.info('[SOCIAL-CRAWLER-WORKER] Starting loop...');
   await runSocialCrawlerWorker();
   setInterval(runSocialCrawlerWorker, INTERVAL_MS);

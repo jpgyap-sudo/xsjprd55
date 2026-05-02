@@ -10,6 +10,7 @@ import { config } from '../lib/config.js';
 import { getOrCreateMockAccount, openMockTrade, closeMockTrade } from '../lib/mock-trading/mock-account-engine.js';
 import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
 import { fetchPublicPrice } from '../lib/market-price.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 const INTERVAL_MS = 3 * 60 * 1000;
 
@@ -175,7 +176,7 @@ export async function runMockTradingWorker() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   logger.info('[MOCK-WORKER] Starting loop...');
   await runMockTradingWorker();
   setInterval(runMockTradingWorker, INTERVAL_MS);

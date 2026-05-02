@@ -6,6 +6,7 @@
 
 import { runBugAutoFixCycle, initBugFixPipelineTables } from '../lib/advisor/bug-fix-pipeline.js';
 import { config } from '../lib/config.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 const CYCLE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -48,7 +49,7 @@ async function main() {
   await runBugFixPipelineWorker();
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main().catch(e => {
     console.error('[bug-fix-pipeline] Fatal:', e);
     process.exit(1);

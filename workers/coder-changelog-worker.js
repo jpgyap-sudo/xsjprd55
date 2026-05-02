@@ -7,6 +7,7 @@
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { isMainModule } from '../lib/entrypoint.js';
 
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
 const CHANGELOG_PATH = path.join(__dirname, '..', 'CODER-CHANGELOG.md');
@@ -134,7 +135,7 @@ function main() {
 }
 
 // Run if executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main();
 }
 

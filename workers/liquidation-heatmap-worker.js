@@ -10,6 +10,7 @@ import { config } from '../lib/config.js';
 import { fetchWithFallback } from '../lib/fetch-with-fallback.js';
 import { estimateProbableDirection, buildHeatmapResponse } from '../lib/liquidation-engine.js';
 import { crawlLiquidationHeatmap } from '../crawler/playwright-crawler.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 const SYMBOLS = config.DEFAULT_PAIRS.map(p => p.replace('/', ''));
 const INTERVAL_MS = 5 * 60 * 1000;
@@ -142,7 +143,7 @@ export async function runLiquidationHeatmapWorker() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   logger.info('[LIQ-WORKER] Starting loop...');
   await runLiquidationHeatmapWorker();
   setInterval(runLiquidationHeatmapWorker, INTERVAL_MS);

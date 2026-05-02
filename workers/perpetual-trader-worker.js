@@ -7,6 +7,7 @@
 import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { openPerpetualTrade, monitorPerpetualTrades, resetDailyStats } from '../lib/perpetual-trader/engine.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -198,6 +199,6 @@ async function main() {
   } while (true);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main();
 }

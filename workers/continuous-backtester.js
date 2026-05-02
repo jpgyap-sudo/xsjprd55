@@ -11,6 +11,7 @@ import { calculateProbability } from '../lib/scoring/probability-engine.js';
 import { runBacktest } from '../lib/backtest/backtest-engine.js';
 import { fetchOHLCV } from '../lib/exchange.js';
 import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 const INTERVAL_MS = 5 * 60 * 1000;
 
@@ -155,7 +156,7 @@ export async function runContinuousBacktester() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   logger.info('[BACKTEST-WORKER] Starting loop...');
   await runContinuousBacktester();
   setInterval(runContinuousBacktester, INTERVAL_MS);

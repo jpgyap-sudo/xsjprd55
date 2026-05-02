@@ -9,6 +9,7 @@ import { getLastNewsFetchDiagnostics } from '../lib/news-aggregator.js';
 import { supabase } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import crypto from 'crypto';
+import { isMainModule } from '../lib/entrypoint.js';
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -163,6 +164,6 @@ async function main() {
   } while (true);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main();
 }

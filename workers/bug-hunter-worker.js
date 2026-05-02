@@ -13,6 +13,7 @@ import { assignBug, createFixTask } from '../lib/debug/bug-assignment.js';
 import { submitFindingsToLocalDb } from '../lib/debug/bug-submitter.js';
 import { supabase } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 // Configuration
 const CONFIG = {
@@ -743,7 +744,7 @@ async function main() {
   }, CONFIG.INTERVAL_SECONDS * 1000);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main().catch(e => {
     console.error('[BUG-HUNTER] Fatal error:', e);
     process.exit(1);

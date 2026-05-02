@@ -35,6 +35,16 @@ Describe how to avoid it next time.
 
 ## Common Issues
 
+### Worker CLI hangs on Windows with no output
+Cause: Worker scripts compared `import.meta.url` to ``file://${process.argv[1]}``, which fails for Windows paths such as `C:\repo\workers\bug-hunter-worker.js`. The module imported, but `main()` never ran, leaving imported clients alive until the command timed out.
+Fix: Use `isMainModule()` from `lib/entrypoint.js`, which normalizes both the module URL and argv path before comparing.
+Prevention: Add import/entrypoint tests for worker scripts and avoid hand-built `file://` path checks.
+
+### Bug hunter crashes when Playwright is not installed
+Cause: `lib/debug/live-site-crawler.js` imported `playwright` at module load even though the crawler is documented to fall back to `fetch`.
+Fix: Load Playwright dynamically only when browser crawling is requested; if unavailable, log a warning and use the fetch crawler.
+Prevention: Keep optional tooling behind dynamic imports and add import tests for optional-dependency modules.
+
 ### Telegram webhook returns 404
 Cause: Webhook URL does not match the Express route path or APP_URL is wrong.
 Fix: Confirm `APP_URL=https://bot.abcx124.xyz` in `.env.prod`, then reset webhook via `GET /api/telegram?action=set-webhook&secret=CRON_SECRET`.

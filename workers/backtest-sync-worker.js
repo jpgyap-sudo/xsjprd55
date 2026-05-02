@@ -10,6 +10,7 @@ import { supabase } from '../lib/supabase.js';
 import { db, initMlDb } from '../lib/ml/db.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 const INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -318,7 +319,7 @@ async function main() {
   }, INTERVAL_MS);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main().catch(e => {
     logger.error('[BACKTEST-SYNC] Fatal error:', e);
     process.exit(1);

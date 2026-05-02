@@ -41,6 +41,20 @@ describe('Worker Import Tests', () => {
     assert.ok(db, 'ML DB should be defined');
     assert.ok(typeof initMlDb === 'function', 'initMlDb should be a function');
   });
+
+  it('should import live site crawler without Playwright installed', async () => {
+    const { crawlAllRoutes, isPlaywrightAvailable } = await import('../lib/debug/live-site-crawler.js');
+    assert.ok(typeof crawlAllRoutes === 'function', 'crawlAllRoutes should be a function');
+    assert.ok(typeof isPlaywrightAvailable === 'function', 'isPlaywrightAvailable should be a function');
+  });
+
+  it('should detect Windows worker entrypoints', async () => {
+    const { isMainModule } = await import('../lib/entrypoint.js');
+    assert.strictEqual(
+      isMainModule('file:///C:/repo/workers/bug-hunter-worker.js', ['node', 'C:\\repo\\workers\\bug-hunter-worker.js']),
+      true
+    );
+  });
 });
 
 describe('Mock Trading Tests', () => {

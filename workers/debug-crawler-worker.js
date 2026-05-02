@@ -13,6 +13,7 @@ import { runNeuralCodeReview } from '../lib/debug/neural-code-reviewer.js';
 import { normalizeFindings, countBySeverity, rankFindings } from '../lib/debug/finding-normalizer.js';
 import { submitFindingsToApi, submitFindingsToLocalDb } from '../lib/debug/bug-submitter.js';
 import { createDebugCrawlerRun, updateDebugCrawlerRun } from '../lib/bug-store.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -165,6 +166,6 @@ async function main() {
   } while (true);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main();
 }

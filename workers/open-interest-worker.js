@@ -8,6 +8,7 @@ import { createExchange } from '../lib/trading.js';
 import { supabase } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
+import { isMainModule } from '../lib/entrypoint.js';
 
 const EXCHANGES = ['binance', 'bybit', 'okx'];
 const SYMBOLS = config.DEFAULT_PAIRS.map(p => p.replace('/', ''));
@@ -94,7 +95,7 @@ export async function runOpenInterestWorker() {
 }
 
 // Auto-run if executed directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   logger.info('[OI-WORKER] Starting loop...');
   await runOpenInterestWorker();
   setInterval(runOpenInterestWorker, INTERVAL_MS);
