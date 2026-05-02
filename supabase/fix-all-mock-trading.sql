@@ -21,13 +21,28 @@ CREATE TABLE IF NOT EXISTS mock_accounts (
   created_at       TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Deduplicate before creating unique index (idempotent)
+-- Deduplicate before creating unique index (FK-safe)
 DO $$
 BEGIN
+  -- 1. Re-assign trades from duplicate accounts to the newest account per name
+  UPDATE mock_trades t
+  SET account_id = keepers.id
+  FROM (
+    SELECT DISTINCT ON (name) id, name
+    FROM mock_accounts
+    ORDER BY name, created_at DESC NULLS LAST, id DESC
+  ) keepers
+  WHERE t.account_id IN (
+    SELECT dup.id FROM mock_accounts dup
+    WHERE dup.name = keepers.name AND dup.id <> keepers.id
+  );
+
+  -- 2. Now safely delete duplicate accounts
   DELETE FROM mock_accounts a
   USING mock_accounts b
   WHERE a.id < b.id AND a.name = b.name;
 
+  -- 3. Create unique index
   IF NOT EXISTS (
     SELECT 1 FROM pg_indexes WHERE indexname = 'idx_mock_accounts_name_unique'
   ) THEN

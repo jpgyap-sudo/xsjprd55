@@ -2,18 +2,29 @@
 -- Fix duplicate mock_accounts names before creating unique index
 -- Run this in Supabase SQL Editor if you get:
 --   ERROR: 23505: could not create unique index "idx_mock_accounts_name_unique"
+--   OR
+--   ERROR: 23503: update or delete on table "mock_accounts" violates foreign key constraint
 -- ============================================================
 
--- 1. See duplicates
--- SELECT name, COUNT(*) FROM mock_accounts GROUP BY name HAVING COUNT(*) > 1;
+-- 1. Re-assign trades from duplicate accounts to the newest account per name
+UPDATE mock_trades t
+SET account_id = keepers.id
+FROM (
+  SELECT DISTINCT ON (name) id, name
+  FROM mock_accounts
+  ORDER BY name, created_at DESC NULLS LAST, id DESC
+) keepers
+WHERE t.account_id IN (
+  SELECT dup.id FROM mock_accounts dup
+  WHERE dup.name = keepers.name AND dup.id <> keepers.id
+);
 
--- 2. Keep only the most recent row per name, delete the rest
+-- 2. Now safely delete duplicate accounts (no FK violations)
 DELETE FROM mock_accounts a
 USING mock_accounts b
-WHERE a.id < b.id
-  AND a.name = b.name;
+WHERE a.id < b.id AND a.name = b.name;
 
--- 3. Now create the unique index safely
+-- 3. Create unique index
 DO $$
 BEGIN
   IF NOT EXISTS (
