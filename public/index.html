@@ -1174,7 +1174,7 @@
         <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
           <div id="mt-closed-content" style="display:none;">
             <table class="signal-table">
-              <thead><tr><th>Symbol</th><th>Side</th><th>Lev</th><th>PnL $</th><th>PnL %</th></tr></thead>
+              <thead><tr><th>Symbol</th><th>Side</th><th>Lev</th><th>PnL $</th><th>PnL %</th><th>Closed</th><th>Exit</th></tr></thead>
               <tbody id="mt-closed-body"></tbody>
             </table>
           </div>
@@ -3176,12 +3176,15 @@ async function loadMockTrading() {
     if (data.closedTrades?.length) {
       closedBody.innerHTML = data.closedTrades.slice(0, 20).map(t => {
         const pnlColor = t.pnlUsd > 0 ? 'var(--accent)' : t.pnlUsd < 0 ? 'var(--accent3)' : 'var(--fg2)';
+        const closedAt = t.closedAt ? new Date(t.closedAt).toLocaleString() : '—';
         return `<tr>
           <td><strong>${t.symbol}</strong><br><span style="font-size:0.75rem;color:var(--fg2);">${t.strategy}</span></td>
           <td><span class="side-badge ${(t.side || '').toUpperCase() === 'LONG' ? 'side-long' : 'side-short'}">${(t.side || '').toUpperCase()}</span></td>
           <td style="font-size:0.85rem;font-weight:700;">${t.leverage}x</td>
           <td style="color:${pnlColor};font-weight:700;">$${Number(t.pnlUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
           <td style="color:${pnlColor};font-weight:700;">${t.pnlPct?.toFixed(2) ?? '—'}%</td>
+          <td style="font-size:0.75rem;color:var(--fg2);">${closedAt}</td>
+          <td style="font-size:0.75rem;color:var(--fg2);">${t.exitReason ?? '—'}</td>
         </tr>`;
       }).join('');
       closedContent.style.display = 'block';
