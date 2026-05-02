@@ -38,9 +38,17 @@ async function runSignalGenerator() {
   logger.info('[SIGNAL-GEN] Starting signal scan...');
 
   try {
+    if (!process.env.CRON_SECRET) {
+      logger.error('[SIGNAL-GEN] CRON_SECRET missing; refusing to run protected signal scan');
+      return;
+    }
+
     const res = await fetchWithRetry(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-cron-secret': process.env.CRON_SECRET
+      },
       body: JSON.stringify({}),
       keepalive: true,
     });

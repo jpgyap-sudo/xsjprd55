@@ -20,6 +20,12 @@ const TIMEFRAMES = config.TIMEFRAMES;
 const DEFAULT_EXCHANGE = (process.env.DEFAULT_EXCHANGE || 'binance').trim();
 const SCAN_EXCHANGES = config.SCAN_EXCHANGES || ['binance'];
 
+function isAuthorized(req) {
+  const url = new URL(req.url, 'http://localhost');
+  const secret = url.searchParams.get('secret') || req.headers['x-cron-secret'] || req.body?.secret;
+  return process.env.CRON_SECRET && secret === process.env.CRON_SECRET;
+}
+
 export default async function handler(req, res) {
   if (!['GET','POST'].includes(req.method)) {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -73,9 +79,11 @@ export default async function handler(req, res) {
     }
   }
 
-  // ── POST : manual scan ──
-  // Auth for the GET (cron) path is handled by server.js middleware.
-  // POSTs are manual triggers (e.g. Telegram /scan) — no secret required.
+  // ── POST : protected manual/admin scan ──
+  if (!isAuthorized(req)) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
+
   const pairs    = req.body?.pairs || DEFAULT_PAIRS;
   const tfs      = req.body?.timeframes || TIMEFRAMES;
   const mode     = (req.body?.mode || process.env.TRADING_MODE || 'paper').trim();

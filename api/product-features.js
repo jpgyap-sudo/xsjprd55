@@ -8,6 +8,8 @@
 // ============================================================
 
 import { supabase } from '../lib/supabase.js';
+import { isSupabaseNoOp } from '../lib/supabase.js';
+import { pathToFileURL } from 'url';
 
 function sendJson(res, status, body) {
   res.statusCode = status;
@@ -28,6 +30,85 @@ async function readBody(req) {
   const raw = Buffer.concat(chunks).toString('utf8');
   if (!raw) return {};
   return JSON.parse(raw);
+}
+
+function categorizePath(file) {
+  if (file.startsWith('api/')) return 'api';
+  if (file.startsWith('workers/')) return 'worker';
+  if (file.startsWith('supabase/') || file.endsWith('.sql')) return 'schema';
+  if (file.startsWith('public/')) return 'dashboard';
+  if (file.startsWith('lib/')) return 'code';
+  if (file.startsWith('ml-service/')) return 'ml';
+  if (file.startsWith('scripts/')) return 'ops';
+  return 'file';
+}
+
+function inferFailureCategory(feature = {}) {
+  const notes = String(feature.bug_notes || '').toLowerCase();
+  const files = feature.related_files || [];
+  if (notes.includes('supabase') || notes.includes('schema') || files.some(f => categorizePath(f) === 'schema')) return 'schema';
+  if (notes.includes('unauthorized') || notes.includes('secret') || notes.includes('token')) return 'auth';
+  if (notes.includes('stale')) return 'stale-data';
+  if (notes.includes('missing files')) {
+    const firstFile = files[0] || '';
+    return categorizePath(firstFile);
+  }
+  if (files.some(f => categorizePath(f) === 'worker')) return 'worker';
+  if (files.some(f => categorizePath(f) === 'api')) return 'api';
+  return feature.status === 'Broken' ? 'unknown' : null;
+}
+
+async function checkRelatedFile(file, fs, path) {
+  const fullPath = path.join(process.cwd(), file);
+  const exists = fs.existsSync(fullPath);
+  const category = categorizePath(file);
+  const result = { file, exists, category, ok: exists, details: exists ? 'Exists' : 'Missing file' };
+
+  if (!exists) return result;
+
+  try {
+    const stat = fs.statSync(fullPath);
+    if (stat.isDirectory()) {
+      result.details = 'Directory exists';
+      return result;
+    }
+
+    if ((file.startsWith('api/') || file.startsWith('lib/')) && file.endsWith('.js')) {
+      await import(pathToFileURL(fullPath).href);
+      result.details = 'Imports cleanly';
+    }
+  } catch (err) {
+    result.ok = false;
+    result.details = `Import/check failed: ${err.message}`;
+  }
+
+  return result;
+}
+
+function summarizeHealth(feature, fileChecks) {
+  const issues = [];
+  const categories = new Set();
+
+  for (const check of fileChecks) {
+    if (!check.ok) {
+      issues.push(`${check.file}: ${check.details}`);
+      categories.add(check.category);
+    }
+  }
+
+  if (isSupabaseNoOp()) {
+    issues.push('Supabase is using no-op client; database-backed feature health cannot be verified');
+    categories.add('env');
+  }
+
+  const allOk = issues.length === 0;
+  return {
+    allOk,
+    status: allOk ? 'Working' : 'Broken',
+    bugText: allOk ? null : issues.join('\n'),
+    categories: [...categories],
+    primaryCategory: [...categories][0] || null
+  };
 }
 
 // ── GET ────────────────────────────────────────────────────
@@ -80,6 +161,7 @@ async function handleGet(req, res) {
         priority: f.priority,
         lastChecked: f.last_checked,
         bugNotes: f.bug_notes,
+        failureCategory: inferFailureCategory(f),
         debuggerStatus: f.debugger_status,
         coderStatus: f.coder_status,
         relatedFiles: f.related_files || [],
@@ -99,6 +181,10 @@ async function handleGet(req, res) {
 async function handlePost(req, res) {
   const url = new URL(req.url, 'http://localhost');
   const action = url.searchParams.get('action');
+
+  if (!isAuthorized(req)) {
+    return sendJson(res, 401, { ok: false, error: 'Unauthorized' });
+  }
 
   // Run health check on a feature
   if (action === 'check') {
@@ -123,7 +209,6 @@ async function handlePost(req, res) {
 
   // Bulk health check
   if (action === 'bulk-check') {
-    if (!isAuthorized(req)) return sendJson(res, 401, { ok: false, error: 'Unauthorized' });
     return runBulkHealthCheck(res);
   }
 
@@ -193,24 +278,18 @@ async function runHealthCheck(featureId, res) {
     const path = await import('path');
 
     for (const file of files) {
-      const fullPath = path.join(process.cwd(), file);
-      const exists = fs.existsSync(fullPath);
-      results.push({ file, exists, path: fullPath });
+      results.push(await checkRelatedFile(file, fs, path));
     }
 
-    const allExist = results.every(r => r.exists);
-    const newStatus = allExist ? 'Working' : 'Broken';
-    const bugText = allExist
-      ? null
-      : `Missing files: ${results.filter(r => !r.exists).map(r => r.file).join(', ')}`;
+    const health = summarizeHealth(feature, results);
 
     const { data: updated, error: upErr } = await supabase
       .from('product_features')
       .update({
-        status: newStatus,
+        status: health.status,
         last_checked: new Date().toISOString(),
-        bug_notes: bugText,
-        debugger_status: bugText ? 'Pending' : 'OK'
+        bug_notes: health.bugText,
+        debugger_status: health.bugText ? 'Pending' : 'OK'
       })
       .eq('feature_id', featureId)
       .select()
@@ -220,7 +299,12 @@ async function runHealthCheck(featureId, res) {
     return sendJson(res, 200, {
       ok: true,
       feature: updated,
-      health: { allExist, results }
+      health: {
+        allExist: health.allOk,
+        failureCategories: health.categories,
+        primaryFailureCategory: health.primaryCategory,
+        results
+      }
     });
   } catch (e) {
     console.error('[api/product-features] health check error:', e);
@@ -241,23 +325,19 @@ async function runBulkHealthCheck(res) {
 
     for (const feature of features || []) {
       const files = feature.related_files || [];
-      const fileChecks = files.map(f => ({
-        file: f,
-        exists: fs.existsSync(path.join(process.cwd(), f))
-      }));
-      const allExist = fileChecks.every(r => r.exists);
-      const newStatus = allExist ? 'Working' : 'Broken';
-      const bugText = allExist
-        ? null
-        : `Missing files: ${fileChecks.filter(r => !r.exists).map(r => r.file).join(', ')}`;
+      const fileChecks = [];
+      for (const f of files) {
+        fileChecks.push(await checkRelatedFile(f, fs, path));
+      }
+      const health = summarizeHealth(feature, fileChecks);
 
       const { error: upErr } = await supabase
         .from('product_features')
         .update({
-          status: newStatus,
+          status: health.status,
           last_checked: new Date().toISOString(),
-          bug_notes: bugText,
-          debugger_status: bugText ? 'Pending' : 'OK'
+          bug_notes: health.bugText,
+          debugger_status: health.bugText ? 'Pending' : 'OK'
         })
         .eq('feature_id', feature.feature_id);
       if (upErr) console.error(`[bulk-check] ${feature.feature_id}:`, upErr.message);
@@ -265,8 +345,9 @@ async function runBulkHealthCheck(res) {
       results.push({
         featureId: feature.feature_id,
         name: feature.name,
-        status: newStatus,
-        allExist,
+        status: health.status,
+        allExist: health.allOk,
+        failureCategories: health.categories,
         fileChecks
       });
     }

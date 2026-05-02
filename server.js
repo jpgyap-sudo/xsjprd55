@@ -7,7 +7,7 @@
 import 'dotenv/config';
 import express from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -21,7 +21,7 @@ app.use(express.json());
 // require either x-cron-secret header or ?secret= query param.
 const CRON_SECRET = process.env.CRON_SECRET;
 const PROTECTED_ROUTES = new Set([
-  'signal',      // GET auto-scan
+  'signals',     // active signal scan/generation
   'market',      // GET auto-fetch
   'weekly-analysis', // GET weekly report
   'bot',         // type=learn, type=ingest-news
@@ -35,8 +35,9 @@ function requireSecret(req, res, next) {
     return next();
   }
 
-  // Skip auth for manual POST requests on signal/market
-  if (req.method === 'POST' && ['signal', 'market'].includes(routeName)) {
+  // Skip auth for manual POST requests on market only.
+  // Signal scan routes protect mutations in their handlers.
+  if (req.method === 'POST' && ['market'].includes(routeName)) {
     return next();
   }
 
@@ -68,7 +69,7 @@ const apiDir = path.join(__dirname, 'api');
 
 async function loadHandler(routePath) {
   if (!fs.existsSync(routePath)) return null;
-  const mod = await import(routePath);
+  const mod = await import(pathToFileURL(routePath).href);
   return mod.default || null;
 }
 

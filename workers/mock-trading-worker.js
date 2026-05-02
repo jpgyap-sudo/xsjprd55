@@ -71,19 +71,22 @@ export async function runMockTradingWorker() {
 
       const normalizedSide = (signal.side || '').toLowerCase();
 
-      // Dedup by open position for this symbol+side (works for both signal sources)
+      // Dedup by open position for this symbol (any side)
       const { data: existing } = await supabase
         .from('mock_trades')
         .select('id')
         .eq('symbol', signal.symbol)
-        .eq('side', normalizedSide)
         .eq('status', 'open')
         .limit(1);
       if (existing?.length) continue;
 
+      // Skip expired signals
+      const now = Date.now();
+      const validUntil = signal.valid_until ? new Date(signal.valid_until).getTime() : 0;
+      if (validUntil && validUntil < now) continue;
+
       // Normalize signal — null out id when it comes from signal_logs (not signals table)
-      // to avoid FK violation on mock_trades.signal_id → signals(id)
-      const isFromSignalsTable = !score.signal_id; // feature_scores path has signal_id FK to signal_logs
+      const isFromSignalsTable = !score.signal_id;
       const normalizedSignal = {
         ...signal,
         id: isFromSignalsTable ? signal.id : null,

@@ -55,11 +55,12 @@ export async function runAggressiveWorker() {
     let openCount = (await supabase.from('mock_trades').select('id', { count: 'exact', head: true }).eq('status', 'open')).count || 0;
 
     for (const signal of recentSignals || []) {
-      // Skip if already traded
+      // Skip if already traded on this symbol (any side)
       const { data: existing } = await supabase
         .from('mock_trades')
         .select('id')
-        .eq('signal_id', signal.id)
+        .eq('symbol', signal.symbol)
+        .eq('status', 'open')
         .limit(1);
       if (existing?.length) continue;
 
@@ -69,7 +70,7 @@ export async function runAggressiveWorker() {
       const trade = await openAggressiveTrade({
         id: signal.id,
         symbol: signal.symbol,
-        side: signal.side.toLowerCase(),
+        side: (signal.side || '').toLowerCase(),
         price: signal.entry_price,
         confidence: signal.confidence,
         strategy: signal.strategy,

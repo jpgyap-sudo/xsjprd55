@@ -20,6 +20,12 @@ const GROUP_ID  = config.TELEGRAM_GROUP_CHAT_ID;
 const DEFAULT_PAIRS = config.DEFAULT_PAIRS;
 const TIMEFRAMES = config.TIMEFRAMES;
 
+function isAuthorized(req) {
+  const url = new URL(req.url, 'http://localhost');
+  const secret = url.searchParams.get('secret') || req.headers['x-cron-secret'] || req.body?.secret;
+  return process.env.CRON_SECRET && secret === process.env.CRON_SECRET;
+}
+
 // ── Telegram helpers ────────────────────────────────────────
 async function sendTelegram(text) {
   const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -173,6 +179,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  if (!isAuthorized(req)) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
+
   const isManual = req.method === 'POST';
   const pairs    = req.body?.pairs || DEFAULT_PAIRS;
   const tfs      = req.body?.timeframes || TIMEFRAMES;
@@ -230,14 +240,15 @@ export default async function handler(req, res) {
               continue;
             }
 
-            // Check duplicate active signal for same symbol+side
+            // Check duplicate active signal for same symbol+side (within last 15 min)
+            const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
             const { data: dup } = await supabase
               .from('signals')
-              .select('id')
+              .select('id, generated_at')
               .eq('symbol', rawSignal.symbol)
               .eq('side', rawSignal.side)
               .eq('status', 'active')
-              .gte('valid_until', new Date().toISOString())
+              .gte('generated_at', fifteenMinAgo)
               .limit(1)
               .maybeSingle();
             if (dup) continue;

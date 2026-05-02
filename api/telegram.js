@@ -177,7 +177,16 @@ async function cmdScan(chatId) {
   await sendTelegram(chatId, '🔍 Triggering signal scan...');
   try {
     const base = process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`;
-    const res = await fetch(`${base}/api/signal`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    if (!process.env.CRON_SECRET) {
+      return sendTelegram(chatId, 'Scan blocked: CRON_SECRET is not configured.');
+    }
+    const res = await fetch(`${base}/api/signal`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-cron-secret': process.env.CRON_SECRET
+      }
+    });
     const data = await res.json();
     return sendTelegram(chatId, `🔔 Scan done. Signals: ${data.signals?.length || 0} | Errors: ${data.errors?.length || 0}`);
   } catch (e) {

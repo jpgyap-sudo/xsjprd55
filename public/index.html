@@ -1910,6 +1910,34 @@
   <!-- PRODUCT FEATURES TAB -->
   <!-- ════════════════════════════════════════════════════ -->
   <div class="tab-panel" id="tab-product-features">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <span>Product Overview</span>
+        <span id="pf-deploy-freshness" style="font-size:0.75rem;color:var(--fg2);">Checking deploy freshness...</span>
+      </div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px;">
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;">
+            <div style="font-size:0.75rem;color:var(--fg2);text-transform:uppercase;font-weight:700;">Trading Core</div>
+            <div style="font-size:0.88rem;margin-top:6px;">Signals, risk gates, mock trading, perpetual simulation, and Telegram delivery.</div>
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;">
+            <div style="font-size:0.75rem;color:var(--fg2);text-transform:uppercase;font-weight:700;">Intelligence</div>
+            <div style="font-size:0.88rem;margin-top:6px;">Research agent, social/news sentiment, liquidation data, ML scoring, and backtests.</div>
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;">
+            <div style="font-size:0.75rem;color:var(--fg2);text-transform:uppercase;font-weight:700;">Operations</div>
+            <div style="font-size:0.88rem;margin-top:6px;">Diagnostics, bug pipeline, API debugger, deploy tracking, and health checks.</div>
+          </div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;">
+            <div style="font-size:0.75rem;color:var(--fg2);text-transform:uppercase;font-weight:700;">Safety</div>
+            <div style="font-size:0.88rem;margin-top:6px;">Paper/live gates, secret hygiene, audit trails, and protected admin actions.</div>
+          </div>
+        </div>
+        <div id="pf-category-summary" style="display:flex;gap:8px;flex-wrap:wrap;color:var(--fg2);font-size:0.8rem;"></div>
+      </div>
+    </div>
+
     <div class="stat-grid" style="margin-bottom:20px;" id="pf-stats">
       <div class="stat-item"><div class="stat-label">Total Features</div><div class="stat-value" id="pf-total">—</div></div>
       <div class="stat-item"><div class="stat-label">Working</div><div class="stat-value" id="pf-working" style="color:var(--accent)">—</div></div>
@@ -1919,6 +1947,9 @@
     </div>
 
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:20px;">
+      <input id="pf-search" type="search" placeholder="Search features..."
+        oninput="renderProductFeaturesTable(filterProductFeatures())"
+        style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.9rem;outline:none;font-family:inherit;min-width:220px;">
       <select id="pf-filter-status" onchange="loadProductFeatures()"
         style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.9rem;cursor:pointer;outline:none;font-family:inherit;">
         <option value="">All Statuses</option>
@@ -1948,6 +1979,7 @@
         <option value="Medium">🟡 Medium</option>
         <option value="Low">🟢 Low</option>
       </select>
+      <button onclick="clearProductFeatureSecret()" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.85rem;cursor:pointer;">Reset Admin Secret</button>
       <button onclick="runBulkHealthCheck()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.85rem;font-weight:600;cursor:pointer;">🩺 Bulk Check</button>
     </div>
 
@@ -4894,6 +4926,76 @@ function escapeHtml(text) {
 // ── Product Features ─────────────────────────────────
 let pfAllFeatures = [];
 
+function getProductFeatureSecret() {
+  let secret = sessionStorage.getItem('pfAdminSecret') || '';
+  if (!secret) {
+    secret = prompt('Enter admin cron secret for Product Features actions') || '';
+    if (secret) sessionStorage.setItem('pfAdminSecret', secret);
+  }
+  return secret;
+}
+
+function clearProductFeatureSecret() {
+  sessionStorage.removeItem('pfAdminSecret');
+  alert('Product Features admin secret cleared for this browser session.');
+}
+
+function productFeatureAuthHeaders() {
+  const secret = getProductFeatureSecret();
+  return secret ? { 'x-cron-secret': secret } : null;
+}
+
+function filterProductFeatures() {
+  const query = (document.getElementById('pf-search')?.value || '').trim().toLowerCase();
+  if (!query) return pfAllFeatures;
+  return pfAllFeatures.filter(f => [
+    f.featureId,
+    f.name,
+    f.category,
+    f.status,
+    f.priority,
+    f.description,
+    f.improvementProposal,
+    ...(f.relatedFiles || [])
+  ].filter(Boolean).join(' ').toLowerCase().includes(query));
+}
+
+function renderProductFeatureCategorySummary(stats) {
+  const el = document.getElementById('pf-category-summary');
+  if (!el) return;
+  const byCategory = stats?.byCategory || {};
+  const entries = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
+  el.innerHTML = entries.length
+    ? entries.map(([category, count]) => `<span style="background:var(--bg3);border:1px solid var(--border);border-radius:999px;padding:4px 10px;">${escapeHtml(category)}: ${count}</span>`).join('')
+    : '<span>No category data yet.</span>';
+}
+
+async function loadProductFeatureDeployFreshness() {
+  const el = document.getElementById('pf-deploy-freshness');
+  if (!el) return;
+  try {
+    const [versionRes, deployRes] = await Promise.all([
+      fetch('/api/version'),
+      fetch('/api/deploy-status?latest=1')
+    ]);
+    const version = await versionRes.json();
+    const deploy = await deployRes.json().catch(() => ({}));
+    const liveCommit = (version.commit || 'unknown').slice(0, 7);
+    const branch = version.branch || 'unknown';
+    const latest = deploy.deploy || null;
+    const latestGithub = latest?.github_commit ? latest.github_commit.slice(0, 7) : null;
+    const latestVps = latest?.vps_commit ? latest.vps_commit.slice(0, 7) : null;
+    const stale = latestGithub && latestVps && latestGithub !== latestVps;
+    el.style.color = stale ? 'var(--accent2)' : 'var(--fg2)';
+    el.textContent = stale
+      ? `Live ${liveCommit} on ${branch}; deploy tracker shows ${latestVps} behind ${latestGithub}`
+      : `Live ${liveCommit} on ${branch}`;
+  } catch (e) {
+    el.style.color = 'var(--accent2)';
+    el.textContent = 'Deploy freshness unavailable';
+  }
+}
+
 async function loadProductFeatures() {
   const content = document.getElementById('pf-content');
   const loading = document.getElementById('pf-loading');
@@ -4926,6 +5028,8 @@ async function loadProductFeatures() {
     document.getElementById('pf-needs-check').textContent = stats.byStatus?.['Needs Check'] || 0;
     document.getElementById('pf-broken').textContent = stats.byStatus?.Broken || 0;
     document.getElementById('pf-bugs').textContent = stats.hasBugs || 0;
+    renderProductFeatureCategorySummary(stats);
+    loadProductFeatureDeployFreshness();
 
     loading.style.display = 'none';
     timeEl.textContent = new Date().toLocaleTimeString();
@@ -4936,7 +5040,7 @@ async function loadProductFeatures() {
     }
 
     content.style.display = 'block';
-    renderProductFeaturesTable(pfAllFeatures);
+    renderProductFeaturesTable(filterProductFeatures());
   } catch (e) {
     loading.style.display = 'none';
     empty.style.display = 'block';
@@ -4960,7 +5064,7 @@ function renderProductFeaturesTable(features) {
     const coderColor = f.coderStatus === 'OK' ? 'var(--accent)' : f.coderStatus === 'Sent' ? '#a855f7' : 'var(--accent2)';
 
     return `
-      <tr style="cursor:pointer;" onclick="showProductFeatureDetail(${idx})">
+      <tr style="cursor:pointer;" onclick="showProductFeatureDetailById('${escapeHtml(f.featureId)}')">
         <td><span style="font-family:monospace;font-size:0.8rem;color:var(--fg2);">${f.featureId}</span></td>
         <td style="font-weight:600;">${escapeHtml(f.name)}</td>
         <td><span style="font-size:0.75rem;padding:2px 8px;border-radius:12px;background:var(--bg3);color:var(--fg2);">${f.category}</span></td>
@@ -4983,6 +5087,15 @@ function renderProductFeaturesTable(features) {
 
 function showProductFeatureDetail(idx) {
   const f = (pfAllFeatures || [])[idx];
+  showProductFeatureDetailRecord(f);
+}
+
+function showProductFeatureDetailById(featureId) {
+  const f = (pfAllFeatures || []).find(item => item.featureId === featureId);
+  showProductFeatureDetailRecord(f);
+}
+
+function showProductFeatureDetailRecord(f) {
   if (!f) return;
   const bugEl = document.getElementById('pf-bug-detail');
   const propEl = document.getElementById('pf-proposal-detail');
@@ -5005,7 +5118,9 @@ function showProductFeatureDetail(idx) {
 
 async function checkFeatureHealth(featureId) {
   try {
-    const res = await fetch(`/api/product-features?action=check&id=${encodeURIComponent(featureId)}`, { method: 'POST' });
+    const headers = productFeatureAuthHeaders();
+    if (!headers) return;
+    const res = await fetch(`/api/product-features?action=check&id=${encodeURIComponent(featureId)}`, { method: 'POST', headers });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error);
     alert(`Health check for ${featureId}: ${data.health?.allExist ? 'All files exist ✅' : 'Missing files detected ❌'}`);
@@ -5017,7 +5132,9 @@ async function checkFeatureHealth(featureId) {
 
 async function sendFeatureToDebugger(featureId) {
   try {
-    const res = await fetch(`/api/product-features?action=debug&id=${encodeURIComponent(featureId)}`, { method: 'POST' });
+    const headers = productFeatureAuthHeaders();
+    if (!headers) return;
+    const res = await fetch(`/api/product-features?action=debug&id=${encodeURIComponent(featureId)}`, { method: 'POST', headers });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error);
     alert(`Feature ${featureId} sent to debugger. 🐞`);
@@ -5029,7 +5146,9 @@ async function sendFeatureToDebugger(featureId) {
 
 async function sendFeatureToCoder(featureId) {
   try {
-    const res = await fetch(`/api/product-features?action=fix&id=${encodeURIComponent(featureId)}`, { method: 'POST' });
+    const headers = productFeatureAuthHeaders();
+    if (!headers) return;
+    const res = await fetch(`/api/product-features?action=fix&id=${encodeURIComponent(featureId)}`, { method: 'POST', headers });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error);
     alert(`Feature ${featureId} sent to coder. 💡`);
@@ -5042,9 +5161,11 @@ async function sendFeatureToCoder(featureId) {
 async function runBulkHealthCheck() {
   if (!confirm('Run health check on ALL features? This may take a moment.')) return;
   try {
+    const headers = productFeatureAuthHeaders();
+    if (!headers) return;
     const res = await fetch('/api/product-features?action=bulk-check', {
       method: 'POST',
-      headers: { 'x-cron-secret': '' }
+      headers
     });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error);
