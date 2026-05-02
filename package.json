@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node server.js",
     "build": "echo 'No build step required'",
-    "test": "node --test",
+    "test": "node --test test",
     "test:perpetual": "node scripts/test-perpetual-trader-smoke.mjs",
     "lint": "eslint .",
     "debug-crawler": "node workers/debug-crawler-worker.js --once",

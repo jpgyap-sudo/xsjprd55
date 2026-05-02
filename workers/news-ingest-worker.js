@@ -5,6 +5,7 @@
 // ============================================================
 
 import { ingestNews } from '../lib/news-store.js';
+import { getLastNewsFetchDiagnostics } from '../lib/news-aggregator.js';
 import { supabase } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import crypto from 'crypto';
@@ -121,7 +122,11 @@ export async function runNewsIngestCycle() {
 
   try {
     // 1. Ingest fresh RSS news
-    results.rss = await ingestNews({ maxAgeMinutes: 60 });
+    results.rss = await ingestNews({ maxAgeMinutes: Number(process.env.NEWS_INGEST_MAX_AGE_MINUTES || 720) });
+    results.rss.diagnostics = getLastNewsFetchDiagnostics();
+    if (results.rss.inserted === 0 && results.rss.duplicates === 0) {
+      logger.warn(`[news-ingest-worker] No RSS articles ingested. Sources ok=${results.rss.diagnostics.successes.length}, failed=${results.rss.diagnostics.failures.length}, fresh=${results.rss.diagnostics.freshItems}`);
+    }
   } catch (e) {
     logger.error(`[news-ingest-worker] RSS ingest failed: ${e.message}`);
     results.rss.errors++;

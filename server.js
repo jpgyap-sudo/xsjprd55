@@ -25,6 +25,7 @@ const PROTECTED_ROUTES = new Set([
   'market',      // GET auto-fetch
   'weekly-analysis', // GET weekly report
   'bot',         // type=learn, type=ingest-news
+  'news-ingest', // RSS/news ingestion
   'news-signal', // GET news scan
   'learning',    // GET learning loop
 ]);

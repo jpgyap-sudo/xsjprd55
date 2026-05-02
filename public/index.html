@@ -2703,9 +2703,20 @@ async function loadNewsFeed() {
       error.style.display = 'none';
       content.style.display = 'block';
       overall.innerHTML = '<div style="color:var(--fg2);">Market Sentiment: <span style="font-weight:700;">No Data</span></div>';
-      breakdown.innerHTML = '';
-      list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--fg2);font-size:0.85rem;">No news articles yet. The news crawler will populate this soon.</div>';
-      footer.innerHTML = '';
+      const diag = data.rssDiagnostics || {};
+      const okSources = diag.successes?.length || 0;
+      const failedSources = diag.failures?.length || 0;
+      breakdown.innerHTML = `
+        <span style="color:var(--fg2);">Status:</span>
+        <span style="color:var(--accent2);font-weight:600;">${data.fallbackReason || 'No fresh articles returned'}</span>
+        ${diag.generatedAt ? `<span style="margin-left:auto;color:var(--fg2);">RSS sources: ${okSources} ok / ${failedSources} failed</span>` : ''}
+      `;
+      list.innerHTML = `
+        <div style="padding:20px;text-align:center;color:var(--fg2);font-size:0.85rem;line-height:1.6;">
+          No news articles are available for the selected window.<br>
+          ${diag.freshItems != null ? `RSS fetched ${diag.freshItems} fresh items from ${okSources} source${okSources === 1 ? '' : 's'}.` : 'The news ingest worker may be stale or offline.'}
+        </div>`;
+      footer.innerHTML = `Updated ${new Date().toLocaleTimeString()} - Source: ${data.source || 'unknown'}`;
       return;
     }
 
@@ -2780,7 +2791,8 @@ async function loadNewsFeed() {
     }).join('');
 
     // Footer with last updated
-    footer.innerHTML = `Updated ${new Date().toLocaleTimeString()} • Source: ${data.source === 'live_rss' ? 'Live RSS (real-time)' : 'Database cache'}`;
+    const diagText = data.rssDiagnostics ? ` - RSS ${data.rssDiagnostics.successes?.length || 0}/${data.rssDiagnostics.sourceCount || 0} sources` : '';
+    footer.innerHTML = `Updated ${new Date().toLocaleTimeString()} - Source: ${data.source === 'live_rss' ? 'Live RSS (real-time)' : 'Database cache'}${diagText}`;
 
   } catch (e) {
     loading.style.display = 'none';

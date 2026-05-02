@@ -306,7 +306,8 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         DEPLOYMENT_TARGET: 'vps',
-        NEWS_INGEST_INTERVAL_SECONDS: 180
+        NEWS_INGEST_INTERVAL_SECONDS: 180,
+        NEWS_INGEST_MAX_AGE_MINUTES: 720
       },
       autorestart: true,
       max_memory_restart: '256M',

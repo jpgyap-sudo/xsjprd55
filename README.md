@@ -101,6 +101,7 @@ Vercel is **not recommended** for this project. The VPS handles everything: API,
 | `GET /api/signal` | Dashboard | None | Read active signals without triggering a scan |
 | `POST /api/signal` | Manual / admin | `x-cron-secret` | Trigger scan on demand with overrides |
 | `GET/POST /api/signals` | Worker / cron | `x-cron-secret` | Protected signal scan/generation endpoint |
+| `GET/POST /api/news-ingest` | Worker / cron | `x-cron-secret` | Protected RSS/social news ingestion |
 | `GET/POST /api/market` | Cron hourly / manual | `x-cron-secret` (GET only) | Fetch & cache OHLCV market data |
 | `GET /api/weekly-analysis` | Cron Sunday 4am UTC | `x-cron-secret` | Weekly PnL & performance report |
 | `GET /api/health` | Any | None | Connectivity health check |
@@ -316,7 +317,7 @@ On the VPS, cron jobs are handled by **node-cron inside workers** or system `cro
 | `GET /api/market` | `0 * * * *` | Market data cache every hour |
 | `GET /api/weekly-analysis` | `0 4 * * 0` | Weekly report (Sunday 4am UTC) |
 | `GET /api/bot?type=learn` | `0 4 * * *` | Daily learning loop (4am UTC) |
-| `GET /api/bot?type=ingest-news` | `0 0 * * *` | News ingestion (midnight UTC) |
+| `POST /api/news-ingest` | `*/5 * * * *` | News ingestion every 5 minutes |
 
 Example crontab entry:
 ```bash
@@ -325,6 +326,7 @@ crontab -e
 
 # Add line (replace YOUR_SECRET)
 */15 * * * * curl -X POST -H "x-cron-secret: YOUR_SECRET" http://localhost:3000/api/signals
+*/5 * * * * curl -X POST -H "x-cron-secret: YOUR_SECRET" http://localhost:3000/api/news-ingest
 ```
 
 ---

@@ -8,8 +8,13 @@
 import { ingestNews } from '../lib/news-store.js';
 import { supabase } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
-import { scoreNewsItems } from '../lib/news-sentiment.js';
-import { fetchAllNews } from '../lib/news-aggregator.js';
+import { getLastNewsFetchDiagnostics } from '../lib/news-aggregator.js';
+
+function isAuthorized(req) {
+  const url = new URL(req.url, 'http://localhost');
+  const secret = url.searchParams.get('secret') || req.headers['x-cron-secret'] || req.body?.secret;
+  return process.env.CRON_SECRET && secret === process.env.CRON_SECRET;
+}
 
 /**
  * Bridge neural news events (from social-news-worker) into news_events.
@@ -104,6 +109,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  if (!isAuthorized(req)) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+  }
+
   const results = {
     rss: { inserted: 0, duplicates: 0, errors: 0, sources: 0 },
     bridge: { bridged: 0, duplicates: 0, errors: 0 },
@@ -112,7 +121,8 @@ export default async function handler(req, res) {
 
   try {
     // 1. Ingest fresh RSS news
-    results.rss = await ingestNews({ maxAgeMinutes: 60 });
+    results.rss = await ingestNews({ maxAgeMinutes: Number(process.env.NEWS_INGEST_MAX_AGE_MINUTES || 720) });
+    results.rss.diagnostics = getLastNewsFetchDiagnostics();
 
     // 2. Bridge social intel into news_events
     results.bridge = await bridgeSocialToNewsEvents();
