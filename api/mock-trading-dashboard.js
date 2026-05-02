@@ -226,7 +226,7 @@ export default async function handler(req, res) {
       dailyPnl,
       diagnostics,
       ts: new Date().toISOString(),
-    });
+    };
 
     // Trade history (last 100 open/close events)
     try {
