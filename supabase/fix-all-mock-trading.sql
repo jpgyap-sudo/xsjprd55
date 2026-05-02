@@ -21,7 +21,19 @@ CREATE TABLE IF NOT EXISTS mock_accounts (
   created_at       TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_mock_accounts_name_unique ON mock_accounts(name);
+-- Deduplicate before creating unique index (idempotent)
+DO $$
+BEGIN
+  DELETE FROM mock_accounts a
+  USING mock_accounts b
+  WHERE a.id < b.id AND a.name = b.name;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes WHERE indexname = 'idx_mock_accounts_name_unique'
+  ) THEN
+    CREATE UNIQUE INDEX idx_mock_accounts_name_unique ON mock_accounts(name);
+  END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS idx_mock_accounts_created ON mock_accounts(created_at DESC);
 
 -- ── 2. mock_trades (base table) ────────────────────────────
