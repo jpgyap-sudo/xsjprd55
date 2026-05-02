@@ -7,7 +7,11 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- ── 1. mock_accounts (base table) ──────────────────────────
+-- ════════════════════════════════════════════════════════════
+-- PHASE 1: Create base tables (no-op if they already exist)
+-- ════════════════════════════════════════════════════════════
+
+-- ── 1. mock_accounts ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS mock_accounts (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name            TEXT NOT NULL DEFAULT 'AI Mock Account',
@@ -21,37 +25,7 @@ CREATE TABLE IF NOT EXISTS mock_accounts (
   created_at       TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Deduplicate before creating unique index (FK-safe)
-DO $$
-BEGIN
-  -- 1. Re-assign trades from duplicate accounts to the newest account per name
-  UPDATE mock_trades t
-  SET account_id = keepers.id
-  FROM (
-    SELECT DISTINCT ON (name) id, name
-    FROM mock_accounts
-    ORDER BY name, created_at DESC NULLS LAST, id DESC
-  ) keepers
-  WHERE t.account_id IN (
-    SELECT dup.id FROM mock_accounts dup
-    WHERE dup.name = keepers.name AND dup.id <> keepers.id
-  );
-
-  -- 2. Now safely delete duplicate accounts
-  DELETE FROM mock_accounts a
-  USING mock_accounts b
-  WHERE a.id < b.id AND a.name = b.name;
-
-  -- 3. Create unique index
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_indexes WHERE indexname = 'idx_mock_accounts_name_unique'
-  ) THEN
-    CREATE UNIQUE INDEX idx_mock_accounts_name_unique ON mock_accounts(name);
-  END IF;
-END $$;
-CREATE INDEX IF NOT EXISTS idx_mock_accounts_created ON mock_accounts(created_at DESC);
-
--- ── 2. mock_trades (base table) ────────────────────────────
+-- ── 2. mock_trades ─────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS mock_trades (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   account_id      UUID REFERENCES mock_accounts(id) ON DELETE SET NULL,
@@ -82,31 +56,6 @@ CREATE TABLE IF NOT EXISTS mock_trades (
   exit_at         TIMESTAMPTZ
 );
 
--- Sync trigger for exit_at / closed_at
-CREATE OR REPLACE FUNCTION sync_exit_at()
-RETURNS TRIGGER AS $$
-BEGIN
-  IF NEW.closed_at IS NOT NULL AND NEW.exit_at IS NULL THEN
-    NEW.exit_at = NEW.closed_at;
-  ELSIF NEW.exit_at IS NOT NULL AND NEW.closed_at IS NULL THEN
-    NEW.closed_at = NEW.exit_at;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS sync_exit_at_trigger ON mock_trades;
-CREATE TRIGGER sync_exit_at_trigger
-  BEFORE INSERT OR UPDATE ON mock_trades
-  FOR EACH ROW EXECUTE FUNCTION sync_exit_at();
-
-CREATE INDEX IF NOT EXISTS idx_mock_trades_status ON mock_trades(status);
-CREATE INDEX IF NOT EXISTS idx_mock_trades_symbol_status ON mock_trades(symbol, status);
-CREATE INDEX IF NOT EXISTS idx_mock_trades_account_status ON mock_trades(account_id, status);
-CREATE INDEX IF NOT EXISTS idx_mock_trades_signal ON mock_trades(signal_id);
-CREATE INDEX IF NOT EXISTS idx_mock_trades_created ON mock_trades(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_mock_trades_closed ON mock_trades(closed_at DESC);
-
 -- ── 3. execution_profiles ──────────────────────────────────
 CREATE TABLE IF NOT EXISTS execution_profiles (
   id              BIGSERIAL PRIMARY KEY,
@@ -125,9 +74,7 @@ CREATE TABLE IF NOT EXISTS execution_profiles (
   updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_exec_profiles_symbol ON execution_profiles(symbol);
-
--- ── 4. loss_patterns (for aggressive engine learning) ──────
+-- ── 4. loss_patterns ───────────────────────────────────────
 CREATE TABLE IF NOT EXISTS loss_patterns (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   symbol          TEXT,
@@ -144,10 +91,7 @@ CREATE TABLE IF NOT EXISTS loss_patterns (
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_loss_patterns_symbol ON loss_patterns(symbol);
-CREATE INDEX IF NOT EXISTS idx_loss_patterns_created ON loss_patterns(created_at DESC);
-
--- ── 5. mock_trade_history (audit trail) ────────────────────
+-- ── 5. mock_trade_history ──────────────────────────────────
 CREATE TABLE IF NOT EXISTS mock_trade_history (
   id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   trade_id        UUID,
@@ -166,38 +110,22 @@ CREATE TABLE IF NOT EXISTS mock_trade_history (
   created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_mock_trade_history_trade ON mock_trade_history(trade_id);
-CREATE INDEX IF NOT EXISTS idx_mock_trade_history_account ON mock_trade_history(account_id);
-CREATE INDEX IF NOT EXISTS idx_mock_trade_history_created ON mock_trade_history(created_at DESC);
+-- ════════════════════════════════════════════════════════════
+-- PHASE 2: Add missing columns to EXISTING tables (idempotent)
+-- ════════════════════════════════════════════════════════════
 
--- ── 6. Seed execution_profiles for top symbols ─────────────
-INSERT INTO execution_profiles (symbol, base_leverage, win_rate, avg_rr, optimal_sl_pct, optimal_tp_pct)
-VALUES
-  ('BTCUSDT', 5, 0.52, 1.8, 0.5, 1.5),
-  ('ETHUSDT', 4, 0.50, 1.6, 0.6, 1.8),
-  ('SOLUSDT', 3, 0.48, 1.5, 0.8, 2.0),
-  ('BNBUSDT', 3, 0.48, 1.5, 0.8, 2.0),
-  ('XRPUSDT', 3, 0.47, 1.4, 0.9, 2.1),
-  ('DOGEUSDT', 2, 0.45, 1.3, 1.0, 2.2),
-  ('ADAUSDT', 3, 0.48, 1.5, 0.8, 2.0),
-  ('AVAXUSDT', 3, 0.47, 1.5, 0.9, 2.1),
-  ('LINKUSDT', 3, 0.49, 1.6, 0.7, 1.9),
-  ('LTCUSDT', 3, 0.48, 1.5, 0.8, 2.0)
-ON CONFLICT (symbol) DO NOTHING;
+-- mock_accounts columns
+ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS name TEXT DEFAULT 'AI Mock Account';
+ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS starting_balance NUMERIC DEFAULT 1000000;
+ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS current_balance NUMERIC DEFAULT 1000000;
+ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS peak_balance NUMERIC DEFAULT 1000000;
+ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS realized_pnl NUMERIC DEFAULT 0;
+ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS unrealized_pnl NUMERIC DEFAULT 0;
+ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS max_drawdown NUMERIC DEFAULT 0;
+ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
+ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 
--- ── 7. Seed default mock accounts ──────────────────────────
-INSERT INTO mock_accounts (name, starting_balance, current_balance, peak_balance, metadata)
-VALUES
-  ('AI Mock Account',         1000000, 1000000, 1000000, '{"auto_seeded":true,"version":"v1"}'),
-  ('Aggressive AI Trader',    1000000, 1000000, 1000000, '{"auto_seeded":true,"version":"v3_ml"}'),
-  ('Execution Optimizer v3',  1000000, 1000000, 1000000, '{"auto_seeded":true,"version":"v3"}')
-ON CONFLICT (name) DO NOTHING;
-
--- ── 8. Clean invalid trades ────────────────────────────────
-DELETE FROM mock_trades WHERE entry_price IS NULL OR entry_price = 0 OR entry_price != entry_price;
-DELETE FROM mock_trades WHERE symbol IS NULL OR symbol = '';
-
--- ── 9. Add missing columns to existing mock_trades (idempotent) ──
+-- mock_trades columns
 ALTER TABLE mock_trades ADD COLUMN IF NOT EXISTS account_id UUID REFERENCES mock_accounts(id);
 ALTER TABLE mock_trades ADD COLUMN IF NOT EXISTS signal_id UUID REFERENCES signals(id) ON DELETE SET NULL;
 ALTER TABLE mock_trades ADD COLUMN IF NOT EXISTS symbol TEXT;
@@ -225,18 +153,34 @@ ALTER TABLE mock_trades ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT 
 ALTER TABLE mock_trades ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ;
 ALTER TABLE mock_trades ADD COLUMN IF NOT EXISTS exit_at TIMESTAMPTZ;
 
--- ── 10. Add missing columns to existing mock_accounts (idempotent) ──
-ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS name TEXT DEFAULT 'AI Mock Account';
-ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS starting_balance NUMERIC DEFAULT 1000000;
-ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS current_balance NUMERIC DEFAULT 1000000;
-ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS peak_balance NUMERIC DEFAULT 1000000;
-ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS realized_pnl NUMERIC DEFAULT 0;
-ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS unrealized_pnl NUMERIC DEFAULT 0;
-ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS max_drawdown NUMERIC DEFAULT 0;
-ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}';
-ALTER TABLE mock_accounts ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+-- ════════════════════════════════════════════════════════════
+-- PHASE 3: Indexes, constraints, triggers
+-- ════════════════════════════════════════════════════════════
 
--- ── 11. Fix side constraint to accept both cases ───────────
+-- mock_accounts indexes
+CREATE INDEX IF NOT EXISTS idx_mock_accounts_created ON mock_accounts(created_at DESC);
+
+-- mock_trades indexes
+CREATE INDEX IF NOT EXISTS idx_mock_trades_status ON mock_trades(status);
+CREATE INDEX IF NOT EXISTS idx_mock_trades_symbol_status ON mock_trades(symbol, status);
+CREATE INDEX IF NOT EXISTS idx_mock_trades_account_status ON mock_trades(account_id, status);
+CREATE INDEX IF NOT EXISTS idx_mock_trades_signal ON mock_trades(signal_id);
+CREATE INDEX IF NOT EXISTS idx_mock_trades_created ON mock_trades(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_mock_trades_closed ON mock_trades(closed_at DESC);
+
+-- execution_profiles indexes
+CREATE INDEX IF NOT EXISTS idx_exec_profiles_symbol ON execution_profiles(symbol);
+
+-- loss_patterns indexes
+CREATE INDEX IF NOT EXISTS idx_loss_patterns_symbol ON loss_patterns(symbol);
+CREATE INDEX IF NOT EXISTS idx_loss_patterns_created ON loss_patterns(created_at DESC);
+
+-- mock_trade_history indexes
+CREATE INDEX IF NOT EXISTS idx_mock_trade_history_trade ON mock_trade_history(trade_id);
+CREATE INDEX IF NOT EXISTS idx_mock_trade_history_account ON mock_trade_history(account_id);
+CREATE INDEX IF NOT EXISTS idx_mock_trade_history_created ON mock_trade_history(created_at DESC);
+
+-- Side constraint fix
 DO $$
 BEGIN
   ALTER TABLE mock_trades DROP CONSTRAINT IF EXISTS mock_trades_side_check;
@@ -247,7 +191,90 @@ EXCEPTION
     RAISE NOTICE 'Constraint update issue: %', SQLERRM;
 END $$;
 
--- ── 12. Verify results ─────────────────────────────────────
+-- exit_at / closed_at sync trigger
+CREATE OR REPLACE FUNCTION sync_exit_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.closed_at IS NOT NULL AND NEW.exit_at IS NULL THEN
+    NEW.exit_at = NEW.closed_at;
+  ELSIF NEW.exit_at IS NOT NULL AND NEW.closed_at IS NULL THEN
+    NEW.closed_at = NEW.exit_at;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS sync_exit_at_trigger ON mock_trades;
+CREATE TRIGGER sync_exit_at_trigger
+  BEFORE INSERT OR UPDATE ON mock_trades
+  FOR EACH ROW EXECUTE FUNCTION sync_exit_at();
+
+-- ════════════════════════════════════════════════════════════
+-- PHASE 4: Deduplicate mock_accounts (FK-safe)
+-- ════════════════════════════════════════════════════════════
+
+DO $$
+BEGIN
+  -- 1. Re-assign trades from duplicate accounts to the newest account per name
+  UPDATE mock_trades t
+  SET account_id = keepers.id
+  FROM (
+    SELECT DISTINCT ON (name) id, name
+    FROM mock_accounts
+    ORDER BY name, created_at DESC NULLS LAST, id DESC
+  ) keepers
+  WHERE t.account_id IN (
+    SELECT dup.id FROM mock_accounts dup
+    WHERE dup.name = keepers.name AND dup.id <> keepers.id
+  );
+
+  -- 2. Now safely delete duplicate accounts
+  DELETE FROM mock_accounts a
+  USING mock_accounts b
+  WHERE a.id < b.id AND a.name = b.name;
+
+  -- 3. Create unique index
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes WHERE indexname = 'idx_mock_accounts_name_unique'
+  ) THEN
+    CREATE UNIQUE INDEX idx_mock_accounts_name_unique ON mock_accounts(name);
+  END IF;
+END $$;
+
+-- ════════════════════════════════════════════════════════════
+-- PHASE 5: Seed data
+-- ════════════════════════════════════════════════════════════
+
+-- Seed execution_profiles for top symbols
+INSERT INTO execution_profiles (symbol, base_leverage, win_rate, avg_rr, optimal_sl_pct, optimal_tp_pct)
+VALUES
+  ('BTCUSDT', 5, 0.52, 1.8, 0.5, 1.5),
+  ('ETHUSDT', 4, 0.50, 1.6, 0.6, 1.8),
+  ('SOLUSDT', 3, 0.48, 1.5, 0.8, 2.0),
+  ('BNBUSDT', 3, 0.48, 1.5, 0.8, 2.0),
+  ('XRPUSDT', 3, 0.47, 1.4, 0.9, 2.1),
+  ('DOGEUSDT', 2, 0.45, 1.3, 1.0, 2.2),
+  ('ADAUSDT', 3, 0.48, 1.5, 0.8, 2.0),
+  ('AVAXUSDT', 3, 0.47, 1.5, 0.9, 2.1),
+  ('LINKUSDT', 3, 0.49, 1.6, 0.7, 1.9),
+  ('LTCUSDT', 3, 0.48, 1.5, 0.8, 2.0)
+ON CONFLICT (symbol) DO NOTHING;
+
+-- Seed default mock accounts
+INSERT INTO mock_accounts (name, starting_balance, current_balance, peak_balance, metadata)
+VALUES
+  ('AI Mock Account',         1000000, 1000000, 1000000, '{"auto_seeded":true,"version":"v1"}'),
+  ('Aggressive AI Trader',    1000000, 1000000, 1000000, '{"auto_seeded":true,"version":"v3_ml"}'),
+  ('Execution Optimizer v3',  1000000, 1000000, 1000000, '{"auto_seeded":true,"version":"v3"}')
+ON CONFLICT (name) DO NOTHING;
+
+-- ════════════════════════════════════════════════════════════
+-- PHASE 6: Cleanup & verification
+-- ════════════════════════════════════════════════════════════
+
+DELETE FROM mock_trades WHERE entry_price IS NULL OR entry_price = 0 OR entry_price != entry_price;
+DELETE FROM mock_trades WHERE symbol IS NULL OR symbol = '';
+
 SELECT '=== MOCK TRADING FIX VERIFICATION ===' AS section;
 SELECT 'mock_accounts count' AS check_name, COUNT(*)::text AS result FROM mock_accounts
 UNION ALL
