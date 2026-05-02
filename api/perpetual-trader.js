@@ -26,7 +26,7 @@ export default async function handler(req, res) {
     // Open trades with current prices
     const { data: openTrades, error: openErr } = await supabase
       .from('perpetual_mock_trades')
-      .select('id, created_at, symbol, side, entry_price, position_size_usd, margin_used, leverage, stop_loss, take_profit, risk_reward, strategy, confidence, timeframe, entry_reason, unrealized_pnl')
+      .select('id, created_at, symbol, side, entry_price, position_size_usd, margin_used, leverage, stop_loss, take_profit, risk_reward, strategy, confidence, timeframe, entry_reason')
       .eq('status', 'open')
       .order('created_at', { ascending: false })
       .limit(50);

@@ -1,9 +1,9 @@
 // ============================================================
 // Signal Generator — /api/signal
-// GET  : cron-triggered auto-scan
-// POST : manual trigger with optional overrides
+// GET  : passive active-signal read for the dashboard
+// POST : protected manual/admin scan with optional overrides
 // Now integrates Neural Social Intelligence boost.
-// Scans multiple exchanges: Binance, Bybit, OKX, Hyperliquid.
+// Active scans support multiple exchanges: Binance, Bybit, OKX, Hyperliquid.
 // ============================================================
 
 import { supabase } from '../lib/supabase.js';

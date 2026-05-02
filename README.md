@@ -98,8 +98,9 @@ Vercel is **not recommended** for this project. The VPS handles everything: API,
 | Endpoint | Trigger | Auth | Purpose |
 |---|---|---|---|
 | `POST /api/telegram` | Telegram webhook | `X-Telegram-Bot-Api-Secret-Token` | Handle commands and inline buttons |
-| `GET /api/signal` | Cron every 15 min | `x-cron-secret` | Auto-scan and generate signals |
-| `POST /api/signal` | Manual / admin | None (POST exempt) | Trigger scan on demand with overrides |
+| `GET /api/signal` | Dashboard | None | Read active signals without triggering a scan |
+| `POST /api/signal` | Manual / admin | `x-cron-secret` | Trigger scan on demand with overrides |
+| `GET/POST /api/signals` | Worker / cron | `x-cron-secret` | Protected signal scan/generation endpoint |
 | `GET/POST /api/market` | Cron hourly / manual | `x-cron-secret` (GET only) | Fetch & cache OHLCV market data |
 | `GET /api/weekly-analysis` | Cron Sunday 4am UTC | `x-cron-secret` | Weekly PnL & performance report |
 | `GET /api/health` | Any | None | Connectivity health check |
@@ -109,7 +110,7 @@ Vercel is **not recommended** for this project. The VPS handles everything: API,
 | `GET /api/bot?type=patterns` | Dashboard / Telegram | None | Signal pattern stats |
 | `GET /api/bot?type=learn` | Cron daily 4am UTC | `x-cron-secret` | Run learning loop |
 
-> **Cron protection:** All `GET` endpoints that trigger scans, learning, or reports require the `x-cron-secret` header matching `CRON_SECRET` in `.env`. Manual `POST` requests to `/api/signal` and `/api/market` are exempt.
+> **Cron protection:** Endpoints that trigger scans, learning, or reports require the `x-cron-secret` header matching `CRON_SECRET` in `.env`. Dashboard reads use passive endpoints and must not trigger signal generation.
 
 ---
 
@@ -311,7 +312,7 @@ On the VPS, cron jobs are handled by **node-cron inside workers** or system `cro
 
 | Endpoint | Schedule | Purpose |
 |---|---|---|
-| `GET /api/signal` | `*/15 * * * *` | Signal scan every 15 minutes |
+| `POST /api/signals` | `*/15 * * * *` | Signal scan every 15 minutes |
 | `GET /api/market` | `0 * * * *` | Market data cache every hour |
 | `GET /api/weekly-analysis` | `0 4 * * 0` | Weekly report (Sunday 4am UTC) |
 | `GET /api/bot?type=learn` | `0 4 * * *` | Daily learning loop (4am UTC) |
@@ -323,7 +324,7 @@ Example crontab entry:
 crontab -e
 
 # Add line (replace YOUR_SECRET)
-*/15 * * * * curl -H "x-cron-secret: YOUR_SECRET" http://localhost:3000/api/signal
+*/15 * * * * curl -X POST -H "x-cron-secret: YOUR_SECRET" http://localhost:3000/api/signals
 ```
 
 ---

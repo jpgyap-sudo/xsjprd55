@@ -6,6 +6,7 @@
 // ============================================================
 
 import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
+import { logger } from '../lib/logger.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -175,7 +176,7 @@ export default async function handler(req, res) {
     const startBalance = account?.starting_balance || 10000;
     const currentBalance = account?.current_balance || startBalance;
 
-    return res.status(200).json({
+    const responseBody = {
       ok: true,
       account: {
         balance: currentBalance,
@@ -226,6 +227,35 @@ export default async function handler(req, res) {
       diagnostics,
       ts: new Date().toISOString(),
     });
+
+    // Trade history (last 100 open/close events)
+    try {
+      const { data: history } = await supabase
+        .from('mock_trade_history')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(100);
+      responseBody.tradeHistory = (history || []).map(h => ({
+        id: h.id,
+        tradeId: h.trade_id,
+        event: h.event,
+        symbol: h.symbol,
+        side: h.side,
+        price: h.price,
+        pnlUsd: h.pnl_usd,
+        pnlPct: h.pnl_pct,
+        balanceAfter: h.balance_after,
+        leverage: h.leverage,
+        positionSizeUsd: h.position_size_usd,
+        exitReason: h.exit_reason,
+        createdAt: h.created_at,
+      }));
+    } catch (histErr) {
+      logger.debug('[mock-trading-dashboard] trade history skipped:', histErr.message);
+      responseBody.tradeHistory = [];
+    }
+
+    return res.status(200).json(responseBody);
   } catch (err) {
     console.error('[mock-trading-dashboard] Error:', err);
     return res.status(500).json({ ok: false, error: err.message });

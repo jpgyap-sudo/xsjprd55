@@ -1998,6 +1998,7 @@
                 <th>Name</th>
                 <th>Category</th>
                 <th>Status</th>
+                <th>Failure</th>
                 <th>Priority</th>
                 <th>Last Checked</th>
                 <th>Debugger</th>
@@ -5069,6 +5070,7 @@ function renderProductFeaturesTable(features) {
         <td style="font-weight:600;">${escapeHtml(f.name)}</td>
         <td><span style="font-size:0.75rem;padding:2px 8px;border-radius:12px;background:var(--bg3);color:var(--fg2);">${f.category}</span></td>
         <td><span style="font-size:0.75rem;padding:2px 8px;border-radius:12px;background:${statusColor}22;color:${statusColor};font-weight:600;">${f.status}</span></td>
+        <td><span style="font-size:0.75rem;padding:2px 8px;border-radius:12px;background:var(--bg3);color:${f.failureCategory ? 'var(--accent2)' : 'var(--fg2)'};">${escapeHtml(f.failureCategory || '—')}</span></td>
         <td>${priorityEmoji} ${f.priority}</td>
         <td style="font-size:0.8rem;color:var(--fg2);">${lastChecked}</td>
         <td><span style="font-size:0.75rem;padding:2px 8px;border-radius:12px;background:${debuggerColor}22;color:${debuggerColor};font-weight:600;">${f.debuggerStatus}</span></td>
@@ -5104,6 +5106,7 @@ function showProductFeatureDetailRecord(f) {
     <div style="margin-bottom:8px;font-weight:600;font-size:1rem;color:var(--fg);">${escapeHtml(f.name)}</div>
     <div style="margin-bottom:12px;"><span style="font-size:0.75rem;padding:2px 8px;border-radius:12px;background:var(--bg3);color:var(--fg2);">${f.featureId}</span></div>
     <div style="margin-bottom:12px;"><strong>Description:</strong><div style="margin-top:4px;color:var(--fg2);">${escapeHtml(f.description || '—')}</div></div>
+    <div style="margin-bottom:12px;"><strong>Failure Category:</strong><div style="margin-top:4px;color:var(--fg2);">${escapeHtml(f.failureCategory || 'None')}</div></div>
     <div style="margin-bottom:12px;"><strong>Bug Notes:</strong><div style="margin-top:4px;color:var(--fg2);white-space:pre-wrap;">${escapeHtml(f.bugNotes || 'No issues reported.')}</div></div>
     <div><strong>Related Files:</strong><div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">${(f.relatedFiles || []).map(file => `<span style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.75rem;color:var(--fg2);font-family:monospace;">${file}</span>`).join(' ') || '—'}</div></div>
   `;

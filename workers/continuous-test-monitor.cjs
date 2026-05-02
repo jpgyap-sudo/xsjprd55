@@ -31,7 +31,7 @@ const APIS = [
   '/api/health',
   '/api/perpetual-trader',
   '/api/mock-trading-dashboard',
-  '/api/signals',
+  '/api/signal',
   '/api/research-agent',
   '/api/news-feed',
   '/api/catalyst',
