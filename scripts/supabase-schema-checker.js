@@ -40,7 +40,12 @@ const OPTIONAL_TABLES = [
   'api_debugger_results',
   'product_features',
   'product_updates',
-  'diagnostic_snapshots'
+  'diagnostic_snapshots',
+  'perpetual_mock_accounts',
+  'perpetual_mock_trades',
+  'perpetual_trader_logs',
+  'signal_memory',
+  'strategy_performance'
 ];
 
 async function checkTableExists(tableName) {
