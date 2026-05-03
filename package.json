@@ -9,6 +9,7 @@
     "build": "echo 'No build step required'",
     "test": "node --test test",
     "test:perpetual": "node scripts/test-perpetual-trader-smoke.mjs",
+    "verify:perpetual": "node scripts/verify-perpetual-trader.mjs",
     "lint": "eslint .",
     "debug-crawler": "node workers/debug-crawler-worker.js --once",
     "debug-crawler:watch": "node workers/debug-crawler-worker.js",

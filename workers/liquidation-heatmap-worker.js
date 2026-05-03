@@ -11,6 +11,7 @@ import { fetchWithFallback } from '../lib/fetch-with-fallback.js';
 import { estimateProbableDirection, buildHeatmapResponse } from '../lib/liquidation-engine.js';
 import { crawlLiquidationHeatmap } from '../crawler/playwright-crawler.js';
 import { isMainModule } from '../lib/entrypoint.js';
+import { createExchange } from '../lib/trading.js';
 
 const SYMBOLS = config.DEFAULT_PAIRS.map(p => p.replace('/', ''));
 const INTERVAL_MS = 5 * 60 * 1000;

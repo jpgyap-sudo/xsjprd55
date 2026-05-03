@@ -4,16 +4,57 @@
 // trade logs, and signal memory for the UI.
 // ============================================================
 
-import { supabase } from '../lib/supabase.js';
+import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
+import { getPerpetualTraderDiagnostics } from '../lib/perpetual-trader/diagnostics.js';
+
+function addApiError(errors, scope, error) {
+  if (!error) return;
+  errors.push({
+    scope,
+    code: error.code || null,
+    message: error.message || String(error),
+    details: error.details || null,
+    hint: error.hint || null,
+  });
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { detail } = req.query;
+  const detail = req.query?.detail;
+  const diagnostics = await getPerpetualTraderDiagnostics();
+
+  if (detail === 'diagnostics') {
+    return res.status(diagnostics.ok ? 200 : 503).json({
+      ok: diagnostics.ok,
+      diagnostics,
+      ts: new Date().toISOString(),
+    });
+  }
+
+  if (isSupabaseNoOp()) {
+    return res.status(503).json({
+      ok: false,
+      error: 'Supabase is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.',
+      diagnostics,
+      ts: new Date().toISOString(),
+    });
+  }
+
+  if (diagnostics.status === 'blocked') {
+    return res.status(503).json({
+      ok: false,
+      error: 'Perpetual trader is blocked by configuration or schema issues.',
+      diagnostics,
+      ts: new Date().toISOString(),
+    });
+  }
 
   try {
+    const errors = [];
+
     // Account
     const { data: account, error: accErr } = await supabase
       .from('perpetual_mock_accounts')
@@ -21,7 +62,10 @@ export default async function handler(req, res) {
       .limit(1)
       .maybeSingle();
 
-    if (accErr) console.error('[perpetual-trader] account error:', accErr.message);
+    if (accErr) {
+      console.error('[perpetual-trader] account error:', accErr.message);
+      addApiError(errors, 'perpetual_mock_accounts', accErr);
+    }
 
     // Open trades with current prices
     const { data: openTrades, error: openErr } = await supabase
@@ -31,7 +75,10 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (openErr) console.error('[perpetual-trader] open trades error:', openErr.message);
+    if (openErr) {
+      console.error('[perpetual-trader] open trades error:', openErr.message);
+      addApiError(errors, 'open_perpetual_mock_trades', openErr);
+    }
 
     // Closed trades
     const { data: closedTrades, error: closedErr } = await supabase
@@ -41,12 +88,20 @@ export default async function handler(req, res) {
       .order('exit_at', { ascending: false })
       .limit(50);
 
-    if (closedErr) console.error('[perpetual-trader] closed trades error:', closedErr.message);
+    if (closedErr) {
+      console.error('[perpetual-trader] closed trades error:', closedErr.message);
+      addApiError(errors, 'closed_perpetual_mock_trades', closedErr);
+    }
 
     // Strategy performance
     const { data: stratPerf, error: stratErr } = await supabase
       .from('perpetual_mock_trades')
       .select('strategy, pnl_usd, side, status');
+
+    if (stratErr) {
+      console.error('[perpetual-trader] strategy stats error:', stratErr.message);
+      addApiError(errors, 'strategy_stats', stratErr);
+    }
 
     const strategyMap = new Map();
     for (const t of stratPerf || []) {
@@ -72,10 +127,15 @@ export default async function handler(req, res) {
     })).sort((a, b) => b.totalPnl - a.totalPnl);
 
     // Pair performance
-    const { data: pairPerf } = await supabase
+    const { data: pairPerf, error: pairErr } = await supabase
       .from('perpetual_mock_trades')
       .select('symbol, pnl_usd, status')
       .eq('status', 'closed');
+
+    if (pairErr) {
+      console.error('[perpetual-trader] pair stats error:', pairErr.message);
+      addApiError(errors, 'pair_stats', pairErr);
+    }
     const pairMap = new Map();
     for (const t of pairPerf || []) {
       const p = pairMap.get(t.symbol) || { trades: 0, wins: 0, totalPnl: 0 };
@@ -97,7 +157,10 @@ export default async function handler(req, res) {
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (logErr) console.error('[perpetual-trader] logs error:', logErr.message);
+    if (logErr) {
+      console.error('[perpetual-trader] logs error:', logErr.message);
+      addApiError(errors, 'perpetual_trader_logs', logErr);
+    }
 
     // Signal memory recent
     const { data: memory, error: memErr } = await supabase
@@ -106,7 +169,10 @@ export default async function handler(req, res) {
       .order('generated_at', { ascending: false })
       .limit(20);
 
-    if (memErr) console.error('[perpetual-trader] memory error:', memErr.message);
+    if (memErr) {
+      console.error('[perpetual-trader] memory error:', memErr.message);
+      addApiError(errors, 'signal_memory', memErr);
+    }
 
     const closed = closedTrades || [];
     const totalTrades = closed.length;
@@ -148,6 +214,10 @@ export default async function handler(req, res) {
         minConfidence: (account?.min_confidence_threshold || 0.55) * 100,
         maxLeverage: account?.max_leverage || 10,
         maxRiskPerTrade: (account?.max_risk_per_trade || 0.01) * 100,
+      },
+      diagnostics: {
+        ...diagnostics,
+        apiErrors: errors,
       },
       summary: {
         totalTrades,

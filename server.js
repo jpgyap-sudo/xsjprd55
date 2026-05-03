@@ -28,6 +28,7 @@ const PROTECTED_ROUTES = new Set([
   'news-ingest', // RSS/news ingestion
   'news-signal', // GET news scan
   'learning',    // GET learning loop
+  'perpetual-trader', // account/trade audit data
 ]);
 
 function requireSecret(req, res, next) {

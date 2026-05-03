@@ -108,7 +108,7 @@ try {
         Write-Warn "HTTP health check returned $($resp.StatusCode)"
     }
 } catch {
-    Write-Err "HTTP health check FAILED ($_"
+    Write-Err "HTTP health check FAILED ($_)"
 }
 Write-Host ""
 

@@ -90,6 +90,11 @@ Cause: `perpetual-trader-worker` marked a signal as processed before `openPerpet
 Fix: Mark signals processed only after an existing trade is found, a trade opens, or a deterministic risk rejection occurs. Retry transient skips. Poll active signals from the last 24h and filter out expired `valid_until` values in memory. Update signal duplicate checks to only block still-valid active signals.
 Prevention: Processed/dedup sets should represent completed work, not attempted work; duplicate signal checks must include TTL/expiry.
 
+### Perpetual trader dashboard shows empty data while worker is blocked
+Cause: Missing or placeholder Supabase env values put `lib/supabase.js` into no-op mode, and missing perpetual schema tables can make the dashboard look like it simply has no trades.
+Fix: `/api/perpetual-trader` now returns explicit diagnostics and 503 responses for no-op Supabase or blocked schema state, the dashboard displays the blocker, and `npm run verify:perpetual` performs a read-only Supabase/schema/signal/trade check.
+Prevention: Run `npm run verify:perpetual` after changing Supabase env, applying migrations, or restarting PM2 workers. Keep `supabase/perpetual-trader-schema.sql` applied alongside the core schema.
+
 ### Signal sent without stop-loss
 Cause: Risk filter bypassed or validation missing.
 Fix: Enforce stop-loss field in signal schema validation before broadcast.

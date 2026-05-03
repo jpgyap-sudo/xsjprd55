@@ -106,6 +106,7 @@ Vercel is **not recommended** for this project. The VPS handles everything: API,
 | `GET /api/weekly-analysis` | Cron Sunday 4am UTC | `x-cron-secret` | Weekly PnL & performance report |
 | `GET /api/health` | Any | None | Connectivity health check |
 | `GET /api/data-health` | Any | None | **Data quality dashboard** |
+| `GET /api/perpetual-trader` | Dashboard/admin | `x-cron-secret` | Perpetual paper trader account, trades, logs, and diagnostics |
 | `GET /api/bot?type=suggestions` | Dashboard / Telegram | None | List and vote on improvement ideas |
 | `GET /api/bot?type=sources` | Dashboard / Telegram | None | View connected data sources |
 | `GET /api/bot?type=patterns` | Dashboard / Telegram | None | Signal pattern stats |
@@ -131,8 +132,12 @@ Vercel is **not recommended** for this project. The VPS handles everything: API,
 | `data_source_health` | Real-time health status of every data feed |
 | `learning_feedback_log` | Audit trail of every learning event |
 | `strategy_performance` | Rolling performance windows by strategy + timeframe |
+| `perpetual_mock_accounts` | Perpetual paper trader account and risk settings |
+| `perpetual_mock_trades` | Perpetual paper positions, exits, PnL, and margin |
+| `perpetual_trader_logs` | Perpetual trader decision audit trail |
+| `signal_memory` | Signal context and outcomes for learning/research |
 
-> Run `supabase/schema.sql` and `supabase/schema_additions.sql` in the Supabase SQL Editor to create tables, indexes, and RLS policies.
+> Run `supabase/schema.sql`, `supabase/schema_additions.sql`, and `supabase/perpetual-trader-schema.sql` in the Supabase SQL Editor to create tables, indexes, and RLS policies.
 
 ---
 
@@ -238,6 +243,12 @@ curl http://localhost:3000/api/health
 
 # Data quality dashboard
 curl http://localhost:3000/api/data-health
+
+# Perpetual trader read-only verification
+npm run verify:perpetual
+
+# Perpetual trader API diagnostics
+curl -H "x-cron-secret: YOUR_SECRET" "http://localhost:3000/api/perpetual-trader?detail=diagnostics"
 
 # Telegram webhook status
 curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getWebhookInfo"
