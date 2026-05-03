@@ -64,11 +64,11 @@ async function seedDemoData() {
   ];
 
   for (const src of seedSources) {
-    researchCycle([src]);
+    await researchCycle([src]);
   }
 
   // Extract strategies from seeded research
-  const extracted = extractAndSaveFromResearch();
+  const extracted = await extractAndSaveFromResearch();
   logger.info(`[RESEARCH-WORKER] Seeded ${seedSources.length} sources, extracted ${extracted.count} strategies`);
 
   // Run backtests on extracted proposals with real OHLCV data
@@ -117,7 +117,7 @@ export async function runResearchAgentWorker() {
     }
 
     // 3. Extract strategies from new research
-    const extracted = extractAndSaveFromResearch();
+    const extracted = await extractAndSaveFromResearch();
     logger.info(`[RESEARCH-WORKER] Extracted ${extracted.count} new strategies`);
 
     // 4. Run backtests on untested proposals across multiple symbols
@@ -133,7 +133,7 @@ export async function runResearchAgentWorker() {
           if (r.totalTrades >= 5 && r.winRate >= 0.54) {
             try {
               const { promoteStrategy } = await import('../lib/ml/feedbackLoop.js');
-              promoteStrategy(r.strategyName, { winRate: r.winRate, totalReturnPct: r.totalReturnPct, trades: r.totalTrades });
+              await promoteStrategy(r.strategyName, { winRate: r.winRate, totalReturnPct: r.totalReturnPct, trades: r.totalTrades });
               logger.info(`[RESEARCH-WORKER] Auto-promoted ${r.strategyName} — ${(r.winRate*100).toFixed(0)}% WR, ${r.totalTrades} trades`);
             } catch (e) {}
           }

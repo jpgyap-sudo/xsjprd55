@@ -2,13 +2,19 @@
 // Research Agent Dashboard API
 // Returns research sources, strategy proposals, backtest results,
 // and lifecycle status for the research agent tab.
+// Now reads from Supabase (with SQLite fallback).
 // ============================================================
 
-import { db } from '../lib/ml/db.js';
-import { initMlDb } from '../lib/ml/db.js';
 import { rankAllStrategies } from '../lib/ml/strategyEvaluator.js';
 import { loadActiveModel } from '../lib/ml/model.js';
 import { getAllSourceConfigs } from '../lib/ml/enhancedSourceCrawler.js';
+import {
+  getRecentResearchSources,
+  getUntestedProposals,
+  getRecentBacktests,
+  getRecentLifecycle,
+  getPromotedStrategies,
+} from '../lib/ml/supabase-db.js';
 
 // Helper to get icon for source
 function getSourceIcon(sourceName) {
@@ -28,51 +34,21 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  initMlDb();
-
   try {
-    // Recent research sources
-    const recentSources = db.prepare(`
-      SELECT id, created_at, source_name, source_url, content, extracted_hints_json, used
-      FROM research_sources
-      ORDER BY created_at DESC
-      LIMIT 20
-    `).all();
+    // Recent research sources (regardless of used status)
+    const recentSources = await getRecentResearchSources(20);
 
     // Strategy proposals
-    const proposals = db.prepare(`
-      SELECT id, created_at, name, description, rules_json, confidence, tested, promoted, rejected
-      FROM strategy_proposals
-      ORDER BY created_at DESC
-      LIMIT 30
-    `).all();
+    const proposals = await getUntestedProposals(30);
 
-    // Recent backtest results for research strategies.
-    // Research-extracted strategies are named extracted_* and composite_*,
-    // so filtering only research_* hides valid completed backtests.
-    const backtests = db.prepare(`
-      SELECT run_at, strategy_name, symbol, total_return_pct, total_trades, win_rate, sharpe_ratio, max_drawdown_pct, profit_factor
-      FROM backtest_results
-      ORDER BY run_at DESC
-      LIMIT 20
-    `).all();
+    // Recent backtest results
+    const backtests = await getRecentBacktests(20);
 
     // Strategy lifecycle status
-    const lifecycle = db.prepare(`
-      SELECT strategy_name, status, historical_backtest_score, mock_trading_score, approved_for_mock, rejected_reason, created_at, updated_at
-      FROM strategy_lifecycle
-      ORDER BY updated_at DESC
-      LIMIT 20
-    `).all();
+    const lifecycle = await getRecentLifecycle(20);
 
     // Promoted strategies from feedback loop
-    const promoted = db.prepare(`
-      SELECT strategy_name, feedback_score, trades, wins, losses, total_pnl_usd, promoted
-      FROM mock_strategy_feedback
-      WHERE promoted = 1
-      ORDER BY feedback_score DESC
-      LIMIT 10
-    `).all();
+    const promoted = await getPromotedStrategies(10);
 
     // ML model info
     const model = loadActiveModel();
@@ -82,8 +58,9 @@ export default async function handler(req, res) {
 
     // Parse enhanced metadata if available
     const enhancedSources = recentSources.map(s => {
-      const metadata = s.extracted_hints_json ?
-        (s.extracted_hints_json.startsWith('{') ? JSON.parse(s.extracted_hints_json) : { hints: JSON.parse(s.extracted_hints_json) }) :
+      const hintsRaw = s.extracted_hints_json || s.extracted_hints || '[]';
+      const metadata = hintsRaw ?
+        (typeof hintsRaw === 'string' && hintsRaw.startsWith('{') ? JSON.parse(hintsRaw) : { hints: Array.isArray(hintsRaw) ? hintsRaw : JSON.parse(hintsRaw) }) :
         {};
       
       return {
@@ -94,7 +71,6 @@ export default async function handler(req, res) {
         contentPreview: s.content?.slice(0, 200),
         hints: metadata.hints || (Array.isArray(metadata) ? metadata : []),
         used: !!s.used,
-        // Enhanced fields
         displayName: metadata.displayName || s.source_name,
         description: metadata.description || s.content?.slice(0, 500),
         category: metadata.category || 'other',
@@ -112,7 +88,7 @@ export default async function handler(req, res) {
         createdAt: p.created_at,
         name: p.name,
         description: p.description,
-        rules: JSON.parse(p.rules_json || '[]'),
+        rules: typeof p.rules_json === 'string' ? JSON.parse(p.rules_json || '[]') : (p.rules_json || []),
         confidence: p.confidence,
         tested: !!p.tested,
         promoted: !!p.promoted,

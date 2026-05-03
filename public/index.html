@@ -412,6 +412,22 @@
     .side-close { background: rgba(139,149,165,0.15); color: var(--fg2); }
     .conf-bar { height: 6px; border-radius: 3px; background: var(--bg3); overflow: hidden; width: 60px; }
     .conf-bar-inner { height: 100%; border-radius: 3px; }
+    .signal-row { cursor: pointer; transition: background 0.15s; }
+    .signal-row:hover { background: rgba(255,255,255,0.04); }
+    .signal-row.active { background: rgba(34,197,94,0.06); }
+    .signal-detail-row { display: none; }
+    .signal-detail-row.active { display: table-row; animation: fadeIn 0.2s ease; }
+    .signal-detail-cell { padding: 0; border-bottom: 1px solid var(--border); }
+    .signal-detail-box { padding: 16px; background: var(--bg3); }
+    .signal-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .signal-detail-item { background: var(--bg2); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); }
+    .signal-detail-label { font-size: 0.7rem; color: var(--fg2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .signal-detail-value { font-size: 0.85rem; font-weight: 600; }
+    .signal-detail-desc { font-size: 0.85rem; line-height: 1.6; color: var(--fg); margin-bottom: 12px; }
+    .signal-detail-desc strong { color: var(--fg); }
+    .signal-detail-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .signal-detail-actions a { color: var(--accent); text-decoration: none; font-size: 0.8rem; font-weight: 600; }
+    .signal-detail-actions a:hover { text-decoration: underline; }
 
     /* AI Chat inline */
     .chat-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; height: calc(100vh - 220px); min-height: 500px; }
@@ -2519,7 +2535,12 @@ async function loadSignals() {
 }
 
 function renderSignal(tbody, s) {
+  const rowId = 'sig-row-' + s.id;
+  const detailId = 'sig-detail-' + s.id;
+
   const tr = document.createElement('tr');
+  tr.id = rowId;
+  tr.className = 'signal-row';
   const sideClass = s.side === 'LONG' ? 'side-long' : s.side === 'SHORT' ? 'side-short' : 'side-close';
   const confPct = Math.round((s.confidence || 0) * 100);
   const confColor = confPct >= 70 ? 'var(--accent)' : confPct >= 50 ? 'var(--accent2)' : 'var(--accent3)';
@@ -2532,9 +2553,83 @@ function renderSignal(tbody, s) {
         <span style="font-size:0.8rem;">${confPct}%</span>
       </div>
     </td>
-    <td style="font-size:0.8rem;color:var(--fg2);">${new Date(s.generated_at).toLocaleTimeString()}</td>
+    <td style="font-size:0.8rem;color:var(--fg2);">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+        <span>${new Date(s.generated_at).toLocaleTimeString()}</span>
+        <span style="font-size:0.7rem;opacity:0.6;">▼</span>
+      </div>
+    </td>
   `;
+  tr.addEventListener('click', () => {
+    document.querySelectorAll('.signal-row').forEach(r => {
+      if (r.id !== rowId) {
+        r.classList.remove('active');
+        const d = document.getElementById(r.id.replace('sig-row-', 'sig-detail-'));
+        if (d) d.classList.remove('active');
+      }
+    });
+    tr.classList.toggle('active');
+    document.getElementById(detailId).classList.toggle('active');
+  });
   tbody.appendChild(tr);
+
+  const detailTr = document.createElement('tr');
+  detailTr.id = detailId;
+  detailTr.className = 'signal-detail-row';
+
+  const descHtml = (s.description || '')
+    .replace(/\*([^*]+?)\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+
+  const tpArray = s.take_profit ? (Array.isArray(s.take_profit) ? s.take_profit : [s.take_profit]) : [];
+  const tpHtml = tpArray.length
+    ? tpArray.map(tp => '$' + Number(tp).toLocaleString(undefined, { maximumFractionDigits: 4 })).join(' / ')
+    : '—';
+
+  const rr = s.riskReward ? '1:' + s.riskReward : '—';
+  const timeLeft = s.timeRemaining != null ? s.timeRemaining + ' min' : '—';
+  const strategyDesc = s.metadata && s.metadata.strategyDescription ? s.metadata.strategyDescription : (s.strategy || 'Technical strategy');
+  const sourceIcon = s.metadata && s.metadata.sourceIcon ? s.metadata.sourceIcon : '📡';
+
+  detailTr.innerHTML = `
+    <td colspan="4" class="signal-detail-cell">
+      <div class="signal-detail-box">
+        <div class="signal-detail-grid">
+          <div class="signal-detail-item">
+            <div class="signal-detail-label">Entry Price</div>
+            <div class="signal-detail-value">$${s.entry_price ? Number(s.entry_price).toLocaleString(undefined, { maximumFractionDigits: 4 }) : '—'}</div>
+          </div>
+          <div class="signal-detail-item">
+            <div class="signal-detail-label">Stop Loss</div>
+            <div class="signal-detail-value" style="color:var(--accent3);">$${s.stop_loss ? Number(s.stop_loss).toLocaleString(undefined, { maximumFractionDigits: 4 }) : '—'}</div>
+          </div>
+          <div class="signal-detail-item">
+            <div class="signal-detail-label">Take Profit</div>
+            <div class="signal-detail-value" style="color:var(--accent);">${tpHtml}</div>
+          </div>
+          <div class="signal-detail-item">
+            <div class="signal-detail-label">R:R Ratio</div>
+            <div class="signal-detail-value">${rr}</div>
+          </div>
+          <div class="signal-detail-item">
+            <div class="signal-detail-label">Time Remaining</div>
+            <div class="signal-detail-value">${timeLeft}</div>
+          </div>
+          <div class="signal-detail-item">
+            <div class="signal-detail-label">Source</div>
+            <div class="signal-detail-value">${sourceIcon} ${s.source || '—'}</div>
+          </div>
+        </div>
+        <div class="signal-detail-desc">${descHtml || '<em>No detailed description available.</em>'}</div>
+        <div style="font-size:0.75rem;color:var(--fg2);margin-bottom:8px;">🧠 ${strategyDesc}</div>
+        <div class="signal-detail-actions">
+          ${s.chartUrl ? `<a href="${s.chartUrl}" target="_blank" rel="noopener">📊 Open Chart →</a>` : ''}
+          <span style="font-size:0.75rem;color:var(--fg2);margin-left:auto;">${s.mode || 'paper'} mode · ID: ${s.id}</span>
+        </div>
+      </div>
+    </td>
+  `;
+  tbody.appendChild(detailTr);
 }
 loadSignals();
 setInterval(loadSignals, 30000);
@@ -4510,9 +4605,37 @@ function showBacktestDetail(idx) {
 // ── Perpetual Signal Trader ────────────────────────────
 async function loadPerpetualTrader() {
   try {
-    const res = await fetch('/api/perpetual-trader');
+    const headers = {};
+    const savedSecret = sessionStorage.getItem('perpetualTraderSecret');
+    if (savedSecret) headers['x-cron-secret'] = savedSecret;
+
+    let res = await fetch('/api/perpetual-trader', { headers });
+    if (res.status === 401) {
+      if (sessionStorage.getItem('perpetualTraderSecretDismissed') === '1') {
+        renderPerpetualTraderError({
+          error: 'Unauthorized: admin cron secret required',
+          diagnostics: {
+            status: 'blocked',
+            issues: [{ category: 'auth', message: 'Admin cron secret required to view perpetual trader account data.' }],
+            nextActions: ['Refresh the page and enter the CRON_SECRET when prompted.']
+          }
+        });
+        throw new Error('Unauthorized: admin cron secret required');
+      }
+      const secret = prompt('Enter admin cron secret for Perpetual Trader');
+      if (!secret) {
+        sessionStorage.setItem('perpetualTraderSecretDismissed', '1');
+        throw new Error('Unauthorized: admin cron secret required');
+      }
+      sessionStorage.removeItem('perpetualTraderSecretDismissed');
+      sessionStorage.setItem('perpetualTraderSecret', secret);
+      res = await fetch('/api/perpetual-trader', { headers: { 'x-cron-secret': secret } });
+    }
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error);
+    if (!data.ok) {
+      renderPerpetualTraderError(data);
+      throw new Error(data.error || 'Perpetual trader unavailable');
+    }
 
     const a = data.account;
     const s = data.summary;
@@ -4535,7 +4658,15 @@ async function loadPerpetualTrader() {
 
     // Status banner
     const banner = document.getElementById('pt-status-banner');
-    if (!a.tradingEnabled) {
+    const diagIssues = data.diagnostics?.issues || [];
+    const warningIssues = diagIssues.filter(i => i.severity !== 'critical');
+    if (warningIssues.length) {
+      banner.style.display = 'block';
+      banner.style.background = 'rgba(245,158,11,0.15)';
+      banner.style.color = 'var(--accent2)';
+      banner.style.border = '1px solid rgba(245,158,11,0.3)';
+      banner.textContent = warningIssues.slice(0, 2).map(i => i.message).join(' | ');
+    } else if (!a.tradingEnabled) {
       banner.style.display = 'block';
       banner.style.background = 'rgba(239,68,68,0.15)';
       banner.style.color = 'var(--accent3)';
@@ -4705,8 +4836,41 @@ async function loadPerpetualTrader() {
     console.error('[PerpetualTrader] Load failed:', e);
   }
 }
-loadPerpetualTrader();
-setInterval(loadPerpetualTrader, 30000);
+
+function renderPerpetualTraderError(data) {
+  const banner = document.getElementById('pt-status-banner');
+  const openLoading = document.getElementById('pt-open-loading');
+  const openContent = document.getElementById('pt-open-content');
+  const openBody = document.getElementById('pt-open-body');
+  const riskSettings = document.getElementById('pt-risk-settings');
+  const diagnostics = data?.diagnostics || {};
+  const issues = diagnostics.issues || [];
+  const actions = diagnostics.nextActions || [];
+  const issueText = issues.length
+    ? issues.map(i => `${i.category || 'system'}: ${i.message}`).join(' | ')
+    : (data?.error || 'Perpetual trader is unavailable');
+
+  banner.style.display = 'block';
+  banner.style.background = 'rgba(239,68,68,0.15)';
+  banner.style.color = 'var(--accent3)';
+  banner.style.border = '1px solid rgba(239,68,68,0.3)';
+  banner.textContent = issueText;
+
+  openLoading.style.display = 'none';
+  openContent.style.display = 'block';
+  openBody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--accent3);padding:20px;">${escapeHtml(issueText)}</td></tr>`;
+
+  riskSettings.innerHTML = `
+    <div style="color:var(--accent3);font-weight:600;margin-bottom:8px;">Perpetual trader diagnostics failed.</div>
+    <div style="margin-bottom:8px;">Status: ${escapeHtml(diagnostics.status || 'blocked')}</div>
+    <div style="white-space:pre-wrap;">${escapeHtml(actions.join('\n') || 'Check server logs and Supabase credentials.')}</div>
+  `;
+}
+setInterval(() => {
+  if (document.getElementById('tab-perpetual-trader')?.classList.contains('active')) {
+    loadPerpetualTrader();
+  }
+}, 30000);
 
 // ── Autonomous Report Tab ───────────────────────────────
 async function loadAutonomousReport() {

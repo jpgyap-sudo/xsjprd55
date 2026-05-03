@@ -59,6 +59,14 @@ async function runDiagnostics() {
     results.risk = `load error: ${e.message}`;
   }
 
+  // Research Agent counts
+  try {
+    const { getResearchAgentCounts } = await import('../lib/ml/supabase-db.js');
+    results.research_agent = await getResearchAgentCounts();
+  } catch (e) {
+    results.research_agent = `load error: ${e.message}`;
+  }
+
   results.env = {
     supabase_url: !!process.env.SUPABASE_URL,
     service_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
