@@ -5530,5 +5530,593 @@ window.addEventListener('appinstalled', () => {
 });
 </script>
 
+<!-- ============================================================ -->
+<!-- AI Support Chat Bubble — Floating Assistant                 -->
+<!-- ============================================================ -->
+<style>
+/* ── Support Chat Bubble ─────────────────────────────── */
+.support-bubble-btn {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 26px;
+  box-shadow: 0 4px 20px rgba(108,92,231,0.4);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.support-bubble-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 28px rgba(108,92,231,0.6);
+}
+.support-bubble-btn .badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ff4757;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  display: none;
+}
+
+/* ── Chat Panel ──────────────────────────────────────── */
+.support-chat-panel {
+  position: fixed;
+  bottom: 90px;
+  right: 24px;
+  width: 380px;
+  max-height: 560px;
+  background: var(--bg2, #1a1a2e);
+  border: 1px solid var(--border, #2d2d4e);
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  z-index: 9998;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.support-chat-panel.open {
+  display: flex;
+}
+
+/* ── Header ──────────────────────────────────────────── */
+.support-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  user-select: none;
+}
+.support-chat-header .close-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 20px;
+  cursor: pointer;
+  opacity: 0.8;
+  padding: 0 4px;
+}
+.support-chat-header .close-btn:hover { opacity: 1; }
+
+/* ── Body ────────────────────────────────────────────── */
+.support-chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 200px;
+  max-height: 380px;
+  scroll-behavior: smooth;
+}
+
+/* ── Messages ────────────────────────────────────────── */
+.support-msg {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  word-wrap: break-word;
+  animation: fadeInMsg 0.25s ease;
+}
+@keyframes fadeInMsg {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.support-msg.ai {
+  align-self: flex-start;
+  background: var(--bg3, #16213e);
+  border: 1px solid var(--border, #2d2d4e);
+  color: var(--fg, #e0e0e0);
+  border-bottom-left-radius: 4px;
+}
+.support-msg.user {
+  align-self: flex-end;
+  background: #6c5ce7;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.support-msg.system {
+  align-self: center;
+  background: transparent;
+  color: var(--fg2, #888);
+  font-size: 0.75rem;
+  text-align: center;
+  max-width: 100%;
+  padding: 6px 10px;
+}
+.support-msg .msg-label {
+  font-size: 0.7rem;
+  opacity: 0.6;
+  margin-bottom: 4px;
+}
+.support-msg .msg-time {
+  font-size: 0.65rem;
+  opacity: 0.4;
+  margin-top: 4px;
+  text-align: right;
+}
+
+/* ── Typing Indicator ────────────────────────────────── */
+.support-typing {
+  align-self: flex-start;
+  display: none;
+  padding: 10px 14px;
+  background: var(--bg3, #16213e);
+  border: 1px solid var(--border, #2d2d4e);
+  border-radius: 12px;
+  border-bottom-left-radius: 4px;
+  gap: 4px;
+}
+.support-typing.show { display: flex; }
+.support-typing span {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--fg2, #888);
+  animation: typingDot 1.4s infinite;
+}
+.support-typing span:nth-child(2) { animation-delay: 0.2s; }
+.support-typing span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingDot {
+  0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+  30% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ── Input Area ──────────────────────────────────────── */
+.support-chat-input-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--border, #2d2d4e);
+}
+.support-chat-input-area textarea {
+  flex: 1;
+  background: var(--bg3, #16213e);
+  border: 1px solid var(--border, #2d2d4e);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: var(--fg, #e0e0e0);
+  font-size: 0.85rem;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  min-height: 20px;
+  max-height: 80px;
+  line-height: 1.4;
+}
+.support-chat-input-area textarea:focus {
+  border-color: #6c5ce7;
+}
+.support-chat-input-area .send-btn {
+  background: #6c5ce7;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.support-chat-input-area .send-btn:hover { background: #5a4bd1; }
+.support-chat-input-area .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Email Auth Screen ───────────────────────────────── */
+.support-auth-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 20px;
+  gap: 14px;
+  text-align: center;
+}
+.support-auth-screen .auth-icon {
+  font-size: 48px;
+}
+.support-auth-screen .auth-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--fg, #e0e0e0);
+}
+.support-auth-screen .auth-subtitle {
+  font-size: 0.8rem;
+  color: var(--fg2, #888);
+  max-width: 280px;
+}
+.support-auth-screen input {
+  width: 100%;
+  max-width: 280px;
+  background: var(--bg3, #16213e);
+  border: 1px solid var(--border, #2d2d4e);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: var(--fg, #e0e0e0);
+  font-size: 0.9rem;
+  outline: none;
+  text-align: center;
+}
+.support-auth-screen input:focus { border-color: #6c5ce7; }
+.support-auth-screen .auth-btn {
+  background: #6c5ce7;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 32px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.support-auth-screen .auth-btn:hover { background: #5a4bd1; }
+.support-auth-screen .auth-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.support-auth-screen .auth-error {
+  color: #ff4757;
+  font-size: 0.8rem;
+  display: none;
+}
+.support-auth-screen .auth-error.show { display: block; }
+
+/* ── Suggestion Chips ────────────────────────────────── */
+.support-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 16px 8px;
+}
+.support-suggestions .chip {
+  background: var(--bg3, #16213e);
+  border: 1px solid var(--border, #2d2d4e);
+  border-radius: 16px;
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  color: var(--fg2, #aaa);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.support-suggestions .chip:hover {
+  background: #6c5ce7;
+  color: #fff;
+  border-color: #6c5ce7;
+}
+
+/* ── Result Cards ────────────────────────────────────── */
+.support-result-card {
+  background: var(--bg3, #16213e);
+  border: 1px solid var(--border, #2d2d4e);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 6px;
+  font-size: 0.78rem;
+}
+.support-result-card .result-label {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.support-result-card .result-ok {
+  color: #2ed573;
+}
+.support-result-card .result-fail {
+  color: #ff4757;
+}
+.support-result-card .result-detail {
+  color: var(--fg2, #888);
+  font-family: monospace;
+  font-size: 0.7rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 480px) {
+  .support-chat-panel {
+    width: calc(100vw - 32px);
+    right: 16px;
+    bottom: 80px;
+    max-height: 70vh;
+  }
+  .support-bubble-btn {
+    bottom: 16px;
+    right: 16px;
+  }
+}
+</style>
+
+<!-- Support Chat Bubble Button -->
+<button class="support-bubble-btn" id="supportBubbleBtn" title="AI Support Assistant" onclick="toggleSupportChat()">
+  💬
+  <span class="badge" id="supportBadge">1</span>
+</button>
+
+<!-- Support Chat Panel -->
+<div class="support-chat-panel" id="supportChatPanel">
+  <div class="support-chat-header" onclick="toggleSupportChat()">
+    <span>🤖 AI Support Assistant</span>
+    <button class="close-btn" onclick="event.stopPropagation(); closeSupportChat()">✕</button>
+  </div>
+
+  <div class="support-chat-body" id="supportChatBody">
+    <!-- Auth Screen -->
+    <div class="support-auth-screen" id="supportAuthScreen">
+      <div class="auth-icon">🔐</div>
+      <div class="auth-title">Authorized Access Only</div>
+      <div class="auth-subtitle">Enter your email to chat with the AI Support Assistant</div>
+      <input type="email" id="supportAuthEmail" placeholder="your@email.com" autocomplete="email"
+        onkeydown="if(event.key==='Enter') supportAuthLogin()" />
+      <button class="auth-btn" id="supportAuthBtn" onclick="supportAuthLogin()">Continue</button>
+      <div class="auth-error" id="supportAuthError"></div>
+    </div>
+
+    <!-- Chat Messages (hidden until authenticated) -->
+    <div id="supportChatMessages" style="display:none;flex-direction:column;gap:10px;width:100%;">
+      <div class="support-msg ai">
+        <div class="msg-label">Support Assistant</div>
+        Hello! I'm the AI Support Assistant. I know all about the product features and system architecture. How can I help you today?
+        <div class="msg-time">just now</div>
+      </div>
+    </div>
+
+    <!-- Typing Indicator -->
+    <div class="support-typing" id="supportTyping">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <!-- Suggestion Chips -->
+  <div class="support-suggestions" id="supportSuggestions" style="display:none;">
+    <span class="chip" onclick="supportAsk('What features are available?')">📋 Features</span>
+    <span class="chip" onclick="supportAsk('Run a health check')">🩺 Health Check</span>
+    <span class="chip" onclick="supportAsk('How is the system deployed?')">🏗️ Architecture</span>
+    <span class="chip" onclick="supportAsk('What workers are running?')">⚙️ Workers</span>
+  </div>
+
+  <!-- Input Area (hidden until authenticated) -->
+  <div class="support-chat-input-area" id="supportInputArea" style="display:none;">
+    <textarea id="supportChatInput" rows="1" placeholder="Ask about features, report an issue..."
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();supportSendMessage()}"></textarea>
+    <button class="send-btn" id="supportSendBtn" onclick="supportSendMessage()">Send</button>
+  </div>
+</div>
+
+<script>
+// ── Support Chat State ─────────────────────────────────
+let supportState = {
+  authenticated: false,
+  email: null,
+  chatHistory: [],
+  isProcessing: false
+};
+
+// ── Toggle Chat ────────────────────────────────────────
+function toggleSupportChat() {
+  const panel = document.getElementById('supportChatPanel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) {
+    document.getElementById('supportBadge').style.display = 'none';
+    setTimeout(() => {
+      const body = document.getElementById('supportChatBody');
+      body.scrollTop = body.scrollHeight;
+    }, 100);
+  }
+}
+
+function closeSupportChat() {
+  document.getElementById('supportChatPanel').classList.remove('open');
+}
+
+// ── Email Authentication ───────────────────────────────
+function supportAuthLogin() {
+  const email = document.getElementById('supportAuthEmail').value.trim();
+  const errorEl = document.getElementById('supportAuthError');
+  const btn = document.getElementById('supportAuthBtn');
+
+  if (!email) {
+    errorEl.textContent = 'Please enter your email address.';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  // Basic email validation
+  if (!email.includes('@') || !email.includes('.')) {
+    errorEl.textContent = 'Please enter a valid email address.';
+    errorEl.classList.add('show');
+    return;
+  }
+
+  errorEl.classList.remove('show');
+  btn.disabled = true;
+  btn.textContent = 'Verifying...';
+
+  // We check auth on the server side, but for UX we do a quick pre-check
+  // The server will enforce the actual auth
+  if (email.toLowerCase() !== 'jpgyap@gmail.com') {
+    errorEl.textContent = 'Access denied. This email is not authorized.';
+    errorEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Continue';
+    return;
+  }
+
+  supportState.email = email;
+  supportState.authenticated = true;
+
+  // Switch to chat mode
+  document.getElementById('supportAuthScreen').style.display = 'none';
+  document.getElementById('supportChatMessages').style.display = 'flex';
+  document.getElementById('supportSuggestions').style.display = 'flex';
+  document.getElementById('supportInputArea').style.display = 'flex';
+
+  btn.disabled = false;
+  btn.textContent = 'Continue';
+
+  // Focus input
+  document.getElementById('supportChatInput').focus();
+}
+
+// ── Send Message ───────────────────────────────────────
+async function supportSendMessage() {
+  const input = document.getElementById('supportChatInput');
+  const text = input.value.trim();
+  if (!text || supportState.isProcessing) return;
+
+  input.value = '';
+  supportState.isProcessing = true;
+  document.getElementById('supportSendBtn').disabled = true;
+
+  // Add user message
+  supportAddMessage('user', text);
+
+  // Show typing indicator
+  document.getElementById('supportTyping').classList.add('show');
+  document.getElementById('supportChatBody').scrollTop = document.getElementById('supportChatBody').scrollHeight;
+
+  try {
+    const res = await fetch('/api/support-assistant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: supportState.email,
+        question: text,
+        chatHistory: supportState.chatHistory.slice(-10)
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.ok) {
+      supportAddMessage('system', '❌ ' + (data.error || 'Request failed'));
+      return;
+    }
+
+    // Add AI response
+    let answer = data.answer || 'No response.';
+    let extraInfo = '';
+
+    // If a bug was reported, show a confirmation
+    if (data.bugReported) {
+      extraInfo += `\n\n✅ Debug report submitted! Bug ID: ${data.bugReportId}. It will appear in the Bugs dashboard tab.`;
+    }
+
+    // If a feature was tested, show the result
+    if (data.testResult) {
+      const statusIcon = data.testResult.ok ? '✅' : '❌';
+      extraInfo += `\n\n${statusIcon} Feature test result: ${data.testResult.ok ? 'Working' : 'Failed'}`;
+      if (data.testResult.error) {
+        extraInfo += `\nError: ${data.testResult.error}`;
+      }
+    }
+
+    supportAddMessage('ai', answer + extraInfo);
+
+    // Update chat history
+    supportState.chatHistory.push({ role: 'user', content: text });
+    supportState.chatHistory.push({ role: 'assistant', content: answer });
+
+  } catch (err) {
+    supportAddMessage('system', '❌ Connection error: ' + err.message);
+  } finally {
+    document.getElementById('supportTyping').classList.remove('show');
+    supportState.isProcessing = false;
+    document.getElementById('supportSendBtn').disabled = false;
+    document.getElementById('supportChatInput').focus();
+  }
+}
+
+// ── Quick Ask (from suggestion chips) ──────────────────
+function supportAsk(text) {
+  document.getElementById('supportChatInput').value = text;
+  supportSendMessage();
+}
+
+// ── Add Message to Chat ────────────────────────────────
+function supportAddMessage(role, text) {
+  const body = document.getElementById('supportChatBody');
+  const msgDiv = document.createElement('div');
+  msgDiv.className = 'support-msg ' + role;
+
+  if (role === 'ai') {
+    const label = document.createElement('div');
+    label.className = 'msg-label';
+    label.textContent = 'Support Assistant';
+    msgDiv.appendChild(label);
+  }
+
+  // Support simple markdown-like formatting
+  const formatted = text
+    .replace(/\n/g, '<br>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`(.*?)`/g, '<code style="background:var(--bg3,#16213e);padding:1px 4px;border-radius:3px;font-size:0.8em;">$1</code>');
+
+  const textDiv = document.createElement('div');
+  textDiv.innerHTML = formatted;
+  msgDiv.appendChild(textDiv);
+
+  const time = document.createElement('div');
+  time.className = 'msg-time';
+  time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  msgDiv.appendChild(time);
+
+  body.appendChild(msgDiv);
+  body.scrollTop = body.scrollHeight;
+}
+
+// ── Auto-resize textarea ───────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const textarea = document.getElementById('supportChatInput');
+  if (textarea) {
+    textarea.addEventListener('input', () => {
+      textarea.style.height = 'auto';
+      textarea.style.height = Math.min(textarea.scrollHeight, 80) + 'px';
+    });
+  }
+});
+</script>
+
 </body>
 </html>
