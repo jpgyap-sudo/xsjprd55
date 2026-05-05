@@ -268,11 +268,6 @@ EXCEPTION
     RAISE NOTICE 'Provider constraint update issue: %', SQLERRM;
 END $$;
 
--- 4. Add processed_at column to signals table (for execution-worker dedup)
--- ============================================================
-ALTER TABLE signals ADD COLUMN IF NOT EXISTS processed_at TIMESTAMPTZ;
-CREATE INDEX IF NOT EXISTS idx_signals_processed_at ON signals(processed_at) WHERE processed_at IS NULL;
-
 -- ============================================================
 -- VERIFICATION QUERIES (run these to confirm)
 -- ============================================================
@@ -284,4 +279,4 @@ CREATE INDEX IF NOT EXISTS idx_signals_processed_at ON signals(processed_at) WHE
 -- SELECT COUNT(*) as mock_strategy_feedback FROM mock_strategy_feedback;
 -- SELECT COUNT(*) as execution_profiles FROM execution_profiles;
 -- SELECT COUNT(*) as mock_accounts FROM mock_accounts;
--- SELECT COUNT(*) FROM signals WHERE processed_at IS NULL;
+-- SELECT COUNT(*) FROM signals WHERE status = 'active';
