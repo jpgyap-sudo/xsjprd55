@@ -202,3 +202,12 @@ Prevention: Add mode gate at every action point; log mode on every signal.
 **Fix:** Added Anthropic request normalization in `lib/ai.js` to merge any stray system messages into the top-level `system` string and drop unsupported roles. Added chat history role filtering/truncation and clamped Kimi completion requests to 2048 tokens.
 **Verification:** Added `test/ai-provider.test.js` to assert Anthropic payloads never include `role: "system"` inside `messages`.
 **Prevention:** Keep provider-specific payload builders covered by tests. Do not pass raw browser/API chat history directly into provider SDK calls.
+
+### Mock trader dashboard balance appears frozen and position rows lack trade details
+**Found:** 2026-05-06 00:20 SGT
+**Status:** FIX APPLIED, pending deploy
+**Problem:** The mock trading dashboard could show `$1,000,000` even after closed trades and the open positions table only showed symbol, side, entry, size, and leverage. Small positions could also render as `$0` because the UI rounded all sizes to whole dollars.
+**Cause:** Older close paths and fallback account reads can leave `mock_accounts.current_balance` stale or null. The dashboard now derives displayed balance from the selected account's starting balance plus closed-trade PnL, while close paths use `current_balance ?? starting_balance ?? default` before applying realized PnL. The frontend table also lacked opened/closed timestamps, hold duration, margin, stop-loss, and take-profit columns.
+**Fix:** Hardened mock account balance updates in `mock-account-engine`, `execution-engine`, and `aggressive-engine`. Expanded the mock trading dashboard rows with opened time, age/hold duration, margin used, SL/TP, entry/exit, and nonzero decimal formatting for small sizes.
+**Verification:** `node --check` passed for all three mock trading engines and inline dashboard JavaScript compiled successfully.
+**Prevention:** Keep account cards scoped to the same account as displayed trades; never display all trades against an arbitrary first account.

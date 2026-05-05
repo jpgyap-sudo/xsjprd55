@@ -14,7 +14,7 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
-const sql = fs.readFileSync(path.join(__dirname, '..', 'supabase', 'perpetual-trader-schema.sql'), 'utf8');
+const sql = fs.readFileSync(path.join(__dirname, '..', 'supabase', 'perpetual-trader-history-schema.sql'), 'utf8');
 
 async function run() {
   const client = new Client({ connectionString: DATABASE_URL, ssl: { rejectUnauthorized: false } });

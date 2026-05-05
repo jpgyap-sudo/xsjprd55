@@ -3238,6 +3238,27 @@ async function loadMockTrading() {
     const data = await res.json();
     if (!data.ok) throw new Error(data.error);
 
+    const fmtMoney = (value, digits = 0) => {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return '—';
+      const maxDigits = Math.abs(n) > 0 && Math.abs(n) < 1 ? 2 : digits;
+      return '$' + n.toLocaleString(undefined, { minimumFractionDigits: maxDigits, maximumFractionDigits: maxDigits });
+    };
+    const fmtPrice = (value) => {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return '—';
+      const digits = Math.abs(n) < 10 ? 4 : Math.abs(n) < 1000 ? 2 : 1;
+      return '$' + n.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    };
+    const fmtTime = (value) => value ? new Date(value).toLocaleString() : '—';
+    const fmtDuration = (minutes) => {
+      if (minutes == null) return '—';
+      const m = Math.max(0, Number(minutes) || 0);
+      const h = Math.floor(m / 60);
+      const rem = m % 60;
+      return h > 0 ? `${h}h ${rem}m` : `${rem}m`;
+    };
+
     // Account stats
     const acc = data.account || {};
     const bal = acc.balance != null ? '$' + Number(acc.balance).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
@@ -3268,16 +3289,20 @@ async function loadMockTrading() {
     if (data.openTrades?.length) {
       openBody.innerHTML = data.openTrades.map(t => `
         <tr>
-          <td><strong>${t.symbol}</strong><br><span style="font-size:0.75rem;color:var(--fg2);">${t.strategy}</span></td>
+          <td><strong>${t.symbol}</strong><br><span style="font-size:0.75rem;color:var(--fg2);">${t.strategy || '—'}</span></td>
           <td><span class="side-badge ${(t.side || '').toUpperCase() === 'LONG' ? 'side-long' : 'side-short'}">${(t.side || '').toUpperCase()}</span></td>
-          <td style="font-size:0.85rem;">$${Number(t.entryPrice).toLocaleString(undefined, { maximumFractionDigits: 1 })}</td>
-          <td style="font-size:0.85rem;">$${Number(t.sizeUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+          <td style="font-size:0.75rem;color:var(--fg2);">${fmtTime(t.openedAt)}<br>${fmtDuration(t.ageMinutes)} open</td>
+          <td style="font-size:0.85rem;">${fmtPrice(t.entryPrice)}</td>
+          <td style="font-size:0.85rem;font-weight:600;">${fmtMoney(t.sizeUsd)}</td>
+          <td style="font-size:0.85rem;">${fmtMoney(t.marginUsed)}</td>
           <td style="font-size:0.85rem;">${t.leverage}x</td>
+          <td style="font-size:0.8rem;color:var(--accent3);">${fmtPrice(t.stopLoss)}</td>
+          <td style="font-size:0.8rem;color:var(--accent);">${fmtPrice(t.takeProfit)}</td>
         </tr>
       `).join('');
       openContent.style.display = 'block';
     } else {
-      openBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--fg2);padding:16px;">No open positions.</td></tr>';
+      openBody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--fg2);padding:16px;">No open positions.</td></tr>';
       openContent.style.display = 'block';
     }
 
@@ -3289,18 +3314,23 @@ async function loadMockTrading() {
         const pnlColor = t.pnlUsd > 0 ? 'var(--accent)' : t.pnlUsd < 0 ? 'var(--accent3)' : 'var(--fg2)';
         const closedAt = t.closedAt ? new Date(t.closedAt).toLocaleString() : '—';
         return `<tr>
-          <td><strong>${t.symbol}</strong><br><span style="font-size:0.75rem;color:var(--fg2);">${t.strategy}</span></td>
+          <td><strong>${t.symbol}</strong><br><span style="font-size:0.75rem;color:var(--fg2);">${t.strategy || '—'}</span></td>
           <td><span class="side-badge ${(t.side || '').toUpperCase() === 'LONG' ? 'side-long' : 'side-short'}">${(t.side || '').toUpperCase()}</span></td>
+          <td style="font-size:0.72rem;color:var(--fg2);">${fmtTime(t.openedAt)}</td>
+          <td style="font-size:0.72rem;color:var(--fg2);">${fmtTime(t.closedAt)}</td>
+          <td style="font-size:0.75rem;">${fmtDuration(t.holdMinutes)}</td>
+          <td style="font-size:0.8rem;">${fmtPrice(t.entryPrice)}</td>
+          <td style="font-size:0.8rem;">${fmtPrice(t.exitPrice)}</td>
+          <td style="font-size:0.8rem;">${fmtMoney(t.sizeUsd)}</td>
           <td style="font-size:0.85rem;font-weight:700;">${t.leverage}x</td>
-          <td style="color:${pnlColor};font-weight:700;">$${Number(t.pnlUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+          <td style="color:${pnlColor};font-weight:700;">${fmtMoney(t.pnlUsd)}</td>
           <td style="color:${pnlColor};font-weight:700;">${t.pnlPct?.toFixed(2) ?? '—'}%</td>
-          <td style="font-size:0.75rem;color:var(--fg2);">${closedAt}</td>
           <td style="font-size:0.75rem;color:var(--fg2);">${t.exitReason ?? '—'}</td>
         </tr>`;
       }).join('');
       closedContent.style.display = 'block';
     } else {
-      closedBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--fg2);padding:16px;">No closed trades yet.</td></tr>';
+      closedBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--fg2);padding:16px;">No closed trades yet.</td></tr>';
       closedContent.style.display = 'block';
     }
 
