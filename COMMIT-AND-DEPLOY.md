@@ -1,5 +1,44 @@
 # Commit and Deploy Instructions
 
+## Pending Bundle: 2026-05-05 AI + Worker Fixes
+
+The current uncommitted bundle includes:
+
+- `lib/ai.js` + `test/ai-provider.test.js`: clamps Kimi output tokens and normalizes Anthropic messages so `role: "system"` never reaches Anthropic `messages`.
+- `api/support-assistant.js` + `public/index.html` + `AGENTS.md`: support assistant boss-mode/feature-suggestion updates, with fixes for table initialization, malformed tags, failed write responses, and bug-report precedence.
+- `workers/signal-generator-worker.js`: loads `.env` before checking `CRON_SECRET`.
+- `workers/perpetual-trader-worker.js`: startup log banner and no cross-worker starvation from `signals.metadata.processed`.
+- `api/perpetual-trader/trade-detail.js` + `api/perpetual-trader/trade-history.js` + `lib/perpetual-trader/engine.js` + `lib/perpetual-trader/trade-history.js` + `supabase/perpetual-trader-history-schema.sql`: perpetual trader history logging/API/data schema for dashboard and research analysis.
+- `public/perpetual-trader-history.html`: currently present as an empty placeholder file; confirm whether to keep or fill before commit.
+- `scripts/check-signals.mjs`: standalone Supabase signal inspection script with `.env` loading and required env validation.
+- `DEBUGGING.md`, `AUTONOMOUS-REPORT-2026-05-05.md`, `CODER-CHANGELOG.md`: investigation and handoff documentation.
+
+Suggested commit message:
+
+```bash
+git add -A
+git commit -m "fix: stabilize AI fallback and trading worker handoff"
+```
+
+After deploy, verify:
+
+```bash
+node --check lib/ai.js
+node --check api/support-assistant.js
+node --check api/perpetual-trader/trade-detail.js
+node --check api/perpetual-trader/trade-history.js
+node --check workers/signal-generator-worker.js
+node --check workers/perpetual-trader-worker.js
+node --check scripts/check-signals.mjs
+node test/ai-provider.test.js
+pm2 reload all
+curl -sf http://localhost:3000/api/health
+```
+
+Important: `npm test` may fail in the local Codex sandbox with `spawn EPERM`; use the direct test command above locally, and run the full suite on the VPS/CI where Node can spawn test workers.
+
+Schema note: `supabase/perpetual-trader-history-schema.sql` is part of the current working tree. The VPS deployer agent is designed to pause on `*.sql` changes, so run/review this SQL manually in Supabase before marking the deployment complete.
+
 ## Step 1: Commit Changes
 
 Open VS Code terminal (Git Bash or WSL) and run:

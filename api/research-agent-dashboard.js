@@ -5,9 +5,6 @@
 // Now reads from Supabase (with SQLite fallback).
 // ============================================================
 
-import { rankAllStrategies } from '../lib/ml/strategyEvaluator.js';
-import { loadActiveModel } from '../lib/ml/model.js';
-import { getAllSourceConfigs } from '../lib/ml/enhancedSourceCrawler.js';
 import {
   getRecentResearchSources,
   getUntestedProposals,
@@ -50,11 +47,32 @@ export default async function handler(req, res) {
     // Promoted strategies from feedback loop
     const promoted = await getPromotedStrategies(10);
 
-    // ML model info
-    const model = loadActiveModel();
+    // ML model info (with error boundary)
+    let model = null;
+    try {
+      const { loadActiveModel } = await import('../lib/ml/model.js');
+      model = loadActiveModel();
+    } catch (e) {
+      console.warn('[research-agent-dashboard] Model load failed:', e.message);
+    }
 
-    // Built-in strategy rankings
-    const ranked = rankAllStrategies();
+    // Built-in strategy rankings (with error boundary)
+    let ranked = [];
+    try {
+      const { rankAllStrategies } = await import('../lib/ml/strategyEvaluator.js');
+      ranked = rankAllStrategies();
+    } catch (e) {
+      console.warn('[research-agent-dashboard] Strategy ranking failed:', e.message);
+    }
+
+    // Source configs (with error boundary)
+    let sourceConfigs = [];
+    try {
+      const { getAllSourceConfigs } = await import('../lib/ml/enhancedSourceCrawler.js');
+      sourceConfigs = getAllSourceConfigs();
+    } catch (e) {
+      console.warn('[research-agent-dashboard] Source configs failed:', e.message);
+    }
 
     // Parse enhanced metadata if available
     const enhancedSources = recentSources.map(s => {
@@ -128,7 +146,7 @@ export default async function handler(req, res) {
         version: model.version,
         metrics: model.metrics,
       } : null,
-      sourceConfigs: getAllSourceConfigs(),
+      sourceConfigs,
       ts: new Date().toISOString(),
     });
   } catch (err) {

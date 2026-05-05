@@ -138,6 +138,7 @@ Use this template when adding new entries:
 
 | Priority | Description | Coder | Status |
 |----------|-------------|-------|--------|
+| High | Commit/deploy 2026-05-05 AI fallback + support assistant + worker fixes (`lib/ai.js`, `api/support-assistant.js`, `api/perpetual-trader/*`, `workers/*`, `scripts/check-signals.mjs`, `lib/perpetual-trader/engine.js`, `lib/perpetual-trader/trade-history.js`, `public/perpetual-trader-history.html`, `supabase/perpetual-trader-history-schema.sql`, docs/tests) | `[SB]` | Pending commit/deploy; SQL requires manual approval; confirm empty HTML placeholder |
 | High | Verify perpetual-trader API response | `[VD]` | ⏸️ Awaiting terminal output |
 | Medium | Update main branch with latest changes | `[SB]` | ⏸️ Pending |
 | Low | Clean up old terminal sessions | `[VD]` | ⏸️ Backlog |

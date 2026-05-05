@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trade Detail — Perpetual Trader</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --bg2: #131820;
+    --bg3: #1a212d;
+    --fg: #e8edf5;
+    --fg2: #8a95a8;
+    --border: #2a3343;
+    --accent: #16c784;
+    --accent2: #f59e0b;
+    --accent3: #ef4444;
+    --accent4: #8b5cf6;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.5;
+    padding: 20px;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header h1 { font-size: 1.3rem; font-weight: 700; }
+  .header .subtitle { color: var(--fg2); font-size: 0.85rem; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--fg);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+  .btn:hover { background: var(--border); text-decoration: none; }
+
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 18px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .card-body { padding: 16px 18px; }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.88rem;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-row .label { color: var(--fg2); }
+  .detail-row .value { font-weight: 600; text-align: right; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  .badge-long { background: rgba(22,199,132,0.15); color: var(--accent); }
+  .badge-short { background: rgba(239,68,68,0.15); color: var(--accent3); }
+  .badge-win { background: rgba(22,199,132,0.15); color: var(--accent); }
+  .badge-loss { background: rgba(239,68,68,0.15); color: var(--accent3); }
+  .badge-tp { background: rgba(22,199,132,0.15); color: var(--accent); }
+  .badge-sl { background: rgba(239,68,68,0.15); color: var(--accent3); }
+  .badge-expired { background: rgba(245,158,11,0.15); color: var(--accent2); }
+  .badge-adaptive { background: rgba(139,92,246,0.15); color: var(--accent4); }
+  .badge-manual { background: rgba(96,165,250,0.15); color: #60a5fa; }
+
+  .grade-Aplus { color: var(--accent); font-size: 2rem; font-weight: 800; }
+  .grade-A { color: var(--accent); font-size: 2rem; font-weight: 700; }
+  .grade-B { color: #22c55e; font-size: 2rem; font-weight: 700; }
+  .grade-C { color: var(--accent2); font-size: 2rem; font-weight: 700; }
+  .grade-D { color: #f97316; font-size: 2rem; font-weight: 700; }
+  .grade-F { color: var(--accent3); font-size: 2rem; font-weight: 700; }
+
+  .analysis-section { margin-top: 16px; }
+  .analysis-section h3 { font-size: 0.95rem; margin-bottom: 10px; color: var(--fg2); }
+  .analysis-item {
+    background: var(--bg3);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border-left: 3px solid var(--accent);
+    font-size: 0.85rem;
+  }
+  .analysis-item.fail { border-left-color: var(--accent3); }
+  .analysis-item .item-label { font-weight: 600; margin-bottom: 2px; }
+  .analysis-item .item-text { color: var(--fg2); }
+
+  .loading { text-align: center; padding: 60px 20px; color: var(--fg2); font-size: 1rem; }
+  .error { text-align: center; padding: 60px 20px; color: var(--accent3); font-size: 1rem; }
+
+  .pnl-positive { color: var(--accent); font-weight: 700; }
+  .pnl-negative { color: var(--accent3); font-weight: 700; }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+  .meta-item {
+    background: var(--bg3);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .meta-item .meta-label { font-size: 0.7rem; color: var(--fg2); text-transform: uppercase; letter-spacing: 0.5px; }
+  .meta-item .meta-value { font-size: 1rem; font-weight: 700; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1 id="trade-title">📊 Trade Detail</h1>
+    <div class="subtitle" id="trade-subtitle">Loading trade data...</div>
+  </div>
+  <div>
+    <button class="btn" onclick="window.close()">✕ Close</button>
+    <button class="btn" onclick="location.reload()">🔄 Refresh</button>
+  </div>
+</div>
+
+<div id="loading" class="loading">⏳ Loading trade detail...</div>
+<div id="error" class="error" style="display:none;"></div>
+<div id="content" style="display:none;">
+
+  <!-- Trade Overview Card -->
+  <div class="card">
+    <div class="card-header">
+      <span id="overview-title">Trade Overview</span>
+      <span id="overview-badge"></span>
+    </div>
+    <div class="card-body">
+      <div class="meta-grid" id="overview-grid"></div>
+    </div>
+  </div>
+
+  <!-- Trade Details Card -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">📋 Entry Details</div>
+      <div class="card-body" id="entry-details"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">📋 Exit Details</div>
+      <div class="card-body" id="exit-details"></div>
+    </div>
+  </div>
+
+  <!-- Analysis Card -->
+  <div class="card">
+    <div class="card-header">🧠 Trade Analysis</div>
+    <div class="card-body" id="analysis-body"></div>
+  </div>
+
+  <!-- What Went Right / Wrong -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header" style="color:var(--accent);">✅ What Went Right</div>
+      <div class="card-body" id="what-went-right-body">
+        <div style="color:var(--fg2);font-size:0.85rem;">No analysis recorded.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header" style="color:var(--accent3);">❌ What Went Wrong</div>
+      <div class="card-body" id="what-went-wrong-body">
+        <div style="color:var(--fg2);font-size:0.85rem;">No analysis recorded.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lessons & Recommendations -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">📖 Lessons Learned</div>
+      <div class="card-body" id="lessons-body"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">💡 Recommendations</div>
+      <div class="card-body" id="recommendations-body"></div>
+    </div>
+  </div>
+
+  <!-- Strategy Notes -->
+  <div class="card">
+    <div class="card-header">📝 Strategy Notes</div>
+    <div class="card-body" id="strategy-notes-body">
+      <div style="color:var(--fg2);font-size:0.85rem;">No strategy notes recorded.</div>
+    </div>
+  </div>
+
+  <!-- Risk/Reward Analysis -->
+  <div class="card">
+    <div class="card-header">📐 Risk / Reward Analysis</div>
+    <div class="card-body" id="rr-body"></div>
+  </div>
+
+  <!-- Research Data -->
+  <div class="card">
+    <div class="card-header">🔬 Research Agent Data</div>
+    <div class="card-body" id="research-body">
+      <div style="color:var(--fg2);font-size:0.85rem;">
+        This trade data is available for the Research Agent to learn from.
+        <br><br>
+        <strong>Key learning signals:</strong>
+        <ul style="margin:8px 0 0 18px;">
+          <li>Strategy performance on this symbol/timeframe</li>
+          <li>Exit reason distribution (TP vs SL vs Expired)</li>
+          <li>Hold duration vs profitability correlation</li>
+          <li>Confidence score vs actual outcome</li>
+          <li>Market condition at entry/exit</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Get trade ID from URL ─────────────────────────────
+var params = new URLSearchParams(window.location.search);
+var tradeId = params.get('id');
+
+if (!tradeId) {
+  document.getElementById('loading').style.display = 'none';
+  var errEl = document.getElementById('error');
+  errEl.style.display = 'block';
+  errEl.textContent = '❌ No trade ID specified. Use ?id=<tradeId> in the URL.';
+} else {
+  loadTradeDetail(tradeId);
+}
+
+// ── Load Trade Detail ──────────────────────────────────
+function loadTradeDetail(id) {
+  fetch('/api/perpetual-trader/trade-detail?id=' + encodeURIComponent(id))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.ok) throw new Error(data.error || 'Failed to load trade');
+      renderTrade(data.trade, data.analysis);
+    })
+    .catch(function(err) {
+      console.error('Trade detail error:', err);
+      document.getElementById('loading').style.display = 'none';
+      var errEl = document.getElementById('error');
+      errEl.style.display = 'block';
+      errEl.textContent = '❌ Error: ' + err.message;
+    });
+}
+
+// ── Render Trade ───────────────────────────────────────
+function renderTrade(trade, analysis) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+
+  // Title
+  var sideLabel = trade.side === 'LONG' ? '🟢 LONG' : '🔴 SHORT';
+  var pnlStr = (trade.pnlUsd || 0) >= 0 ? '+' : '';
+  pnlStr += '$' + Number(trade.pnlUsd || 0).toFixed(2);
+  document.getElementById('trade-title').textContent = sideLabel + ' ' + trade.symbol + ' — ' + pnlStr;
+  document.getElementById('trade-subtitle').textContent = trade.strategy + ' · ' + (trade.timeframe || '—') + ' · ' + (trade.exitAt ? new Date(trade.exitAt).toLocaleString() : '—');
+
+  // Badge
+  var badgeEl = document.getElementById('overview-badge');
+  var pnlPct = trade.pnlPct || 0;
+  if (pnlPct >= 10) badgeEl.innerHTML = '<span class="grade-Aplus">A+</span>';
+  else if (pnlPct >= 5) badgeEl.innerHTML = '<span class="grade-A">A</span>';
+  else if (pnlPct >= 2) badgeEl.innerHTML = '<span class="grade-B">B</span>';
+  else if (pnlPct >= 0) badgeEl.innerHTML = '<span class="grade-C">C</span>';
+  else if (pnlPct >= -3) badgeEl.innerHTML = '<span class="grade-D">D</span>';
+  else badgeEl.innerHTML = '<span class="grade-F">F</span>';
+
+  // Overview grid
+  var overviewGrid = document.getElementById('overview-grid');
+  var pnlClass = (trade.pnlUsd || 0) >= 0 ? 'pnl-positive' : 'pnl-negative';
+  overviewGrid.innerHTML = ''
+    + '<div class="meta-item"><div class="meta-label">Symbol</div><div class="meta-value">' + escapeHtml(trade.symbol) + '</div></div>'
+    + '<div class="meta-item"><div class="meta-label">Side</div><div class="meta-value"><span class="badge ' + (trade.side === 'LONG' ? 'badge-long' : 'badge-short') + '">' + escapeHtml(trade.side) + '</span></div></div>'
+    + '<div class="meta-item"><div class="meta-label">P&L</div><div class="meta-value ' + pnlClass + '">' + ((trade.pnlUsd || 0) >= 0 ? '+' : '') + '$' + Number(trade.pnlUsd || 0).toFixed(2) + '</div></div>'
+    + '<div class="meta-item"><div class="meta-label">P&L %</div><div class="meta-value ' + pnlClass + '">' + ((trade.pnlPct || 0) >= 0 ? '+' : '') + Number(trade.pnlPct || 0).toFixed(2) + '%</div></div>'
+    + '<div class="meta-item"><div class="meta-label">Strategy</div><div class="meta-value" style="font-size:0.85rem;">' + escapeHtml(trade.strategy || '—') + '</div></div>'
+    + '<div class="meta-item"><div class="meta-label">Exit Reason</div><div class="meta-value">' + getExitBadge(trade.exitReason) + '</div></div>'
+    + '<div class="meta-item"><div class="meta-label">Exit Quality</div><div class="meta-value">' + getQualityText(trade.exitQuality) + '</div></div>'
+    + '<div class="meta-item"><div class="meta-label">Confidence</div><div class="meta-value">' + (trade.confidence ? (trade.confidence * 100).toFixed(0) + '%' : '—') + '</div></div>';
+
+  // Entry details
+  document.getElementById('entry-details').innerHTML = ''
+    + '<div class="detail-row"><span class="label">Entry Price</span><span class="value">$' + Number(trade.entryPrice || 0).toFixed(2) + '</span></div>'
+    + '<div class="detail-row"><span class="label">Entry Date</span><span class="value">' + (trade.entryAt ? new Date(trade.entryAt).toLocaleString() : '—') + '</span></div>'
+    + '<div class="detail-row"><span class="label">Entry Reason</span><span class="value" style="font-size:0.8rem;max-width:200px;">' + escapeHtml(trade.entryReason || '—') + '</span></div>'
+    + '<div class="detail-row"><span class="label">Position Size</span><span class="value">$' + Number(trade.positionSizeUsd || 0).toLocaleString() + '</span></div>'
+    + '<div class="detail-row"><span class="label">Margin Used</span><span class="value">$' + Number(trade.marginUsed || 0).toFixed(2) + '</span></div>'
+    + '<div class="detail-row"><span class="label">Leverage</span><span class="value">' + (trade.leverage || '—') + 'x</span></div>'
+    + '<div class="detail-row"><span class="label">Stop Loss</span><span class="value" style="color:var(--accent3);">$' + Number(trade.stopLoss || 0).toFixed(2) + '</span></div>'
+    + '<div class="detail-row"><span class="label">Take Profit</span><span class="value" style="color:var(--accent);">$' + Number(trade.takeProfit || 0).toFixed(2) + '</span></div>'
+    + '<div class="detail-row"><span class="label">Risk/Reward</span><span class="value">' + (trade.riskReward ? trade.riskReward.toFixed(2) + ':1' : '—') + '</span></div>';
+
+  // Exit details
+  document.getElementById('exit-details').innerHTML = ''
+    + '<div class="detail-row"><span class="label">Exit Price</span><span class="value">$' + Number(trade.exitPrice || 0).toFixed(2) + '</span></div>'
+    + '<div class="detail-row"><span class="label">Exit Date</span><span class="value">' + (trade.exitAt ? new Date(trade.exitAt).toLocaleString() : '—') + '</span></div>'
+    + '<div class="detail-row"><span class="label">Exit Reason</span><span class="value">' + getExitBadge(trade.exitReason) + '</span></div>'
+    + '<div class="detail-row"><span class="label">Exit Detail</span><span class="value" style="font-size:0.8rem;max-width:200px;">' + escapeHtml(trade.exitReasonDetail || '—') + '</span></div>'
+    + '<div class="detail-row"><span class="label">Hold Duration</span><span class="value">' + formatHoldTime(trade.holdDurationMinutes) + '</span></div>'
+    + '<div class="detail-row"><span class="label">Exit Quality</span><span class="value">' + getQualityText(trade.exitQuality) + '</span></div>'
+    + '<div class="detail-row"><span class="label">Market Condition</span><span class="value">' + escapeHtml(trade.marketCondition || '—') + '</span></div>'
+    + '<div class="detail-row"><span class="label">Timeframe</span><span class="value">' + escapeHtml(trade.timeframe || '—') + '</span></div>'
+    + '<div class="detail-row"><span class="label">Status</span><span class="value">' + escapeHtml(trade.status || 'closed') + '</span></div>';
+
+  // Analysis
+  renderAnalysis(analysis);
+
+  // What went right / wrong
+  if (trade.whatWentRight) {
+    document.getElementById('what-went-right-body').innerHTML = '<div style="font-size:0.9rem;">' + escapeHtml(trade.whatWentRight) + '</div>';
+  }
+  if (trade.whatWentWrong) {
+    document.getElementById('what-went-wrong-body').innerHTML = '<div style="font-size:0.9rem;">' + escapeHtml(trade.whatWentWrong) + '</div>';
+  }
+
+  // Strategy notes
+  if (trade.strategyNotes) {
+    document.getElementById('strategy-notes-body').innerHTML = '<div style="font-size:0.9rem;">' + escapeHtml(trade.strategyNotes) + '</div>';
+  }
+}
+
+// ── Render Analysis ────────────────────────────────────
+function renderAnalysis(analysis) {
+  if (!analysis) {
+    document.getElementById('analysis-body').innerHTML = '<div style="color:var(--fg2);font-size:0.85rem;">No analysis available.</div>';
+    return;
+  }
+
+  var html = '';
+
+  // Performance grade
+  if (analysis.performanceGrade) {
+    var gradeClass = 'grade-' + (analysis.performanceGrade === 'A+' ? 'Aplus' : analysis.performanceGrade);
+    html += '<div style="text-align:center;margin-bottom:16px;">'
+      + '<span style="font-size:0.85rem;color:var(--fg2);">Performance Grade</span><br>'
+      + '<span class="' + gradeClass + '">' + analysis.performanceGrade + '</span>'
+      + '</div>';
+  }
+
+  // Risk/Reward Analysis
+  if (analysis.riskRewardAnalysis) {
+    var rr = analysis.riskRewardAnalysis;
+    html += '<div class="analysis-section"><h3>📐 Risk/Reward Analysis</h3>';
+    html += '<div class="meta-grid" style="margin-bottom:12px;">';
+    html += '<div class="meta-item"><div class="meta-label">Planned R:R</div><div class="meta-value">' + (rr.plannedRR ? rr.plannedRR.toFixed(2) + ':1' : '—') + '</div></div>';
+    html += '<div class="meta-item"><div class="meta-label">Actual R:R</div><div class="meta-value">' + (rr.actualRR ? rr.actualRR.toFixed(2) + ':1' : '—') + '</div></div>';
+    html += '<div class="meta-item"><div class="meta-label">Risk Amount</div><div class="meta-value">$' + (rr.riskAmount || 0).toFixed(2) + '</div></div>';
+    html += '<div class="meta-item"><div class="meta-label">Reward Amount</div><div class="meta-value">$' + (rr.rewardAmount || 0).toFixed(2) + '</div></div>';
+    html += '<div class="meta-item"><div class="meta-label">Actual Move</div><div class="meta-value">$' + (rr.actualMove || 0).toFixed(2) + '</div></div>';
+    html += '<div class="meta-item"><div class="meta-label">Hit Target?</div><div class="meta-value">' + (rr.hitTarget ? '✅ Yes' : '❌ No') + '</div></div>';
+    html += '<div class="meta-item"><div class="meta-label">Hit Stop?</div><div class="meta-value">' + (rr.hitStop ? '🛑 Yes' : '✅ No') + '</div></div>';
+    html += '</div></div>';
+  }
+
+  // Lessons
+  if (analysis.lessons && analysis.lessons.length) {
+    html += '<div class="analysis-section"><h3>📖 Lessons Learned</h3>';
+    analysis.lessons.forEach(function(lesson) {
+      html += '<div class="analysis-item"><div class="item-text">' + escapeHtml(lesson) + '</div></div>';
+    });
+    html += '</div>';
+  }
+
+  // Recommendations
+  if (analysis.recommendations && analysis.recommendations.length) {
+    html += '<div class="analysis-section"><h3>💡 Recommendations</h3>';
+    analysis.recommendations.forEach(function(rec) {
+      html += '<div class="analysis-item" style="border-left-color:var(--accent4);"><div class="item-text">' + escapeHtml(rec) + '</div></div>';
+    });
+    html += '</div>';
+  }
+
+  if (!html) {
+    html = '<div style="color:var(--fg2);font-size:0.85rem;">No analysis available.</div>';
+  }
+
+  document.getElementById('analysis-body').innerHTML = html;
+
+  // Lessons & Recommendations sections
+  var lessonsBody = document.getElementById('lessons-body');
+  var recsBody = document.getElementById('recommendations-body');
+
+  if (analysis.lessons && analysis.lessons.length) {
+    lessonsBody.innerHTML = analysis.lessons.map(function(l) {
+      return '<div class="analysis-item"><div class="item-text">' + escapeHtml(l) + '</div></div>';
+    }).join('');
+  } else {
+    lessonsBody.innerHTML = '<div style="color:var(--fg2);font-size:0.85rem;">No lessons recorded.</div>';
+  }
+
+  if (analysis.recommendations && analysis.recommendations.length) {
+    recsBody.innerHTML = analysis.recommendations.map(function(r) {
+      return '<div class="analysis-item" style="border-left-color:var(--accent4);"><div class="item-text">' + escapeHtml(r) + '</div></div>';
+    }).join('');
+  } else {
+    recsBody.innerHTML = '<div style="color:var(--fg2);font-size:0.85rem;">No recommendations.</div>';
+  }
+
+  // Risk/Reward section
+  if (analysis.riskRewardAnalysis) {
+    var rr = analysis.riskRewardAnalysis;
+    document.getElementById('rr-body').innerHTML = ''
+      + '<div class="meta-grid">'
+      + '<div class="meta-item"><div class="meta-label">Planned R:R</div><div class="meta-value">' + (rr.plannedRR ? rr.plannedRR.toFixed(2) + ':1' : '—') + '</div></div>'
+      + '<div class="meta-item"><div class="meta-label">Actual R:R</div><div class="meta-value">' + (rr.actualRR ? rr.actualRR.toFixed(2) + ':1' : '—') + '</div></div>'
+      + '<div class="meta-item"><div class="meta-label">Risk Amount</div><div class="meta-value">$' + (rr.riskAmount || 0).toFixed(2) + '</div></div>'
+      + '<div class="meta-item"><div class="meta-label">Reward Amount</div><div class="meta-value">$' + (rr.rewardAmount || 0).toFixed(2) + '</div></div>'
+      + '<div class="meta-item"><div class="meta-label">Actual Move</div><div class="meta-value">$' + (rr.actualMove || 0).toFixed(2) + '</div></div>'
+      + '<div class="meta-item"><div class="meta-label">Hit Target?</div><div class="meta-value">' + (rr.hitTarget ? '✅ Yes' : '❌ No') + '</div></div>'
+      + '<div class="meta-item"><div class="meta-label">Hit Stop?</div><div class="meta-value">' + (rr.hitStop ? '🛑 Yes' : '✅ No') + '</div></div>'
+      + '</div>';
+  } else {
+    document.getElementById('rr-body').innerHTML = '<div style="color:var(--fg2);font-size:0.85rem;">No risk/reward data available.</div>';
+  }
+}
+
+// ── Helpers ────────────────────────────────────────────
+function getExitBadge(reason) {
+  if (!reason) return '<span class="badge" style="background:rgba(255,255,255,0.05);color:var(--fg2);">—</span>';
+  var r = reason.toLowerCase();
+  if (r === 'tp' || r === 'take_profit') return '<span class="badge badge-tp">🎯 TP</span>';
+  if (r === 'sl' || r === 'stop_loss') return '<span class="badge badge-sl">🛑 SL</span>';
+  if (r === 'expired') return '<span class="badge badge-expired">⏳ Expired</span>';
+  if (r === 'adaptive_close') return '<span class="badge badge-adaptive">🔮 Adaptive</span>';
+  if (r === 'manual') return '<span class="badge badge-manual">✋ Manual</span>';
+  return '<span class="badge" style="background:rgba(255,255,255,0.05);color:var(--fg2);">' + escapeHtml(reason) + '</span>';
+}
+
+function getQualityText(quality) {
+  if (!quality) return '<span style="color:var(--fg2);">—</span>';
+  if (quality === 'excellent') return '<span style="color:var(--accent);font-weight:600;">🌟 Excellent</span>';
+  if (quality === 'good') return '<span style="color:var(--accent);">👍 Good</span>';
+  if (quality === 'fair') return '<span style="color:var(--accent2);">👌 Fair</span>';
+  if (quality === 'poor') return '<span style="color:var(--accent3);">👎 Poor</span>';
+  return '<span style="color:var(--fg2);">' + escapeHtml(quality) + '</span>';
+}
+
+function formatHoldTime(minutes) {
+  if (minutes == null || minutes === undefined) return '—';
+  if (minutes < 60) return minutes + 'm';
+  var hours = Math.floor(minutes / 60);
+  var mins = minutes % 60;
+  return hours + 'h ' + mins + 'm';
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"')
+    .replace(/'/g, '&#039;');
+}
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@
 // to ensure the signals table is continuously populated.
 // ============================================================
 
+import '../lib/env.js';
 import fetch from 'node-fetch';
 import { logger } from '../lib/logger.js';
 

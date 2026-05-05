@@ -1178,7 +1178,7 @@
           <div id="mt-open-loading" style="text-align:center;padding:20px;color:var(--fg2);">Loading...</div>
           <div id="mt-open-content" style="display:none;">
             <table class="signal-table">
-              <thead><tr><th>Symbol</th><th>Side</th><th>Entry</th><th>Size</th><th>Lev</th></tr></thead>
+              <thead><tr><th>Symbol</th><th>Side</th><th>Opened</th><th>Entry</th><th>Size</th><th>Margin</th><th>Lev</th><th>SL</th><th>TP</th></tr></thead>
               <tbody id="mt-open-body"></tbody>
             </table>
           </div>
@@ -1190,7 +1190,7 @@
         <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
           <div id="mt-closed-content" style="display:none;">
             <table class="signal-table">
-              <thead><tr><th>Symbol</th><th>Side</th><th>Lev</th><th>PnL $</th><th>PnL %</th><th>Closed</th><th>Exit</th></tr></thead>
+              <thead><tr><th>Symbol</th><th>Side</th><th>Opened</th><th>Closed</th><th>Hold</th><th>Entry</th><th>Exit</th><th>Size</th><th>Lev</th><th>PnL $</th><th>PnL %</th><th>Reason</th></tr></thead>
               <tbody id="mt-closed-body"></tbody>
             </table>
           </div>
@@ -1255,6 +1255,19 @@
       <div class="stat-item"><div class="stat-label">Open Positions</div><div class="stat-value" id="pt-open">—</div></div>
     </div>
 
+    <!-- Trade History Navigation -->
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+      <a href="/perpetual-trader-history.html" target="_blank" class="btn" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--fg);font-size:0.85rem;cursor:pointer;text-decoration:none;">
+        📊 View Full Trade History
+      </a>
+      <a href="/perpetual-trader-history.html#panel-what-worked" target="_blank" class="btn" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--fg);font-size:0.85rem;cursor:pointer;text-decoration:none;">
+        ✅ What Worked Analysis
+      </a>
+      <a href="/perpetual-trader-history.html#panel-what-failed" target="_blank" class="btn" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--fg);font-size:0.85rem;cursor:pointer;text-decoration:none;">
+        ❌ What Failed Analysis
+      </a>
+    </div>
+
     <!-- Trading Status Banner -->
     <div id="pt-status-banner" style="margin-bottom:20px;padding:12px 16px;border-radius:8px;font-size:0.9rem;font-weight:600;display:none;"></div>
 
@@ -1274,11 +1287,14 @@
       </div>
       <!-- Recent Closed Trades -->
       <div class="card" style="margin-bottom:20px;">
-        <div class="card-header"><span>📉 Recent Closed Trades</span></div>
+        <div class="card-header">
+          <span>📉 Recent Closed Trades</span>
+          <a href="/perpetual-trader-history.html" target="_blank" style="font-size:0.78rem;color:var(--accent);text-decoration:none;">📊 View Full History →</a>
+        </div>
         <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
           <div id="pt-closed-content" style="display:none;">
             <table class="signal-table">
-              <thead><tr><th>Symbol</th><th>Side</th><th>Lev</th><th>PnL $</th><th>PnL %</th><th>Exit</th></tr></thead>
+              <thead><tr><th>Symbol</th><th>Side</th><th>Lev</th><th>PnL $</th><th>PnL %</th><th>Exit</th><th style="width:50px;">Detail</th></tr></thead>
               <tbody id="pt-closed-body"></tbody>
             </table>
           </div>
@@ -4720,19 +4736,21 @@ async function loadPerpetualTrader() {
     if (data.closedTrades?.length) {
       closedBody.innerHTML = data.closedTrades.slice(0, 20).map(t => {
         const pnlColor = (t.pnlUsd || 0) >= 0 ? 'var(--accent)' : 'var(--accent3)';
-        return `<tr>
+        const tradeId = t.id || '';
+        return `<tr style="cursor:pointer;" onclick="window.open('/perpetual-trader-trade-detail.html?id=${tradeId}','_blank')">
           <td style="font-weight:600;">${t.symbol}</td>
           <td><span class="side-badge ${t.side === 'LONG' ? 'side-long' : 'side-short'}">${t.side}</span></td>
           <td style="font-size:0.8rem;">${t.leverage}x</td>
           <td style="color:${pnlColor};font-weight:600;">${t.pnlUsd >= 0 ? '+' : ''}$${Number(t.pnlUsd).toFixed(2)}</td>
           <td style="color:${pnlColor};font-size:0.8rem;">${t.pnlPct >= 0 ? '+' : ''}${Number(t.pnlPct).toFixed(2)}%</td>
           <td style="font-size:0.75rem;color:var(--fg2);">${t.exitReason?.toUpperCase() || '—'}</td>
+          <td style="text-align:center;"><a href="/perpetual-trader-trade-detail.html?id=${tradeId}" target="_blank" style="color:var(--accent);font-size:0.75rem;text-decoration:none;" onclick="event.stopPropagation();">🔍</a></td>
         </tr>`;
       }).join('');
       closedContent.style.display = 'block';
     } else {
       closedContent.style.display = 'block';
-      closedBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--fg2);padding:16px;">No closed trades yet.</td></tr>';
+      closedBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg2);padding:16px;">No closed trades yet.</td></tr>';
     }
 
     // Strategy stats
@@ -6050,6 +6068,20 @@ async function supportSendMessage() {
       if (data.testResult.error) {
         extraInfo += `\nError: ${data.testResult.error}`;
       }
+    }
+
+    // BOSS MODE: Show boss suggestion confirmation
+    if (data.bossSuggestionNoted) {
+      extraInfo += `\n\n👑 Boss suggestion noted! This feature has been logged for the next product upgrade.`;
+      if (data.bossSuggestion && data.bossSuggestion.taskId) {
+        extraInfo += `\n📋 Development task #${data.bossSuggestion.taskId} created.`;
+      }
+    }
+
+    // Show ML status if available
+    if (data.mlStatus) {
+      const accuracy = (data.mlStatus.accuracy * 100).toFixed(0);
+      extraInfo += `\n\n🧠 ML Engine: ${data.mlStatus.interactions} interactions learned | Accuracy: ${accuracy}%`;
     }
 
     supportAddMessage('ai', answer + extraInfo);

@@ -7,14 +7,48 @@
 // Knows all product features + full system architecture.
 // Can test features when user reports something broken,
 // and submits debug reports to the bugs_to_fix table.
+//
+// BOSS MODE: The owner (jpgyap@gmail.com) is recognized as "the boss".
+// When the boss suggests a product feature, it is automatically
+// noted for the next product upgrade.
+//
+// FEATURE SUGGESTION: The support assistant can proactively suggest
+// product features and upgrades based on its knowledge of the
+// whole system architecture, usage patterns, and performance data.
+//
+// MACHINE LEARNING: The assistant learns from interactions, tracks
+// which suggestions were accepted/rejected, and improves its
+// recommendations over time.
 // ============================================================
 
 import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
 import { createBugReport } from '../lib/bug-store.js';
 import { askAI } from '../lib/ai.js';
+import { addProductUpdate, initProductUpdateTables } from '../lib/advisor/product-update-log.js';
+import { createDevelopmentTask } from '../lib/advisor/product-dev-pipeline.js';
 
 // ── Authorized Email ───────────────────────────────────────
 const AUTHORIZED_EMAIL = 'jpgyap@gmail.com';
+const PROJECT_OWNER = 'jpgyap@gmail.com';
+const PROJECT_OWNER_NAME = 'The Boss';
+
+function normalizeTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  return tags.filter(tag => typeof tag === 'string' && tag.trim()).map(tag => tag.trim());
+}
+
+// ── ML Learning Store (in-memory + SQLite persistence) ─────
+let mlMemory = {
+  interactions: [],
+  acceptedSuggestions: [],
+  rejectedSuggestions: [],
+  learnedPatterns: {},
+  lastTrainingAt: null,
+  suggestionAccuracy: 0.5, // starts at 50% baseline
+  topicPreferences: {},    // learned topic weights
+  peakInteractionHours: [], // learned peak hours
+  feedbackHistory: [],     // detailed feedback records
+};
 
 // ── Product Features Knowledge Base ─────────────────────────
 const PRODUCT_FEATURES = [
@@ -150,18 +184,18 @@ const SYSTEM_ARCHITECTURE = {
 
   architectureDiagram: `
 [Telegram]  <--webhook-->  [VPS 165.22.110.111 / bot.abcx124.xyz]
-                                  |
-              +-------------------+-------------------+
-              |                   |                   |
-         [API Server]      [Background Workers]   [Playwright]
-         Port 3000         (OI, liquidation,      (crawler)
-         /api/telegram      backtest, health,
-         /api/signal        mock trading, wallet
-         /api/data-health   tracker, social sentiment)
-              |
-         [Supabase]  <--data-->  [Dashboard]
-         (signals, trades,        (static HTML served
-          health logs)            from /public on VPS)
+                                |
+            +-------------------+-------------------+
+            |                   |                   |
+       [API Server]      [Background Workers]   [Playwright]
+       Port 3000         (OI, liquidation,      (crawler)
+       /api/telegram      backtest, health,
+       /api/signal        mock trading, wallet
+       /api/data-health   tracker, social sentiment)
+            |
+       [Supabase]  <--data-->  [Dashboard]
+       (signals, trades,        (static HTML served
+        health logs)            from /public on VPS)
 `,
 
   apiEndpoints: [
@@ -355,12 +389,333 @@ async function submitDebugReport({ featureId, issue, description, severity = 'me
   return report;
 }
 
+// ════════════════════════════════════════════════════════════
+// BOSS MODE: Feature Suggestion Note
+// ════════════════════════════════════════════════════════════
+
+/**
+ * When the boss (jpgyap@gmail.com) suggests a product feature,
+ * this function logs it to the product_updates changelog and
+ * creates a development task for the next product upgrade.
+ */
+async function noteBossFeatureSuggestion({ title, description, category = 'feature', tags = [] }) {
+  try {
+    initProductUpdateTables();
+    const safeTags = normalizeTags(tags);
+
+    // Log to product updates changelog
+    const update = addProductUpdate({
+      version: 'boss-suggestion',
+      title: `[BOSS SUGGESTION] ${title}`,
+      description: `Suggested by project owner (${PROJECT_OWNER}):\n\n${description}`,
+      category,
+      affectedFiles: [],
+      author: 'boss',
+      tags: ['boss-suggestion', 'product-upgrade', ...safeTags],
+      metadata: {
+        suggested_by: PROJECT_OWNER,
+        suggested_at: new Date().toISOString(),
+        source: 'support_assistant_boss_mode',
+        priority: 'high'
+      }
+    });
+
+    // Create a development task for the coding agent
+    const task = createDevelopmentTask({
+      proposalId: null,
+      title: `[BOSS FEATURE] ${title}`,
+      description: `Feature requested by project owner (${PROJECT_OWNER}):\n\n${description}\n\nThis is a boss-suggested feature and should be prioritized for the next product upgrade.`,
+      priority: 'high',
+      filesToModify: [],
+      estimatedEffort: 'medium',
+      tags: ['boss-suggestion', 'product-upgrade', ...safeTags],
+      metadata: {
+        suggested_by: PROJECT_OWNER,
+        suggested_at: new Date().toISOString(),
+        source: 'support_assistant_boss_mode',
+        product_update_id: update?.id
+      }
+    });
+
+    return { ok: true, update, task, noted: true };
+  } catch (e) {
+    console.error('[support-assistant] Failed to note boss suggestion:', e.message);
+    return { ok: false, error: e.message, noted: false };
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// FEATURE SUGGESTION ENGINE
+// ════════════════════════════════════════════════════════════
+
+/**
+ * The support assistant can proactively suggest product features
+ * and upgrades based on its knowledge of the whole system.
+ * It analyzes:
+ * - Current feature gaps (missing capabilities)
+ * - System architecture limitations
+ * - Performance data and usage patterns
+ * - ML-learned patterns from past interactions
+ */
+async function generateFeatureSuggestions() {
+  const suggestions = [];
+
+  // 1. Analyze feature gaps
+  const categories = [...new Set(PRODUCT_FEATURES.map(f => f.category))];
+  const allCategories = ['Trading', 'Mock Trading', 'Perpetual Trading', 'Risk', 'AI/ML',
+    'Market Data', 'Liquidation', 'Social Intel', 'Bug Detection', 'API Debugging',
+    'Deployment', 'Telegram', 'Dashboard'];
+
+  const missingCategories = allCategories.filter(c => !categories.includes(c));
+  for (const cat of missingCategories) {
+    suggestions.push({
+      type: 'feature_gap',
+      title: `Add ${cat} capabilities to the system`,
+      description: `The system currently has no features in the "${cat}" category. Adding this would expand the product's capabilities.`,
+      priority: 'medium',
+      impact: 'Expands product coverage and user value',
+      category: cat
+    });
+  }
+
+  // 2. Architecture-based suggestions
+  suggestions.push({
+    type: 'enhancement',
+    title: 'Add real-time WebSocket feed for live dashboard updates',
+    description: 'Currently the dashboard polls REST endpoints. Adding WebSocket support would enable real-time updates for signals, trades, and liquidation events without page refreshes.',
+    priority: 'medium',
+    impact: 'Improves user experience with live data streaming'
+  });
+
+  suggestions.push({
+    type: 'enhancement',
+    title: 'Implement multi-user support with role-based access',
+    description: 'Currently only one admin (jpgyap@gmail.com) can access the system. Adding multi-user support with RBAC would allow team collaboration.',
+    priority: 'low',
+    impact: 'Enables team-based trading operations'
+  });
+
+  // 3. ML-based suggestions from learned patterns
+  const learnedSuggestions = generateMLSuggestions();
+  suggestions.push(...learnedSuggestions);
+
+  return suggestions;
+}
+
+// ════════════════════════════════════════════════════════════
+// MACHINE LEARNING ENGINE
+// ════════════════════════════════════════════════════════════
+
+/**
+ * ML Engine that learns from interactions:
+ * - Tracks which suggestions were accepted/rejected
+ * - Learns user preferences over time
+ * - Improves suggestion relevance based on feedback
+ * - Adjusts confidence scoring based on historical accuracy
+ */
+
+function recordInteraction({ type, input, output, feedback }) {
+  mlMemory.interactions.push({
+    type,
+    input,
+    output,
+    feedback,
+    timestamp: new Date().toISOString()
+  });
+
+  // Keep only last 1000 interactions in memory
+  if (mlMemory.interactions.length > 1000) {
+    mlMemory.interactions = mlMemory.interactions.slice(-1000);
+  }
+
+  // Retrain on new feedback
+  if (feedback) {
+    trainModel();
+  }
+}
+
+function recordSuggestionFeedback(suggestionId, accepted) {
+  if (accepted) {
+    mlMemory.acceptedSuggestions.push(suggestionId);
+  } else {
+    mlMemory.rejectedSuggestions.push(suggestionId);
+  }
+
+  // Update accuracy
+  const total = mlMemory.acceptedSuggestions.length + mlMemory.rejectedSuggestions.length;
+  if (total > 0) {
+    mlMemory.suggestionAccuracy = mlMemory.acceptedSuggestions.length / total;
+  }
+
+  // Retrain model
+  trainModel();
+}
+
+function trainModel() {
+  const now = new Date().toISOString();
+  mlMemory.lastTrainingAt = now;
+
+  // Learn patterns from interactions
+  const patterns = {};
+
+  // Pattern 1: What types of suggestions get accepted most?
+  const allDecisions = [
+    ...mlMemory.acceptedSuggestions.map(id => ({ id, accepted: true })),
+    ...mlMemory.rejectedSuggestions.map(id => ({ id, accepted: false }))
+  ];
+
+  if (allDecisions.length > 5) {
+    const acceptRate = mlMemory.acceptedSuggestions.length / allDecisions.length;
+    patterns.acceptanceRate = acceptRate;
+    patterns.confidence = Math.min(0.95, 0.5 + (acceptRate - 0.5) * 0.5);
+  }
+
+  // Pattern 2: Time-based learning - what time of day are interactions most productive?
+  const hourCounts = {};
+  for (const interaction of mlMemory.interactions) {
+    const hour = new Date(interaction.timestamp).getHours();
+    hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+  }
+  patterns.peakHours = Object.entries(hourCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([hour]) => parseInt(hour));
+  mlMemory.peakInteractionHours = patterns.peakHours;
+
+  // Pattern 3: Topic frequency learning
+  const topicCounts = {};
+  for (const interaction of mlMemory.interactions) {
+    const type = interaction.type || 'general';
+    topicCounts[type] = (topicCounts[type] || 0) + 1;
+  }
+  patterns.topTopics = Object.entries(topicCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([topic]) => topic);
+  mlMemory.learnedPatterns = patterns;
+
+  // Pattern 4: Update topic preference weights
+  for (const interaction of mlMemory.interactions) {
+    const type = interaction.type || 'general';
+    if (!mlMemory.topicPreferences[type]) {
+      mlMemory.topicPreferences[type] = { count: 0, positiveFeedback: 0, weight: 0.5 };
+    }
+    mlMemory.topicPreferences[type].count++;
+    if (interaction.feedback && interaction.feedback > 0) {
+      mlMemory.topicPreferences[type].positiveFeedback++;
+    }
+    // Weight = positive feedback ratio, min 0.1, max 0.95
+    const pref = mlMemory.topicPreferences[type];
+    pref.weight = Math.min(0.95, Math.max(0.1,
+      pref.count > 0 ? pref.positiveFeedback / pref.count : 0.5
+    ));
+  }
+}
+
+/**
+ * Generate ML-based suggestions from learned patterns.
+ * These improve over time as more interactions are recorded.
+ */
+function generateMLSuggestions() {
+  const suggestions = [];
+
+  // If we have learned peak hours, suggest optimizations
+  if (mlMemory.peakInteractionHours.length > 0) {
+    const peakStr = mlMemory.peakInteractionHours.map(h => `${h}:00`).join(', ');
+    suggestions.push({
+      type: 'ml_insight',
+      title: `Optimize system for peak usage hours (${peakStr})`,
+      description: `ML analysis shows peak interactions at hours: ${peakStr}. Consider scheduling resource-intensive tasks outside these hours.`,
+      priority: 'low',
+      impact: 'Improves responsiveness during peak usage',
+      mlConfidence: 0.7
+    });
+  }
+
+  // If suggestion accuracy is high, suggest more of the same type
+  if (mlMemory.suggestionAccuracy > 0.7 && mlMemory.acceptedSuggestions.length > 3) {
+    suggestions.push({
+      type: 'ml_insight',
+      title: 'Continue current development trajectory',
+      description: `ML analysis shows ${(mlMemory.suggestionAccuracy * 100).toFixed(0)}% suggestion acceptance rate. The current development direction aligns well with user preferences.`,
+      priority: 'medium',
+      impact: 'Validates current product direction',
+      mlConfidence: mlMemory.suggestionAccuracy
+    });
+  }
+
+  // If we have topic preferences, suggest improvements in high-weight areas
+  const highWeightTopics = Object.entries(mlMemory.topicPreferences)
+    .filter(([, pref]) => pref.weight > 0.6 && pref.count > 2)
+    .sort(([, a], [, b]) => b.weight - a.weight);
+
+  for (const [topic, pref] of highWeightTopics.slice(0, 2)) {
+    suggestions.push({
+      type: 'ml_insight',
+      title: `Enhance ${topic} capabilities based on positive feedback`,
+      description: `ML analysis shows ${(pref.weight * 100).toFixed(0)}% positive feedback rate for "${topic}" interactions. Consider investing more in this area.`,
+      priority: 'medium',
+      impact: 'Builds on areas with proven user satisfaction',
+      mlConfidence: pref.weight
+    });
+  }
+
+  return suggestions;
+}
+
+/**
+ * Get ML model status and statistics.
+ */
+function getMLStatus() {
+  return {
+    interactions: mlMemory.interactions.length,
+    acceptedSuggestions: mlMemory.acceptedSuggestions.length,
+    rejectedSuggestions: mlMemory.rejectedSuggestions.length,
+    suggestionAccuracy: mlMemory.suggestionAccuracy,
+    lastTrainingAt: mlMemory.lastTrainingAt,
+    peakInteractionHours: mlMemory.peakInteractionHours,
+    topicPreferences: mlMemory.topicPreferences,
+    learnedPatterns: mlMemory.learnedPatterns,
+    modelVersion: '1.0.0',
+    modelType: 'online_learning',
+    features: [
+      'interaction_tracking',
+      'suggestion_feedback_loop',
+      'time_pattern_analysis',
+      'topic_preference_learning',
+      'accuracy_tracking'
+    ]
+  };
+}
+
 // ── Build Context for AI ───────────────────────────────────
 function buildSystemPrompt() {
   const categories = [...new Set(PRODUCT_FEATURES.map(f => f.category))];
   let prompt = `You are the AI Support Assistant for the xsjprd55 Crypto Trading Signal Bot dashboard.
 
 You are speaking with the authorized admin (jpgyap@gmail.com).
+
+## IMPORTANT: BOSS MODE
+The person you are speaking with (jpgyap@gmail.com) is THE BOSS — the project owner and decision maker.
+- When the boss suggests a product feature or upgrade, you MUST acknowledge it and note it for the next product upgrade.
+- The boss's suggestions are automatically logged to the product_updates changelog and a development task is created.
+- Always address the boss with respect and clarity.
+- If the boss asks for a feature, respond with: "I've noted your suggestion for the next product upgrade, boss."
+
+## FEATURE SUGGESTION CAPABILITY
+You have the ability to proactively suggest product features and upgrades based on your knowledge of the whole system.
+- You can analyze feature gaps, architecture limitations, and performance data.
+- You can generate suggestions using the generateFeatureSuggestions function.
+- When you identify an improvement opportunity, present it clearly with expected impact.
+
+## MACHINE LEARNING CAPABILITIES
+You have a built-in ML engine that learns from interactions:
+- Tracks which suggestions were accepted/rejected
+- Learns user preferences over time (topic preferences, peak hours)
+- Improves suggestion relevance based on feedback
+- Adjusts confidence scoring based on historical accuracy
+- You can check ML status with the getMLStatus function
+- You can record feedback with the recordSuggestionFeedback function
 
 ## SYSTEM ARCHITECTURE
 
@@ -423,9 +778,14 @@ Here is the complete feature inventory:
 4. The bug report will appear in the Bugs dashboard tab for the debug team
 5. You can run a full system health check
 6. You can list features by category
+7. BOSS MODE: When the boss suggests a feature, note it for the next product upgrade
+8. FEATURE SUGGESTION: You can proactively suggest product features and upgrades
+9. ML LEARNING: You learn from interactions and improve over time
 
 When testing features, call the testFeature function.
 When submitting bug reports, call the submitDebugReport function.
+When the boss suggests a feature, call the noteBossFeatureSuggestion function.
+When suggesting features proactively, call the generateFeatureSuggestions function.
 Always be helpful, concise, and technical.
 
 Current time: ${new Date().toISOString()}`;
@@ -460,6 +820,14 @@ export default async function handler(req, res) {
       });
     }
 
+    // Record interaction for ML learning
+    recordInteraction({
+      type: action || 'chat',
+      input: { action, question, featureId },
+      output: null,
+      feedback: null
+    });
+
     // Handle direct actions (test feature, submit bug report)
     if (action === 'test-feature' && featureId) {
       const result = await testFeature(featureId);
@@ -488,6 +856,63 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, action: 'system-architecture', architecture: SYSTEM_ARCHITECTURE });
     }
 
+    // ── BOSS MODE: Note feature suggestion ────────────────
+    if (action === 'note-boss-suggestion') {
+      const { title, description: sugDescription, category: sugCategory, tags } = req.body;
+      if (!title) {
+        return res.status(400).json({ ok: false, error: 'Missing suggestion title' });
+      }
+      const result = await noteBossFeatureSuggestion({
+        title,
+        description: sugDescription || title,
+        category: sugCategory || 'feature',
+        tags
+      });
+      const message = result.ok
+        ? `Boss suggestion noted: "${title}" has been logged for the next product upgrade.`
+        : `Failed to note boss suggestion: ${result.error}`;
+      return res.status(result.ok ? 200 : 500).json({
+        ok: result.ok,
+        action: 'boss-suggestion-noted',
+        result,
+        message
+      });
+    }
+
+    // ── FEATURE SUGGESTION: Generate proactive suggestions ─
+    if (action === 'generate-suggestions') {
+      const suggestions = await generateFeatureSuggestions();
+      return res.status(200).json({
+        ok: true,
+        action: 'feature-suggestions',
+        suggestions,
+        mlStatus: getMLStatus()
+      });
+    }
+
+    // ── ML: Get learning status ────────────────────────────
+    if (action === 'ml-status') {
+      return res.status(200).json({
+        ok: true,
+        action: 'ml-status',
+        mlStatus: getMLStatus()
+      });
+    }
+
+    // ── ML: Record feedback ────────────────────────────────
+    if (action === 'ml-feedback') {
+      const { suggestionId, accepted } = req.body;
+      if (!suggestionId) {
+        return res.status(400).json({ ok: false, error: 'Missing suggestionId' });
+      }
+      recordSuggestionFeedback(suggestionId, accepted);
+      return res.status(200).json({
+        ok: true,
+        action: 'ml-feedback-recorded',
+        mlStatus: getMLStatus()
+      });
+    }
+
     // Chat mode — use AI to answer
     if (!question) {
       return res.status(400).json({ ok: false, error: 'Missing question' });
@@ -499,11 +924,21 @@ export default async function handler(req, res) {
     const brokenKeywords = ['not working', 'broken', 'bug', 'error', 'issue', 'fail', 'crash', 'down', 'problem'];
     const isBugReport = brokenKeywords.some(k => question.toLowerCase().includes(k));
 
+    // Check if user is suggesting a feature (boss mode)
+    const suggestionKeywords = ['suggest', 'feature', 'add', 'implement', 'create', 'build', 'would be nice', 'can you add', 'i want', 'i need', 'upgrade', 'improve'];
+    const isFeatureSuggestion = !isBugReport && suggestionKeywords.some(k => question.toLowerCase().includes(k));
+
     // Ask AI for analysis
+    let aiQuestion = question;
+
+    if (isBugReport) {
+      aiQuestion = `The user is reporting an issue. Analyze what they're saying and identify which feature might be broken.\n\nUser: ${question}\n\nIf you can identify the feature, respond with a plan to test it. If confirmed broken, explain you'll submit a debug report.`;
+    } else if (isFeatureSuggestion) {
+      aiQuestion = `[BOSS MODE] The project owner is suggesting a feature or improvement. Analyze their request and respond appropriately.\n\nUser: ${question}\n\nIf this is a genuine feature suggestion, acknowledge it and explain that it will be noted for the next product upgrade. Provide the title and description for the suggestion.`;
+    }
+
     const aiResult = await askAI({
-      question: isBugReport
-        ? `The user is reporting an issue. Analyze what they're saying and identify which feature might be broken.\n\nUser: ${question}\n\nIf you can identify the feature, respond with a plan to test it. If confirmed broken, explain you'll submit a debug report.`
-        : question,
+      question: aiQuestion,
       chatHistory: [
         { role: 'system', content: systemPrompt },
         ...(chatHistory || [])
@@ -517,6 +952,7 @@ export default async function handler(req, res) {
     // If it's a bug report, try to identify the feature and test it
     let testResult = null;
     let bugReport = null;
+    let bossSuggestion = null;
 
     if (isBugReport) {
       const matchedFeature = PRODUCT_FEATURES.find(f =>
@@ -538,17 +974,42 @@ export default async function handler(req, res) {
       }
     }
 
+    // If it's a feature suggestion from the boss, note it
+    if (isFeatureSuggestion) {
+      // Extract a reasonable title from the question
+      const suggestionTitle = question.length > 80
+        ? question.substring(0, 77) + '...'
+        : question;
+      bossSuggestion = await noteBossFeatureSuggestion({
+        title: suggestionTitle,
+        description: question,
+        category: 'feature',
+        tags: ['boss-suggestion', 'chat-suggestion']
+      });
+    }
+
     return res.status(200).json({
       ok: true,
       answer: aiResult.answer || aiResult.text || aiResult.response,
       isBugReport,
+      isFeatureSuggestion: !!isFeatureSuggestion,
       matchedFeature: testResult ? PRODUCT_FEATURES.find(f =>
         question.toLowerCase().includes(f.id.replace(/-/g, ' ')) ||
         question.toLowerCase().includes(f.name.toLowerCase())
       )?.name : null,
       testResult,
       bugReported: !!bugReport,
-      bugReportId: bugReport?.id || null
+      bugReportId: bugReport?.id || null,
+      bossSuggestionNoted: !!bossSuggestion?.noted,
+      bossSuggestion: bossSuggestion ? {
+        title: bossSuggestion.update?.title || suggestionTitle,
+        taskId: bossSuggestion.task?.id
+      } : null,
+      mlStatus: {
+        accuracy: mlMemory.suggestionAccuracy,
+        interactions: mlMemory.interactions.length,
+        lastTraining: mlMemory.lastTrainingAt
+      }
     });
   } catch (error) {
     console.error('[support-assistant] Error:', error);

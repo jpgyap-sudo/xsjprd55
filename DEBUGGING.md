@@ -174,3 +174,31 @@ Prevention: Add mode gate at every action point; log mode on every signal.
 **Problem:** `ssh -i ~/.ssh/id_ed25519` rejected; `id_ed25519_roo` works.
 **Fix:** Updated all deploy scripts to use `id_ed25519_roo`.
 **Prevention:** Document the correct key filename in DEPLOY-ARCHITECTURE.txt and pin it in scripts.
+
+### Signal-generator-worker: CRON_SECRET missing — no signals generated for 24+ hours
+**Found:** 2026-05-05 14:00 UTC
+**Status:** FIXED
+**Problem:** `signal-generator-worker.js` refused to call `/api/signals` because `process.env.CRON_SECRET` was undefined. The worker only imported `node-fetch` and `../lib/logger.js` — neither of which loads `.env`. The `logger.js` module does not import `lib/env.js`, so `CRON_SECRET` was never loaded from the `.env` file. This caused the signal generator to silently skip every scan for over 24 hours, resulting in all signals expiring and the perpetual trader finding zero tradable signals.
+**Fix:** Added `import '../lib/env.js';` as the first import in `workers/signal-generator-worker.js`. This loads the `.env` file via dotenv before any code checks `process.env.CRON_SECRET`. The server-side `requireSecret` middleware uses the same `CRON_SECRET` from `.env`, so the auth header matches.
+**Verification:** After deploying the fix and restarting the worker via PM2, the first scan succeeded: `Scan complete — 3 signals, 0 errors`. Running `perpetual-trader-worker --once` then successfully opened 3 trades (SHORT XRPUSDT, LONG BNBUSDT, SHORT ETHUSDT).
+**Prevention:** All workers that access protected API routes must import `lib/env.js` at the top of their file. Consider adding a startup check that verifies `CRON_SECRET` is set before entering the main loop.
+
+### Perpetual trader PM2 log files are empty (0 bytes)
+**Found:** 2026-05-05 14:00 UTC
+**Status:** OBSERVED
+**Problem:** The perpetual-trader-worker's PM2 log files (`/root/xsjprd55/logs/perp-trader-out-14.log` and `perp-trader-error-14.log`) are 0 bytes even though the worker is running and producing output when run with `--once`. The ecosystem config specifies `out_file: './logs/perp-trader-out.log'` but PM2 appends the instance number (`-14`) to the filename. The worker uses `console.log`/`console.error` via `lib/logger.js`, which PM2 should capture.
+**Cause hypotheses:**
+1. PM2 log rotation may have cleared the files after a restart
+2. The worker's stdout/stderr may be redirected elsewhere
+3. The PM2 process may have been restarted and the new log files haven't received output yet
+**Fix:** Not yet determined. Check `pm2 logs perpetual-trader-worker` on VPS to see real-time output. Verify PM2 log rotation config. Consider adding explicit `console.log` calls at worker startup to verify log capture.
+**Prevention:** Add a startup banner log line in every worker that confirms log capture is working.
+
+### Telegram AI fallback rejects Anthropic request with `Unexpected role "system"`
+**Found:** 2026-05-05 15:27 UTC
+**Status:** FIX APPLIED, pending deploy
+**Problem:** Telegram AI replies could fail after Kimi hit `400 Invalid request: exceeded model token limit: 8192`. The Anthropic fallback then returned `400 invalid_request_error` because a `role: "system"` item reached the `messages` array.
+**Cause:** The shared AI provider path trusted incoming chat history roles and only passed the configured system prompt separately. Anthropic Messages API accepts `system` only as a top-level parameter, never as a message role. Kimi was also requesting up to 4096 completion tokens, which could exceed the smaller Kimi model context window when market/news context was included.
+**Fix:** Added Anthropic request normalization in `lib/ai.js` to merge any stray system messages into the top-level `system` string and drop unsupported roles. Added chat history role filtering/truncation and clamped Kimi completion requests to 2048 tokens.
+**Verification:** Added `test/ai-provider.test.js` to assert Anthropic payloads never include `role: "system"` inside `messages`.
+**Prevention:** Keep provider-specific payload builders covered by tests. Do not pass raw browser/API chat history directly into provider SDK calls.

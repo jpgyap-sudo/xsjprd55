@@ -17,6 +17,22 @@ import { config } from '../lib/config.js';
 
 const INTERVAL_MS = 10 * 60 * 1000;
 
+/**
+ * Check if Supabase research agent tables exist.
+ * Logs a warning if they don't — the worker will fall back to SQLite.
+ */
+async function checkSupabaseTables() {
+  try {
+    const { getResearchAgentCounts } = await import('../lib/ml/supabase-db.js');
+    const counts = await getResearchAgentCounts();
+    logger.info(`[RESEARCH-WORKER] Supabase tables OK: ${JSON.stringify(counts)}`);
+    return true;
+  } catch (e) {
+    logger.warn(`[RESEARCH-WORKER] Supabase tables not available, using SQLite fallback: ${e.message}`);
+    return false;
+  }
+}
+
 async function seedDemoData() {
   initMlDb();
   const { db } = await import('../lib/ml/db.js');
@@ -69,7 +85,7 @@ async function seedDemoData() {
 
   // Extract strategies from seeded research
   const extracted = await extractAndSaveFromResearch();
-  logger.info(`[RESEARCH-WORKER] Seeded ${seedSources.length} sources, extracted ${extracted.count} strategies`);
+  logger.info(`[RESEARCH-WORKER] Seeded ${seedSources.length} sources, extracted ${extracted.extracted || extracted.count} strategies`);
 
   // Run backtests on extracted proposals with real OHLCV data
   try {
@@ -91,7 +107,14 @@ export async function runResearchAgentWorker() {
   initMlDb();
 
   try {
-    // 0. Auto-train ML model if needed (bootstrap on first run)
+    // 0. Check Supabase table health (non-blocking)
+    try {
+      await checkSupabaseTables();
+    } catch (e) {
+      logger.warn(`[RESEARCH-WORKER] Supabase health check failed: ${e.message}`);
+    }
+
+    // 0b. Auto-train ML model if needed (bootstrap on first run)
     try {
       const autoTrain = await autoTrainIfNeeded();
       if (autoTrain.trained) {
@@ -118,7 +141,7 @@ export async function runResearchAgentWorker() {
 
     // 3. Extract strategies from new research
     const extracted = await extractAndSaveFromResearch();
-    logger.info(`[RESEARCH-WORKER] Extracted ${extracted.count} new strategies`);
+    logger.info(`[RESEARCH-WORKER] Extracted ${extracted.extracted || extracted.count} new strategies`);
 
     // 4. Run backtests on untested proposals across multiple symbols
     const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT'];

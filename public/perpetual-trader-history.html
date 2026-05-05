@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perpetual Trader — Trade History</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --bg2: #131820;
+    --bg3: #1a212d;
+    --fg: #e8edf5;
+    --fg2: #8a95a8;
+    --border: #2a3343;
+    --accent: #16c784;
+    --accent2: #f59e0b;
+    --accent3: #ef4444;
+    --accent4: #8b5cf6;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.5;
+    padding: 20px;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header-left h1 { font-size: 1.4rem; font-weight: 700; }
+  .header-left .subtitle { color: var(--fg2); font-size: 0.85rem; }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--fg);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+  .btn:hover { background: var(--border); text-decoration: none; }
+  .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); }
+  .btn-primary:hover { opacity: 0.9; }
+
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 14px 18px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .card-body { padding: 16px 18px; }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+  .summary-item {
+    background: var(--bg3);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .summary-item .label { font-size: 0.7rem; color: var(--fg2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .summary-item .value { font-size: 1.1rem; font-weight: 700; }
+  .summary-item .value.green { color: var(--accent); }
+  .summary-item .value.red { color: var(--accent3); }
+  .summary-item .value.gold { color: var(--accent2); }
+
+  .sub-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+  }
+  .sub-tab {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--fg2);
+    transition: all 0.15s;
+    border: none;
+    background: transparent;
+  }
+  .sub-tab:hover { color: var(--fg); background: var(--bg3); }
+  .sub-tab.active { background: var(--accent); color: #000; }
+  .sub-panel { display: none; }
+  .sub-panel.active { display: block; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  thead th {
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 600;
+    color: var(--fg2);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg2);
+    white-space: nowrap;
+  }
+  tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tbody tr:hover { background: rgba(255,255,255,0.03); }
+  tbody tr.clickable { cursor: pointer; }
+  tbody tr.clickable:hover { background: rgba(22,199,132,0.06); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .badge-side-long { background: rgba(22,199,132,0.15); color: var(--accent); }
+  .badge-side-short { background: rgba(239,68,68,0.15); color: var(--accent3); }
+  .badge-win { background: rgba(22,199,132,0.15); color: var(--accent); }
+  .badge-loss { background: rgba(239,68,68,0.15); color: var(--accent3); }
+  .badge-exit-tp { background: rgba(22,199,132,0.15); color: var(--accent); }
+  .badge-exit-sl { background: rgba(239,68,68,0.15); color: var(--accent3); }
+  .badge-exit-expired { background: rgba(245,158,11,0.15); color: var(--accent2); }
+  .badge-exit-adaptive { background: rgba(139,92,246,0.15); color: var(--accent4); }
+  .badge-exit-manual { background: rgba(96,165,250,0.15); color: #60a5fa; }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .pagination button {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--fg);
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+  .pagination button:hover { background: var(--border); }
+  .pagination button:disabled { opacity: 0.4; cursor: default; }
+  .pagination .info { color: var(--fg2); font-size: 0.8rem; }
+
+  .filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filters select, .filters input {
+    background: var(--bg3);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    outline: none;
+  }
+  .filters select:focus, .filters input:focus { border-color: var(--accent); }
+
+  .insight-card {
+    background: var(--bg3);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+    border-left: 3px solid var(--accent);
+  }
+  .insight-card.fail { border-left-color: var(--accent3); }
+  .insight-card .insight-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
+  .insight-card .insight-detail { font-size: 0.8rem; color: var(--fg2); }
+  .insight-card .insight-meta { font-size: 0.75rem; color: var(--fg2); margin-top: 6px; display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .grade-Aplus { color: var(--accent); font-weight: 700; }
+  .grade-A { color: var(--accent); font-weight: 600; }
+  .grade-B { color: #22c55e; font-weight: 600; }
+  .grade-C { color: var(--accent2); font-weight: 600; }
+  .grade-D { color: #f97316; font-weight: 600; }
+  .grade-F { color: var(--accent3); font-weight: 600; }
+
+  @media (max-width: 768px) {
+    body { padding: 12px; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .header { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div>
+      <h1>📊 Perpetual Trader — Trade History</h1>
+      <div class="subtitle">Complete trade log with analysis, strategy performance, and research data</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <a href="/" class="btn">← Dashboard</a>
+    <button class="btn" onclick="location.reload()">🔄 Refresh</button>
+  </div>
+</div>
+
+<!-- Summary Stats -->
+<div class="card">
+  <div class="card-header">📈 Performance Summary</div>
+  <div class="card-body">
+    <div class="summary-grid" id="summary-grid">
+      <div class="summary-item"><div class="label">Total Trades</div><div class="value" id="stat-total">—</div></div>
+      <div class="summary-item"><div class="label">Wins</div><div class="value green" id="stat-wins">—</div></div>
+      <div class="summary-item"><div class="label">Losses</div><div class="value red" id="stat-losses">—</div></div>
+      <div class="summary-item"><div class="label">Win Rate</div><div class="value gold" id="stat-winrate">—</div></div>
+      <div class="summary-item"><div class="label">Total P&L</div><div class="value" id="stat-totalpnl">—</div></div>
+      <div class="summary-item"><div class="label">Avg P&L</div><div class="value" id="stat-avgpnl">—</div></div>
+      <div class="summary-item"><div class="label">Profit Factor</div><div class="value gold" id="stat-profitfactor">—</div></div>
+      <div class="summary-item"><div class="label">Max Drawdown</div><div class="value red" id="stat-maxdd">—</div></div>
+      <div class="summary-item"><div class="label">Best Trade</div><div class="value green" id="stat-best">—</div></div>
+      <div class="summary-item"><div class="label">Worst Trade</div><div class="value red" id="stat-worst">—</div></div>
+      <div class="summary-item"><div class="label">Avg Hold Time</div><div class="value" id="stat-avghold">—</div></div>
+      <div class="summary-item"><div class="label">Avg Confidence</div><div class="value" id="stat-avgconf">—</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Sub-tabs navigation -->
+<div class="sub-tabs">
+  <button class="sub-tab active" data-panel="panel-all-trades">📋 All Trades</button>
+  <button class="sub-tab" data-panel="panel-strategy-breakdown">📊 By Strategy</button>
+  <button class="sub-tab" data-panel="panel-symbol-breakdown">🪙 By Symbol</button>
+  <button class="sub-tab" data-panel="panel-what-worked">✅ What Worked</button>
+  <button class="sub-tab" data-panel="panel-what-failed">❌ What Failed</button>
+  <button class="sub-tab" data-panel="panel-best-worst">🏆 Best / Worst</button>
+</div>
+
+<!-- Panel: All Trades -->
+<div class="sub-panel active" id="panel-all-trades">
+  <div class="card">
+    <div class="card-header">
+      <span>📋 All Closed Trades</span>
+      <span style="font-size:0.8rem;color:var(--fg2);" id="trade-count-label"></span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div class="filters" style="padding:12px 16px;border-bottom:1px solid var(--border);">
+        <input type="text" id="filter-symbol" placeholder="Filter symbol..." style="width:140px;">
+        <input type="text" id="filter-strategy" placeholder="Filter strategy..." style="width:140px;">
+        <select id="filter-side">
+          <option value="">All Sides</option>
+          <option value="LONG">LONG</option>
+          <option value="SHORT">SHORT</option>
+        </select>
+        <select id="filter-sort">
+          <option value="exit_at">Sort: Exit Date</option>
+          <option value="entry_at">Sort: Entry Date</option>
+          <option value="pnl_usd">Sort: P&L $</option>
+          <option value="pnl_pct">Sort: P&L %</option>
+          <option value="hold_duration_minutes">Sort: Hold Time</option>
+          <option value="confidence">Sort: Confidence</option>
+        </select>
+        <button class="btn" onclick="loadTrades(0)" style="padding:6px 12px;">Apply</button>
+      </div>
+      <div class="table-wrap" style="max-height:600px;overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Symbol</th><th>Side</th><th>Strategy</th><th>Entry</th><th>Exit</th><th>PnL $</th><th>PnL %</th><th>Lev</th><th>Exit Reason</th><th>Hold</th><th>Quality</th><th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="trades-body"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pagination">
+        <button id="prev-page" onclick="loadTrades(currentOffset - currentLimit)">← Prev</button>
+        <span class="info" id="page-info"></span>
+        <button id="next-page" onclick="loadTrades(currentOffset + currentLimit)">Next →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Panel: Strategy Breakdown -->
+<div class="sub-panel" id="panel-strategy-breakdown">
+  <div class="card">
+    <div class="card-header">📊 Strategy Performance Breakdown</div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Strategy</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>Total PnL</th><th>Avg PnL</th><th>Best</th><th>Worst</th><th>Profit Factor</th></tr></thead>
+          <tbody id="strategy-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Panel: Symbol Breakdown -->
+<div class="sub-panel" id="panel-symbol-breakdown">
+  <div class="card">
+    <div class="card-header">🪙 Symbol Performance Breakdown</div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Symbol</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>Total PnL</th><th>Avg PnL</th><th>Best</th><th>Worst</th></tr></thead>
+          <tbody id="symbol-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Panel: What Worked -->
+<div class="sub-panel" id="panel-what-worked">
+  <div class="card">
+    <div class="card-header">✅ What Went Right — Winning Trades Analysis</div>
+    <div class="card-body" id="what-worked-body">
+      <div style="text-align:center;padding:30px;color:var(--fg2);">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Panel: What Failed -->
+<div class="sub-panel" id="panel-what-failed">
+  <div class="card">
+    <div class="card-header">❌ What Went Wrong — Losing Trades Analysis</div>
+    <div class="card-body" id="what-failed-body">
+      <div style="text-align:center;padding:30px;color:var(--fg2);">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Panel: Best / Worst -->
+<div class="sub-panel" id="panel-best-worst">
+  <div class="card">
+    <div class="card-header">🏆 Best Trades (Top 10)</div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Symbol</th><th>Side</th><th>Strategy</th><th>PnL $</th><th>PnL %</th><th>Exit Reason</th><th>Date</th></tr></thead>
+          <tbody id="best-trades-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">💀 Worst Trades (Top 10)</div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Symbol</th><th>Side</th><th>Strategy</th><th>PnL $</th><th>PnL %</th><th>Exit Reason</th><th>Date</th></tr></thead>
+          <tbody id="worst-trades-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+var allTrades = [];
+var currentOffset = 0;
+var currentLimit = 100;
+var totalCount = 0;
+
+// ── Init ───────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+  // Sub-tab switching
+  document.querySelectorAll('.sub-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.sub-tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.sub-panel').forEach(function(p) { p.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.panel).classList.add('active');
+    });
+  });
+
+  // Filter on Enter
+  ['filter-symbol', 'filter-strategy'].forEach(function(id) {
+    document.getElementById(id).addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') loadTrades(0);
+    });
+  });
+  document.getElementById('filter-side').addEventListener('change', function() { loadTrades(0); });
+  document.getElementById('filter-sort').addEventListener('change', function() { loadTrades(0); });
+
+  loadTrades(0);
+});
+
+// ── Load Trades ────────────────────────────────────────
+function loadTrades(offset) {
+  var symbol = document.getElementById('filter-symbol').value.trim();
+  var strategy = document.getElementById('filter-strategy').value.trim();
+  var side = document.getElementById('filter-side').value;
+  var sortBy = document.getElementById('filter-sort').value;
+
+  var params = new URLSearchParams({
+    limit: currentLimit,
+    offset: Math.max(0, offset),
+    sortBy: sortBy,
+    sortDir: 'desc'
+  });
+  if (symbol) params.set('symbol', symbol.toUpperCase());
+  if (strategy) params.set('strategy', strategy);
+  if (side) params.set('side', side);
+
+  currentOffset = Math.max(0, offset);
+
+  fetch('/api/perpetual-trader/trade-history?' + params.toString())
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (!data.ok) throw new Error(data.error || 'Failed to load');
+      allTrades = data.trades || [];
+      totalCount = data.pagination.total;
+      renderTrades(allTrades);
+      renderSummary(data.summary, allTrades);
+      renderPagination(data.pagination);
+      renderStrategyBreakdown(allTrades);
+      renderSymbolBreakdown(allTrades);
+      renderWhatWorked(allTrades);
+      renderWhatFailed(allTrades);
+      renderBestWorst(allTrades);
+      document.getElementById('trade-count-label').textContent = totalCount + ' total trades';
+    })
+    .catch(function(err) {
+      console.error('Failed to load trade history:', err);
+      document.getElementById('trades-body').innerHTML = '<tr><td colspan="13" style="text-align:center;padding:30px;color:var(--accent3);">Error: ' + escapeHtml(err.message) + '</td></tr>';
+    });
+}
+
+// ── Render Trades Table ────────────────────────────────
+function renderTrades(trades) {
+  var body = document.getElementById('trades-body');
+  if (!trades || !trades.length) {
+    body.innerHTML = '<tr><td colspan="13" style="text-align:center;padding:30px;color:var(--fg2);">No closed trades found.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = trades.map(function(t, i) {
+    var sideClass = t.side === 'LONG' ? 'badge-side-long' : 'badge-side-short';
+    var pnlClass = (t.pnlUsd || 0) >= 0 ? 'green' : 'red';
+    var exitBadge = getExitBadge(t.exitReason);
+    var qualityBadge = getQualityBadge(t.exitQuality);
+    var holdText = formatHoldTime(t.holdDurationMinutes);
+    var dateStr = t.exitAt ? new Date(t.exitAt).toLocaleString() : '—';
+
+    return '<tr class="clickable" onclick="openTradeDetail(\'' + t.tradeId + '\')">'
+      + '<td>' + (i + 1 + currentOffset) + '</td>'
+      + '<td style="font-weight:600;">' + escapeHtml(t.symbol) + '</td>'
+      + '<td><span class="badge ' + sideClass + '">' + escapeHtml(t.side) + '</span></td>'
+      + '<td style="font-size:0.78rem;">' + escapeHtml(t.strategy || '—') + '</td>'
+      + '<td style="font-size:0.78rem;">$' + Number(t.entryPrice || 0).toFixed(2) + '</td>'
+      + '<td style="font-size:0.78rem;">$' + Number(t.exitPrice || 0).toFixed(2) + '</td>'
+      + '<td style="color:var(--' + pnlClass + ');font-weight:600;">' + ((t.pnlUsd || 0) >= 0 ? '+' : '') + '$' + Number(t.pnlUsd || 0).toFixed(2) + '</td>'
+      + '<td style="color:var(--' + pnlClass + ');font-size:0.78rem;">' + ((t.pnlPct || 0) >= 0 ? '+' : '') + Number(t.pnlPct || 0).toFixed(2) + '%</td>'
+      + '<td style="font-size:0.78rem;">' + (t.leverage || '—') + 'x</td>'
+      + '<td>' + exitBadge + '</td>'
+      + '<td style="font-size:0.75rem;color:var(--fg2);">' + holdText + '</td>'
+      + '<td>' + qualityBadge + '</td>'
+      + '<td style="font-size:0.72rem;color:var(--fg2);white-space:nowrap;">' + dateStr + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+// ── Render Summary ─────────────────────────────────────
+function renderSummary(summary, trades) {
+  if (!summary) return;
+  document.getElementById('stat-total').textContent = summary.totalTrades || 0;
+  document.getElementById('stat-wins').textContent = summary.wins || 0;
+  document.getElementById('stat-losses').textContent = summary.losses || 0;
+  document.getElementById('stat-winrate').textContent = summary.totalTrades > 0 ? (summary.winRate * 100).toFixed(1) + '%' : '—';
+
+  var totalPnl = summary.totalPnl || 0;
+  var totalPnlEl = document.getElementById('stat-totalpnl');
+  totalPnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + Number(totalPnl).toFixed(2);
+  totalPnlEl.className = 'value ' + (totalPnl >= 0 ? 'green' : 'red');
+
+  var avgPnl = summary.avgPnl || 0;
+  var avgPnlEl = document.getElementById('stat-avgpnl');
+  avgPnlEl.textContent = (avgPnl >= 0 ? '+' : '') + '$' + Number(avgPnl).toFixed(2);
+  avgPnlEl.className = 'value ' + (avgPnl >= 0 ? 'green' : 'red');
+
+  // Profit factor
+  var grossWins = trades.filter(function(t) { return (t.pnlUsd || 0) > 0; }).reduce(function(s, t) { return s + (t.pnlUsd || 0); }, 0);
+  var grossLosses = trades.filter(function(t) { return (t.pnlUsd || 0) < 0; }).reduce(function(s, t) { return s + Math.abs(t.pnlUsd || 0); }, 0);
+  var pf = grossLosses > 0 ? (grossWins / grossLosses) : (grossWins > 0 ? 999 : 0);
+  document.getElementById('stat-profitfactor').textContent = pf >= 999 ? '∞' : pf.toFixed(2);
+
+  // Max drawdown (simple: worst cumulative)
+  var running = 0;
+  var maxDD = 0;
+  var sorted = [].concat(trades).sort(function(a, b) { return new Date(a.exitAt || a.entryAt) - new Date(b.exitAt || b.entryAt); });
+  sorted.forEach(function(t) {
+    running += (t.pnlUsd || 0);
+    if (running < maxDD) maxDD = running;
+  });
+  document.getElementById('stat-maxdd').textContent = '$' + Number(maxDD).toFixed(2);
+
+  // Best / worst
+  var best = trades.reduce(function(b, t) { return (!b || (t.pnlUsd || 0) > (b.pnlUsd || 0)) ? t : b; }, null);
+  var worst = trades.reduce(function(w, t) { return (!w || (t.pnlUsd || 0) < (w.pnlUsd || 0)) ? t : w; }, null);
+  document.getElementById('stat-best').textContent = best ? '$' + Number(best.pnlUsd || 0).toFixed(2) : '—';
+  document.getElementById('stat-worst').textContent = worst ? '$' + Number(worst.pnlUsd || 0).toFixed(2) : '—';
+
+  // Avg hold time
+  var holds = trades.filter(function(t) { return t.holdDurationMinutes != null; });
+  var avgHold = holds.length > 0 ? holds.reduce(function(s, t) { return s + (t.holdDurationMinutes || 0); }, 0) / holds.length : 0;
+  document.getElementById('stat-avghold').textContent = avgHold > 0 ? formatHoldTime(Math.round(avgHold)) : '—';
+
+  // Avg confidence
+  var confs = trades.filter(function(t) { return t.confidence != null; });
+  var avgConf = confs.length > 0 ? confs.reduce(function(s, t) { return s + (t.confidence || 0); }, 0) / confs.length : 0;
+  document.getElementById('stat-avgconf').textContent = avgConf > 0 ? (avgConf * 100).toFixed(1) + '%' : '—';
+}
+
+// ── Render Pagination ──────────────────────────────────
+function renderPagination(pag) {
+  document.getElementById('page-info').textContent = 'Showing ' + (pag.offset + 1) + '–' + Math.min(pag.offset + pag.limit, pag.total) + ' of ' + pag.total;
+  document.getElementById('prev-page').disabled = pag.offset <= 0;
+  document.getElementById('next-page').disabled = !pag.hasMore;
+}
+
+// ── Render Strategy Breakdown ──────────────────────────
+function renderStrategyBreakdown(trades) {
+  var body = document.getElementById('strategy-body');
+  var map = {};
+  trades.forEach(function(t) {
+    var key = t.strategy || 'Unknown';
+    if (!map[key]) map[key] = { trades: 0, wins: 0, losses: 0, totalPnl: 0, best: -Infinity, worst: Infinity };
+    map[key].trades++;
+    map[key].totalPnl += (t.pnlUsd || 0);
+    if ((t.pnlUsd || 0) > 0) map[key].wins++;
+    else if ((t.pnlUsd || 0) < 0) map[key].losses++;
+    if ((t.pnlUsd || 0) > map[key].best) map[key].best = (t.pnlUsd || 0);
+    if ((t.pnlUsd || 0) < map[key].worst) map[key].worst = (t.pnlUsd || 0);
+  });
+
+  var entries = Object.keys(map).map(function(k) { return { name: k, data: map[k] }; });
+  entries.sort(function(a, b) { return b.data.totalPnl - a.data.totalPnl; });
+
+  if (!entries.length) {
+    body.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--fg2);">No data</td></tr>';
+    return;
+  }
+
+  body.innerHTML = entries.map(function(e) {
+    var d = e.data;
+    var wr = d.trades > 0 ? (d.wins / d.trades * 100).toFixed(1) + '%' : '—';
+    var pnlClass = d.totalPnl >= 0 ? 'green' : 'red';
+    var grossWins = trades.filter(function(t) { return (t.strategy || 'Unknown') === e.name && (t.pnlUsd || 0) > 0; }).reduce(function(s, t) { return s + (t.pnlUsd || 0); }, 0);
+    var grossLosses = trades.filter(function(t) { return (t.strategy || 'Unknown') === e.name && (t.pnlUsd || 0) < 0; }).reduce(function(s, t) { return s + Math.abs(t.pnlUsd || 0); }, 0);
+    var pf = grossLosses > 0 ? (grossWins / grossLosses) : (grossWins > 0 ? 999 : 0);
+    return '<tr>'
+      + '<td style="font-weight:600;">' + escapeHtml(e.name) + '</td>'
+      + '<td>' + d.trades + '</td>'
+      + '<td style="color:var(--accent);">' + d.wins + '</td>'
+      + '<td style="color:var(--accent3);">' + d.losses + '</td>'
+      + '<td>' + wr + '</td>'
+      + '<td style="color:var(--' + pnlClass + ');font-weight:600;">' + (d.totalPnl >= 0 ? '+' : '') + '$' + Number(d.totalPnl).toFixed(2) + '</td>'
+      + '<td>$' + Number(d.trades > 0 ? d.totalPnl / d.trades : 0).toFixed(2) + '</td>'
+      + '<td style="color:var(--accent);">$' + Number(d.best === -Infinity ? 0 : d.best).toFixed(2) + '</td>'
+      + '<td style="color:var(--accent3);">$' + Number(d.worst === Infinity ? 0 : d.worst).toFixed(2) + '</td>'
+      + '<td>' + (pf >= 999 ? '∞' : pf.toFixed(2)) + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+// ── Render Symbol Breakdown ────────────────────────────
+function renderSymbolBreakdown(trades) {
+  var body = document.getElementById('symbol-body');
+  var map = {};
+  trades.forEach(function(t) {
+    var key = t.symbol || 'Unknown';
+    if (!map[key]) map[key] = { trades: 0, wins: 0, losses: 0, totalPnl: 0, best: -Infinity, worst: Infinity };
+    map[key].trades++;
+    map[key].totalPnl += (t.pnlUsd || 0);
+    if ((t.pnlUsd || 0) > 0) map[key].wins++;
+    else if ((t.pnlUsd || 0) < 0) map[key].losses++;
+    if ((t.pnlUsd || 0) > map[key].best) map[key].best = (t.pnlUsd || 0);
+    if ((t.pnlUsd || 0) < map[key].worst) map[key].worst = (t.pnlUsd || 0);
+  });
+
+  var entries = Object.keys(map).map(function(k) { return { name: k, data: map[k] }; });
+  entries.sort(function(a, b) { return b.data.totalPnl - a.data.totalPnl; });
+
+  if (!entries.length) {
+    body.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--fg2);">No data</td></tr>';
+    return;
+  }
+
+  body.innerHTML = entries.map(function(e) {
+    var d = e.data;
+    var wr = d.trades > 0 ? (d.wins / d.trades * 100).toFixed(1) + '%' : '—';
+    var pnlClass = d.totalPnl >= 0 ? 'green' : 'red';
+    return '<tr>'
+      + '<td style="font-weight:600;">' + escapeHtml(e.name) + '</td>'
+      + '<td>' + d.trades + '</td>'
+      + '<td style="color:var(--accent);">' + d.wins + '</td>'
+      + '<td style="color:var(--accent3);">' + d.losses + '</td>'
+      + '<td>' + wr + '</td>'
+      + '<td style="color:var(--' + pnlClass + ');font-weight:600;">' + (d.totalPnl >= 0 ? '+' : '') + '$' + Number(d.totalPnl).toFixed(2) + '</td>'
+      + '<td>$' + Number(d.trades > 0 ? d.totalPnl / d.trades : 0).toFixed(2) + '</td>'
+      + '<td style="color:var(--accent);">$' + Number(d.best === -Infinity ? 0 : d.best).toFixed(2) + '</td>'
+      + '<td style="color:var(--accent3);">$' + Number(d.worst === Infinity ? 0 : d.worst).toFixed(2) + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+// ── Render What Worked ─────────────────────────────────
+function renderWhatWorked(trades) {
+  var body = document.getElementById('what-worked-body');
+  var winners = trades.filter(function(t) { return (t.pnlUsd || 0) > 0; }).sort(function(a, b) { return (b.pnlUsd || 0) - (a.pnlUsd || 0); });
+
+  if (!winners.length) {
+    body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--fg2);">No winning trades yet.</div>';
+    return;
+  }
+
+  body.innerHTML = winners.slice(0, 20).map(function(t) {
+    var insights = [];
+    if (t.whatWentRight) insights.push(t.whatWentRight);
+    if (t.strategyNotes) insights.push(t.strategyNotes);
+    if (t.marketCondition) insights.push('Market: ' + t.marketCondition);
+    if (t.exitQuality === 'excellent' || t.exitQuality === 'good') insights.push('Exit quality: ' + t.exitQuality);
+
+    return '<div class="insight-card">'
+      + '<div class="insight-title">✅ ' + escapeHtml(t.symbol) + ' ' + escapeHtml(t.side) + ' — +$' + Number(t.pnlUsd || 0).toFixed(2) + ' (' + ((t.pnlPct || 0) >= 0 ? '+' : '') + Number(t.pnlPct || 0).toFixed(2) + '%)</div>'
+      + '<div class="insight-detail">' + (insights.length ? insights.join(' · ') : 'No detailed analysis recorded.') + '</div>'
+      + '<div class="insight-meta">'
+      + '<span>Strategy: ' + escapeHtml(t.strategy || '—') + '</span>'
+      + '<span>Exit: ' + (t.exitReason || '—') + '</span>'
+      + '<span>Hold: ' + formatHoldTime(t.holdDurationMinutes) + '</span>'
+      + '<span>Confidence: ' + (t.confidence ? (t.confidence * 100).toFixed(0) + '%' : '—') + '</span>'
+      + '<span><a href="javascript:void(0)" onclick="openTradeDetail(\'' + t.tradeId + '\')">View Detail →</a></span>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// ── Render What Failed ─────────────────────────────────
+function renderWhatFailed(trades) {
+  var body = document.getElementById('what-failed-body');
+  var losers = trades.filter(function(t) { return (t.pnlUsd || 0) < 0; }).sort(function(a, b) { return (a.pnlUsd || 0) - (b.pnlUsd || 0); });
+
+  if (!losers.length) {
+    body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--fg2);">No losing trades yet.</div>';
+    return;
+  }
+
+  body.innerHTML = losers.slice(0, 20).map(function(t) {
+    var insights = [];
+    if (t.whatWentWrong) insights.push(t.whatWentWrong);
+    if (t.strategyNotes) insights.push(t.strategyNotes);
+    if (t.marketCondition) insights.push('Market: ' + t.marketCondition);
+
+    return '<div class="insight-card fail">'
+      + '<div class="insight-title">❌ ' + escapeHtml(t.symbol) + ' ' + escapeHtml(t.side) + ' — ' + Number(t.pnlUsd || 0).toFixed(2) + ' (' + Number(t.pnlPct || 0).toFixed(2) + '%)</div>'
+      + '<div class="insight-detail">' + (insights.length ? insights.join(' · ') : 'No detailed analysis recorded.') + '</div>'
+      + '<div class="insight-meta">'
+      + '<span>Strategy: ' + escapeHtml(t.strategy || '—') + '</span>'
+      + '<span>Exit: ' + (t.exitReason || '—') + '</span>'
+      + '<span>Hold: ' + formatHoldTime(t.holdDurationMinutes) + '</span>'
+      + '<span>Confidence: ' + (t.confidence ? (t.confidence * 100).toFixed(0) + '%' : '—') + '</span>'
+      + '<span><a href="javascript:void(0)" onclick="openTradeDetail(\'' + t.tradeId + '\')">View Detail →</a></span>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// ── Render Best / Worst ────────────────────────────────
+function renderBestWorst(trades) {
+  var bestBody = document.getElementById('best-trades-body');
+  var worstBody = document.getElementById('worst-trades-body');
+
+  var sorted = [].concat(trades).sort(function(a, b) { return (b.pnlUsd || 0) - (a.pnlUsd || 0); });
+  var best = sorted.slice(0, 10);
+  var worst = [].concat(sorted).reverse().slice(0, 10);
+
+  if (best.length) {
+    bestBody.innerHTML = best.map(function(t, i) {
+      var sideClass = t.side === 'LONG' ? 'badge-side-long' : 'badge-side-short';
+      var dateStr = t.exitAt ? new Date(t.exitAt).toLocaleString() : '—';
+      return '<tr class="clickable" onclick="openTradeDetail(\'' + t.tradeId + '\')">'
+        + '<td>' + (i + 1) + '</td>'
+        + '<td style="font-weight:600;">' + escapeHtml(t.symbol) + '</td>'
+        + '<td><span class="badge ' + sideClass + '">' + escapeHtml(t.side) + '</span></td>'
+        + '<td>' + escapeHtml(t.strategy || '—') + '</td>'
+        + '<td style="color:var(--accent);font-weight:600;">+$' + Number(t.pnlUsd || 0).toFixed(2) + '</td>'
+        + '<td style="color:var(--accent);">+' + Number(t.pnlPct || 0).toFixed(2) + '%</td>'
+        + '<td>' + getExitBadge(t.exitReason) + '</td>'
+        + '<td style="font-size:0.72rem;color:var(--fg2);white-space:nowrap;">' + dateStr + '</td>'
+        + '</tr>';
+    }).join('');
+  } else {
+    bestBody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--fg2);">No data</td></tr>';
+  }
+
+  if (worst.length) {
+    worstBody.innerHTML = worst.map(function(t, i) {
+      var sideClass = t.side === 'LONG' ? 'badge-side-long' : 'badge-side-short';
+      var dateStr = t.exitAt ? new Date(t.exitAt).toLocaleString() : '—';
+      return '<tr class="clickable" onclick="openTradeDetail(\'' + t.tradeId + '\')">'
+        + '<td>' + (i + 1) + '</td>'
+        + '<td style="font-weight:600;">' + escapeHtml(t.symbol) + '</td>'
+        + '<td><span class="badge ' + sideClass + '">' + escapeHtml(t.side) + '</span></td>'
+        + '<td>' + escapeHtml(t.strategy || '—') + '</td>'
+        + '<td style="color:var(--accent3);font-weight:600;">' + Number(t.pnlUsd || 0).toFixed(2) + '</td>'
+        + '<td style="color:var(--accent3);">' + Number(t.pnlPct || 0).toFixed(2) + '%</td>'
+        + '<td>' + getExitBadge(t.exitReason) + '</td>'
+        + '<td style="font-size:0.72rem;color:var(--fg2);white-space:nowrap;">' + dateStr + '</td>'
+        + '</tr>';
+    }).join('');
+  } else {
+    worstBody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--fg2);">No data</td></tr>';
+  }
+}
+
+// ── Helper Functions ───────────────────────────────────
+function openTradeDetail(tradeId) {
+  if (!tradeId) return;
+  window.open('/perpetual-trader-trade-detail.html?id=' + encodeURIComponent(tradeId), '_blank');
+}
+
+function getExitBadge(reason) {
+  if (!reason) return '<span class="badge" style="background:rgba(255,255,255,0.05);color:var(--fg2);">—</span>';
+  var r = reason.toLowerCase();
+  if (r === 'tp' || r === 'take_profit') return '<span class="badge badge-exit-tp">🎯 TP</span>';
+  if (r === 'sl' || r === 'stop_loss') return '<span class="badge badge-exit-sl">🛑 SL</span>';
+  if (r === 'expired') return '<span class="badge badge-exit-expired">⏳ Expired</span>';
+  if (r === 'adaptive_close') return '<span class="badge badge-exit-adaptive">🔮 Adaptive</span>';
+  if (r === 'manual') return '<span class="badge badge-exit-manual">✋ Manual</span>';
+  return '<span class="badge" style="background:rgba(255,255,255,0.05);color:var(--fg2);">' + escapeHtml(reason) + '</span>';
+}
+
+function getQualityBadge(quality) {
+  if (!quality) return '<span style="font-size:0.75rem;color:var(--fg2);">—</span>';
+  if (quality === 'excellent') return '<span style="color:var(--accent);font-weight:600;">🌟 Excellent</span>';
+  if (quality === 'good') return '<span style="color:var(--accent);">👍 Good</span>';
+  if (quality === 'fair') return '<span style="color:var(--accent2);">👌 Fair</span>';
+  if (quality === 'poor') return '<span style="color:var(--accent3);">👎 Poor</span>';
+  return '<span style="font-size:0.75rem;color:var(--fg2);">' + escapeHtml(quality) + '</span>';
+}
+
+function formatHoldTime(minutes) {
+  if (minutes == null || minutes === undefined) return '—';
+  if (minutes < 60) return minutes + 'm';
+  var hours = Math.floor(minutes / 60);
+  var mins = minutes % 60;
+  return hours + 'h ' + mins + 'm';
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"')
+    .replace(/'/g, '&#039;');
+}
+</script>
+</body>
+</html>

@@ -225,6 +225,77 @@ Responsibilities:
 
 ---
 
+## Secondary Agent: Support Assistant (AI Chat)
+
+**Scope:** AI-powered support chat that authenticates users, answers product questions, tests features, submits debug reports, and proactively suggests product improvements.
+
+**Endpoint:** `POST /api/support-assistant`
+
+**Authentication:** Email-based. Only `jpgyap@gmail.com` is authorized.
+
+### Boss Mode
+
+When the project owner (`jpgyap@gmail.com`) authenticates, the assistant enters **BOSS MODE**:
+
+- The assistant addresses the owner as "the boss"
+- When the boss suggests a product feature in conversation, the assistant **automatically**:
+  1. Logs the suggestion to `product_updates` with `[BOSS SUGGESTION]` prefix
+  2. Creates a development task in the dev pipeline with `high` priority
+  3. Tags the entry with `boss-suggestion` and `product-upgrade`
+- The boss can also explicitly note a suggestion via the `note-boss-suggestion` action
+
+### Feature Suggestion Engine
+
+The assistant proactively generates product feature suggestions based on:
+
+- **System architecture knowledge** — all 25+ workers, API endpoints, database tables
+- **Product features knowledge base** — all existing features and their capabilities
+- **Usage patterns** — common user requests and reported issues
+- **Gap analysis** — identifies missing capabilities compared to known best practices
+
+Suggestions are returned in chat responses and can be explicitly requested via the `generate-suggestions` action.
+
+### Machine Learning Engine
+
+The assistant includes an in-memory ML engine that learns from interactions:
+
+**Learning Mechanisms:**
+- **Interaction Recording:** Every chat interaction is logged with input, output, and feedback
+- **Acceptance Rate Learning:** Tracks which suggestions were accepted vs rejected, adjusts confidence scores
+- **Topic Preference Learning:** Learns which topics (trading, signals, deployment, etc.) the user engages with most
+- **Peak Hour Detection:** Identifies times of day when the user is most active
+- **Accuracy Scoring:** Calculates suggestion accuracy as `accepted / (accepted + rejected)` with Bayesian smoothing
+
+**ML-Generated Suggestions:**
+- Suggests topics the user is most likely to engage with based on learned preferences
+- Recommends actions during learned peak hours
+- Adjusts suggestion confidence based on historical accuracy
+
+**API Actions:**
+| Action | Description |
+|--------|-------------|
+| `chat` | Standard chat with AI (default) |
+| `note-boss-suggestion` | Explicitly log a boss feature suggestion |
+| `generate-suggestions` | Generate proactive feature suggestions |
+| `ml-status` | Get ML engine status (interactions, accuracy, last training) |
+| `ml-feedback` | Submit feedback on a previous suggestion (accepted/rejected) |
+
+**Response Fields:**
+- `bossSuggestionNoted` — boolean, true if a boss suggestion was auto-detected
+- `bossSuggestion.title` — the logged suggestion title
+- `bossSuggestion.taskId` — the created development task ID
+- `mlStatus.accuracy` — current suggestion accuracy (0-1)
+- `mlStatus.interactions` — total interactions learned from
+- `mlStatus.lastTraining` — timestamp of last model training
+
+### Safety Gates
+- Only `jpgyap@gmail.com` can access the support assistant
+- Boss suggestions are always logged with `boss-suggestion` tag for traceability
+- ML state is in-memory (reset on restart) — future: persist to SQLite
+- Feature suggestions are advisory only — no automatic code changes
+
+---
+
 ## Behavior Rules
 
 The assistant must:
@@ -306,5 +377,5 @@ Every signal broadcast to Telegram must conform to:
 
 ---
 
-*Last updated: 2026-04-26*
+*Last updated: 2026-05-05*
 *Project: Trading Signal Telegram Bot*

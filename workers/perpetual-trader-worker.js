@@ -39,7 +39,8 @@ async function pollAndTrade() {
     const nowMs = Date.now();
     const recentWindowIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-    // Get recent signals not yet traded by perpetual trader
+    // Get recent signals not yet traded by perpetual trader. The perpetual
+    // engine tracks its own processed state via perpetual_mock_trades below.
     const { data: signals, error } = await supabase
       .from('signals')
       .select('*')
@@ -168,6 +169,13 @@ async function main() {
   const once = process.argv.includes('--once');
   const intervalSeconds = Number(process.env.PERPETUAL_TRADER_INTERVAL_SECONDS || 60);
 
+  // Startup banner — helps verify PM2 log capture is working
+  console.log('========================================');
+  console.log(`[perp-worker] Starting at ${new Date().toISOString()}`);
+  console.log(`[perp-worker] once=${once}, interval=${intervalSeconds}s`);
+  console.log(`[perp-worker] Node version: ${process.version}`);
+  console.log(`[perp-worker] PID: ${process.pid}`);
+  console.log('========================================');
   logger.info(`[perp-worker] Starting. once=${once}, interval=${intervalSeconds}s`);
 
   // Pre-load recently processed signal IDs to avoid duplicates on restart
