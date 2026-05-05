@@ -256,7 +256,22 @@ INSERT INTO mock_accounts (starting_balance, current_balance, total_pnl, total_t
 SELECT 10000, 10000, 0, 0, 0
 WHERE NOT EXISTS (SELECT 1 FROM mock_accounts LIMIT 1);
 
--- 3. Fix api_debugger_results provider check constraint
+-- 3. Fix signals status check constraint (add 'skipped' and 'executed')
+-- ============================================================
+-- The execution-worker marks signals as 'skipped' or 'executed' after processing
+-- to prevent infinite reprocessing loops. The original constraint only allowed
+-- 'active','confirmed','dismissed','expired'.
+DO $$
+BEGIN
+  ALTER TABLE signals DROP CONSTRAINT IF EXISTS signals_status_check;
+  ALTER TABLE signals ADD CONSTRAINT signals_status_check
+    CHECK (status IN ('active','confirmed','dismissed','expired','skipped','executed'));
+EXCEPTION
+  WHEN others THEN
+    RAISE NOTICE 'Signals status constraint update issue: %', SQLERRM;
+END $$;
+
+-- 4. Fix api_debugger_results provider check constraint
 -- ============================================================
 DO $$
 BEGIN
@@ -280,3 +295,4 @@ END $$;
 -- SELECT COUNT(*) as execution_profiles FROM execution_profiles;
 -- SELECT COUNT(*) as mock_accounts FROM mock_accounts;
 -- SELECT COUNT(*) FROM signals WHERE status = 'active';
+-- SELECT COUNT(*) FROM signals WHERE status IN ('skipped','executed');
