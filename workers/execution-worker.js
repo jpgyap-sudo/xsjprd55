@@ -26,13 +26,17 @@ async function pollAndExecute() {
   isRunning = true;
 
   try {
-    // 1. Fetch active signals (status='active' means not yet consumed)
+    // 1. Fetch active signals that haven't been processed yet
+    //    NOTE: The signals table has a CHECK constraint on status that only allows
+    //    ('active','confirmed','dismissed','expired'). We cannot set status to
+    //    'skipped' or 'executed', so we use metadata.processed flag instead.
     const now = new Date().toISOString();
     const isPaper = config.TRADING_MODE === 'paper' || !config.TRADING_MODE;
     let query = supabase
       .from('signals')
       .select('id, symbol, side, entry_price, stop_loss, take_profit, confidence, strategy, timeframe, generated_at, metadata, valid_until, mode')
       .eq('status', 'active')
+      .not('metadata', 'cs', '{"processed": true}')
       .order('generated_at', { ascending: false })
       .limit(50);
 
@@ -68,10 +72,11 @@ async function pollAndExecute() {
           .eq('status', 'open')
           .limit(1);
         if (existingTrade?.length) {
-          // Mark signal as skipped so we don't retry it every cycle
+          // Mark signal as processed via metadata (status field has a CHECK constraint
+          // that only allows 'active','confirmed','dismissed','expired')
           await supabase
             .from('signals')
-            .update({ status: 'skipped', metadata: { ...(signal.metadata || {}), skip_reason: 'symbol_already_open', skipped_at: now } })
+            .update({ metadata: { ...(signal.metadata || {}), processed: true, skip_reason: 'symbol_already_open', processed_at: now } })
             .eq('id', signal.id);
           skipped++;
           continue;
@@ -81,10 +86,10 @@ async function pollAndExecute() {
         const evaluation = await evaluateSignalForExecution(signal);
         if (!evaluation.execute) {
           logger.debug(`[EXEC-WORKER] SKIP ${signal.symbol} — ${evaluation.reason}`);
-          // Mark signal as skipped so we don't retry it every cycle
+          // Mark signal as processed via metadata
           await supabase
             .from('signals')
-            .update({ status: 'skipped', metadata: { ...(signal.metadata || {}), skip_reason: evaluation.reason, skipped_at: now } })
+            .update({ metadata: { ...(signal.metadata || {}), processed: true, skip_reason: evaluation.reason, processed_at: now } })
             .eq('id', signal.id);
           skipped++;
           continue;
@@ -94,19 +99,19 @@ async function pollAndExecute() {
         const result = await openExecution(signal, evaluation);
         if (result.error) {
           logger.warn(`[EXEC-WORKER] OPEN FAILED ${signal.symbol}: ${result.error}`);
-          // Mark signal as skipped so we don't retry it every cycle
+          // Mark signal as processed via metadata
           await supabase
             .from('signals')
-            .update({ status: 'skipped', metadata: { ...(signal.metadata || {}), skip_reason: result.error, skipped_at: now } })
+            .update({ metadata: { ...(signal.metadata || {}), processed: true, skip_reason: result.error, processed_at: now } })
             .eq('id', signal.id);
           skipped++;
           continue;
         }
 
-        // Mark signal as executed
+        // Mark signal as executed via metadata
         await supabase
           .from('signals')
-          .update({ status: 'executed', metadata: { ...(signal.metadata || {}), executed_at: now, trade_id: result.trade?.id } })
+          .update({ metadata: { ...(signal.metadata || {}), processed: true, executed_at: now, trade_id: result.trade?.id } })
           .eq('id', signal.id);
 
         logger.info(`[EXEC-WORKER] OPENED ${signal.symbol} ${signal.side} lev=${result.trade?.leverage}x`);
