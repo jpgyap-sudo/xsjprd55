@@ -9,9 +9,9 @@
 import {
   storeResearchItem,
   proposeStrategiesFromRecentResearch,
-  saveStrategyProposal,
   researchCycle,
 } from '../lib/ml/researchAgent.js';
+import { saveStrategyProposal } from '../lib/ml/supabase-db.js';
 import { getPromotedStrategies } from '../lib/ml/feedbackLoop.js';
 import { crawlAllSources } from '../lib/ml/sourceCrawler.js';
 import { extractAndSaveFromResearch } from '../lib/ml/strategyExtractor.js';

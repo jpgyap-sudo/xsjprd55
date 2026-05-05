@@ -54,20 +54,20 @@ async function pollAndExecute() {
       return;
     }
 
-    // 2. Deduplicate: skip symbols already open
-    const { data: openTrades } = await supabase
-      .from('mock_trades')
-      .select('symbol')
-      .eq('status', 'open');
-    const openSymbols = new Set((openTrades || []).map(t => t.symbol));
-
     let executed = 0;
     let skipped = 0;
 
     for (const signal of signals) {
       try {
-        // Skip if already have open position on this symbol
-        if (openSymbols.has(signal.symbol)) {
+        // Re-check for open trades right before opening (avoids race condition
+        // with aggressive-mock-worker which also opens trades on the same symbols)
+        const { data: existingTrade } = await supabase
+          .from('mock_trades')
+          .select('id')
+          .eq('symbol', signal.symbol)
+          .eq('status', 'open')
+          .limit(1);
+        if (existingTrade?.length) {
           skipped++;
           continue;
         }
@@ -89,7 +89,6 @@ async function pollAndExecute() {
         }
 
         logger.info(`[EXEC-WORKER] OPENED ${signal.symbol} ${signal.side} lev=${result.trade?.leverage}x`);
-        openSymbols.add(signal.symbol);
         executed++;
       } catch (e) {
         logger.error(`[EXEC-WORKER] Error processing ${signal.symbol}:`, e.message);
