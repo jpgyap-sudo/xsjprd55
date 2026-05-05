@@ -261,12 +261,17 @@ WHERE NOT EXISTS (SELECT 1 FROM mock_accounts LIMIT 1);
 DO $$
 BEGIN
   ALTER TABLE api_debugger_results DROP CONSTRAINT IF EXISTS api_debugger_results_provider_check;
-  ALTER TABLE api_debugger_results ADD CONSTRAINT api_debugger_results_provider_check 
+  ALTER TABLE api_debugger_results ADD CONSTRAINT api_debugger_results_provider_check
     CHECK (provider IN ('openai', 'anthropic', 'kimi', 'gemini', 'deepseek', 'claude', 'gpt4', 'gpt-4', 'gpt-3.5-turbo', 'custom'));
 EXCEPTION
   WHEN others THEN
     RAISE NOTICE 'Provider constraint update issue: %', SQLERRM;
 END $$;
+
+-- 4. Add processed_at column to signals table (for execution-worker dedup)
+-- ============================================================
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS processed_at TIMESTAMPTZ;
+CREATE INDEX IF NOT EXISTS idx_signals_processed_at ON signals(processed_at) WHERE processed_at IS NULL;
 
 -- ============================================================
 -- VERIFICATION QUERIES (run these to confirm)
@@ -279,3 +284,4 @@ END $$;
 -- SELECT COUNT(*) as mock_strategy_feedback FROM mock_strategy_feedback;
 -- SELECT COUNT(*) as execution_profiles FROM execution_profiles;
 -- SELECT COUNT(*) as mock_accounts FROM mock_accounts;
+-- SELECT COUNT(*) FROM signals WHERE processed_at IS NULL;
