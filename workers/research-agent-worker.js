@@ -2,6 +2,7 @@
 // Research Agent Worker
 // Crawls sources → extracts strategies → backtests → promotes/rejects
 // Runs every 10 minutes on VPS.
+// v2: Uses Promotion Gate for all promotion decisions.
 // ============================================================
 
 import { initMlDb } from '../lib/ml/db.js';
@@ -15,6 +16,9 @@ import { crawlTradingViewForAllPairs } from '../lib/research/tv-crawler.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
 import { markProposalTested, upsertStrategyLifecycle } from '../lib/ml/supabase-db.js';
+import { evaluatePromotionGate, formatRejection, getSourceCredibility } from '../lib/ml/promotionGate.js';
+import { checkDuplicate, hashProposal, saveProposalHash } from '../lib/ml/duplicateDetector.js';
+import { recordFailure } from '../lib/ml/failureMemory.js';
 
 const INTERVAL_MS = 10 * 60 * 1000;
 
@@ -157,26 +161,99 @@ export async function runResearchAgentWorker() {
         for (const id of btResult.proposalIds || []) {
           allTestedIds.add(id);
         }
-        // Promote top performers immediately
+
+        // Promote top performers using Promotion Gate v2
         for (const r of btResult.results || []) {
-          if (r.totalTrades >= 5 && r.winRate >= 0.54) {
-            try {
-              await promoteStrategy(r.strategyName, { winRate: r.winRate, totalReturnPct: r.totalReturnPct, trades: r.totalTrades });
-              logger.info(`[RESEARCH-WORKER] Auto-promoted ${r.strategyName} — ${(r.winRate*100).toFixed(0)}% WR, ${r.totalTrades} trades`);
+          try {
+            // Run the full promotion gate
+            const gateResult = evaluatePromotionGate(r, {
+              isSynthetic: r.isSynthetic,
+              hasRandomFeatures: r.hasRandomFeatures,
+              walkForward: r.walkForward,
+              sourceName: r.sourceName || 'backtest_results',
+            });
+
+            if (gateResult.approved) {
+              // Passed all gates — promote
+              await promoteStrategy(r.strategyName, {
+                winRate: r.winRate,
+                totalReturnPct: r.totalReturnPct,
+                trades: r.totalTrades,
+                expectancy: r.expectancy,
+                profitFactor: r.profitFactor,
+                maxDrawdownPct: r.maxDrawdownPct,
+                promotionGateScore: gateResult.score,
+              });
+              logger.info(
+                `[RESEARCH-WORKER] ✅ Promoted ${r.strategyName} — ` +
+                `${(r.winRate * 100).toFixed(0)}% WR, ${r.totalTrades}t, ` +
+                `PF=${r.profitFactor?.toFixed(2)}, Exp=${r.expectancy?.toFixed(4)}, ` +
+                `GateScore=${gateResult.score.toFixed(3)}`
+              );
+
               // Track lifecycle for promoted strategies
               try {
                 await upsertStrategyLifecycle({
                   strategyName: r.strategyName,
                   status: 'promoted',
-                  historicalBacktestScore: r.winRate || 0,
+                  historicalBacktestScore: gateResult.score,
                   mockTradingScore: 0,
                   approvedForMock: true,
+                  promotionGateScore: gateResult.score,
+                  promotionGateFailures: null,
+                });
+              } catch (e) {
+                logger.warn(`[RESEARCH-WORKER] Lifecycle upsert failed for ${r.strategyName}: ${e.message}`);
+              }
+            } else {
+              // Blocked by promotion gate — log and record failure
+              logger.warn(
+                `[RESEARCH-WORKER] ❌ Blocked ${r.strategyName}: ${gateResult.failures.length} failures ` +
+                `(score=${gateResult.score.toFixed(3)})`
+              );
+
+              // Record failure for learning
+              try {
+                recordFailure({
+                  strategyName: r.strategyName,
+                  rules: [],
+                  failureReason: gateResult.failures.join('; '),
+                  metrics: {
+                    totalTrades: r.totalTrades,
+                    winRate: r.winRate,
+                    profitFactor: r.profitFactor,
+                    maxDrawdownPct: r.maxDrawdownPct,
+                    expectancy: r.expectancy,
+                  },
+                  symbolsTested: [sym],
+                  isSynthetic: r.isSynthetic,
+                  hasRandomFeatures: r.hasRandomFeatures,
+                  oosFailed: r.walkForward === null,
+                });
+              } catch (e) {
+                // Non-critical
+              }
+
+              // Update lifecycle with rejection
+              try {
+                await upsertStrategyLifecycle({
+                  strategyName: r.strategyName,
+                  status: 'rejected',
+                  historicalBacktestScore: gateResult.score,
+                  mockTradingScore: 0,
+                  approvedForMock: false,
+                  rejectedReason: gateResult.failures.join('; '),
+                  promotionGateScore: gateResult.score,
+                  promotionGateFailures: gateResult.failures.join('; '),
                 });
               } catch (e) {}
-            } catch (e) {}
+            }
+          } catch (e) {
+            logger.warn(`[RESEARCH-WORKER] Gate evaluation failed for ${r.strategyName}: ${e.message}`);
           }
         }
       }
+
       // Mark all proposals as tested AFTER all symbols complete
       for (const id of allTestedIds) {
         try {
@@ -186,7 +263,10 @@ export async function runResearchAgentWorker() {
           db.prepare(`UPDATE strategy_proposals SET tested = 1 WHERE id = ?`).run(id);
         }
       }
-      logger.info(`[RESEARCH-WORKER] Backtested ${totalBacktested} proposals across ${symbols.length} symbols, marked ${allTestedIds.size} as tested`);
+      logger.info(
+        `[RESEARCH-WORKER] Backtested ${totalBacktested} proposals across ${symbols.length} symbols, ` +
+        `marked ${allTestedIds.size} as tested`
+      );
     } catch (e) {
       logger.warn(`[RESEARCH-WORKER] Backtest cycle failed: ${e.message}`);
     }
