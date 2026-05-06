@@ -7,6 +7,7 @@
 
 import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
+import { getAllScorecards } from '../lib/mock-trading/strategy-scorecard.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -310,6 +311,7 @@ export default async function handler(req, res) {
           : null,
       })),
       strategyStats: strategyStatsList,
+      scorecard: [],
       dailyPnl,
       diagnostics,
       ts: new Date().toISOString(),
@@ -340,6 +342,33 @@ export default async function handler(req, res) {
     } catch (histErr) {
       logger.debug('[mock-trading-dashboard] trade history skipped:', histErr.message);
       responseBody.tradeHistory = [];
+    }
+
+    // Strategy Leaderboard (from scorecard table)
+    try {
+      const scorecardData = await getAllScorecards();
+      responseBody.scorecard = scorecardData.map(s => ({
+        strategy: s.strategy_name,
+        symbol: s.symbol,
+        timeframe: s.timeframe,
+        regime: s.market_regime,
+        totalTrades: s.total_trades,
+        winRate: s.win_rate,
+        profitFactor: s.profit_factor,
+        avgR: s.avg_r,
+        avgPnlUsd: s.avg_pnl_usd,
+        maxDrawdownPct: s.max_drawdown_pct,
+        sampleSizeWarning: s.sampleSizeWarning || s.total_trades < 30,
+        isThrottled: s.is_throttled,
+        throttleReason: s.throttle_reason,
+        status: s.status,
+        dynamicThreshold: s.dynamic_threshold,
+        consecutiveLosses: s.consecutive_losses,
+        consecutiveWins: s.consecutive_wins,
+        lastTradeAt: s.last_trade_at,
+      }));
+    } catch (scErr) {
+      logger.debug('[mock-trading-dashboard] scorecard fetch skipped:', scErr.message);
     }
 
     return res.status(200).json(responseBody);

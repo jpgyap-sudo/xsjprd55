@@ -1230,6 +1230,23 @@
       </div>
     </div>
 
+    <!-- Strategy Leaderboard -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🏆 Strategy Leaderboard</span>
+        <span style="font-size:0.7rem;color:var(--fg2);">Sample size warning: <30 trades</span>
+      </div>
+      <div class="card-body" style="padding:0;max-height:400px;overflow:auto;">
+        <div id="mt-leaderboard-loading" style="text-align:center;padding:20px;color:var(--fg2);">Loading...</div>
+        <div id="mt-leaderboard-content" style="display:none;">
+          <table class="signal-table" style="min-width:800px;">
+            <thead><tr><th>Strategy</th><th>Symbol</th><th>TF</th><th>Regime</th><th>Trades</th><th>Win Rate</th><th>Profit Factor</th><th>Avg R</th><th>Max DD%</th><th>Status</th></tr></thead>
+            <tbody id="mt-leaderboard-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Trading Analysis -->
     <div class="card" style="margin-bottom:20px;">
       <div class="card-header"><span>🧠 Trading Analysis</span></div>
@@ -3545,6 +3562,44 @@ async function loadMockTrading() {
         }
       }
     } catch (e) {}
+
+    // Strategy Leaderboard
+    const lbLoading = document.getElementById('mt-leaderboard-loading');
+    const lbContent = document.getElementById('mt-leaderboard-content');
+    const lbBody = document.getElementById('mt-leaderboard-body');
+    if (data.scorecard?.length) {
+      lbBody.innerHTML = data.scorecard.map(s => {
+        const wrColor = s.winRate >= 0.54 ? 'var(--accent)' : s.winRate >= 0.45 ? 'var(--accent2)' : 'var(--accent3)';
+        const pfColor = s.profitFactor >= 1.5 ? 'var(--accent)' : s.profitFactor >= 1.0 ? 'var(--accent2)' : 'var(--accent3)';
+        const ddColor = s.maxDrawdownPct > 15 ? 'var(--accent3)' : s.maxDrawdownPct > 8 ? 'var(--accent2)' : 'var(--accent)';
+        let statusBadge = '';
+        if (s.isThrottled) {
+          statusBadge = `<span style="color:var(--accent3);font-weight:700;" title="${s.throttleReason || 'Auto-throttled'}">⛔ THROTTLED</span>`;
+        } else if (s.sampleSizeWarning) {
+          statusBadge = `<span style="color:var(--accent2);font-weight:600;">⚠️ Low sample</span>`;
+        } else {
+          statusBadge = `<span style="color:var(--accent);font-weight:600;">✅ Active</span>`;
+        }
+        return `<tr>
+          <td style="font-weight:600;font-size:0.85rem;">${s.strategy}</td>
+          <td style="font-size:0.8rem;">${s.symbol}</td>
+          <td style="font-size:0.8rem;">${s.timeframe || '—'}</td>
+          <td style="font-size:0.8rem;">${s.regime || '—'}</td>
+          <td style="font-size:0.85rem;">${s.totalTrades}</td>
+          <td style="color:${wrColor};font-weight:700;">${(s.winRate * 100).toFixed(1)}%</td>
+          <td style="color:${pfColor};font-weight:700;">${s.profitFactor?.toFixed(2) ?? '—'}</td>
+          <td style="font-weight:600;">${s.avgR?.toFixed(2) ?? '—'}R</td>
+          <td style="color:${ddColor};">${s.maxDrawdownPct?.toFixed(1) ?? '—'}%</td>
+          <td>${statusBadge}</td>
+        </tr>`;
+      }).join('');
+      lbLoading.style.display = 'none';
+      lbContent.style.display = 'block';
+    } else {
+      lbBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--fg2);padding:16px;">No strategy scorecard data yet. Trades need to be processed first.</td></tr>';
+      lbLoading.style.display = 'none';
+      lbContent.style.display = 'block';
+    }
 
   } catch (e) {
     console.error('Mock Trading load error:', e);

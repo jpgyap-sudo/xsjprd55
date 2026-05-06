@@ -1,8 +1,11 @@
 // ============================================================
-// Aggressive Mock Trading Worker v3
+// Aggressive Mock Trading Worker v4
 // Trades public perpetual symbols using ML-adaptive leverage.
 // Integrates with TV TA, ML service, and RL agent.
 // Runs every 90 seconds.
+// v4: Added signal quality gate, market regime filter,
+//     dynamic confidence, trading window filter,
+//     post-trade learning, and exit engine.
 // ============================================================
 
 import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
@@ -18,6 +21,15 @@ import { fetchTvAnalysisBatch, tvAnalysisToResearchItem } from '../lib/tradingvi
 import { storeResearchItem } from '../lib/ml/researchAgent.js';
 import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
 import { isMainModule } from '../lib/entrypoint.js';
+
+// v4 imports
+import { evaluateSignalQuality } from '../lib/mock-trading/signal-quality-gate.js';
+import { detectMarketRegime } from '../lib/mock-trading/market-regime-filter.js';
+import { getDynamicThreshold } from '../lib/mock-trading/dynamic-confidence.js';
+import { isBadTradingWindow } from '../lib/mock-trading/trading-window-filter.js';
+import { learnFromTrade } from '../lib/mock-trading/post-trade-learning.js';
+import { updateScorecard } from '../lib/mock-trading/strategy-scorecard.js';
+import { enhancedCloseLogic } from '../lib/mock-trading/exit-engine.js';
 
 const INTERVAL_MS = 90 * 1000;
 const TV_SCAN_BATCH_SIZE = 15;
@@ -40,20 +52,87 @@ export async function runAggressiveWorker() {
     const closed = await monitorAndCloseAggressive();
     if (closed.length) {
       logger.info(`[AGGRESSIVE-WORKER] Closed ${closed.length} trades`);
+
+      // ── Post-trade learning & scorecard update ────────────
+      for (const trade of closed) {
+        const pnlUsd = trade.pnl?.pnlUsd ?? trade.pnl_usd ?? 0;
+        const pnlPct = trade.pnl?.pnlPct ?? trade.pnl_pct ?? 0;
+
+        // Post-trade learning (MFE/MAE/lessons)
+        if (config.ENABLE_POST_TRADE_LEARNING) {
+          try {
+            await learnFromTrade({
+              tradeId: trade.id,
+              symbol: trade.symbol,
+              side: trade.side,
+              strategy: trade.strategy_name || trade.strategy,
+              timeframe: trade.timeframe,
+              entryPrice: Number(trade.entry_price),
+              exitPrice: trade.exitPrice ?? Number(trade.exit_price),
+              pnlUsd,
+              pnlPct,
+              exitReason: trade.exitReason ?? trade.exit_reason,
+              leverage: Number(trade.leverage),
+              positionSizeUsd: Number(trade.position_size_usd),
+              metadata: trade.metadata || {},
+            });
+          } catch (e) {
+            logger.warn(`[AGGRESSIVE-WORKER] Post-trade learning failed for ${trade.symbol}: ${e.message}`);
+          }
+        }
+
+        // Update strategy scorecard
+        if (config.ENABLE_STRATEGY_SCORECARD) {
+          try {
+            await updateScorecard({
+              strategy: trade.strategy_name || trade.strategy || 'unknown',
+              symbol: trade.symbol,
+              timeframe: trade.timeframe || '15m',
+              pnlUsd,
+              pnlPct,
+              win: pnlUsd > 0,
+              exitReason: trade.exitReason ?? trade.exit_reason,
+            });
+          } catch (e) {
+            logger.warn(`[AGGRESSIVE-WORKER] Scorecard update failed for ${trade.symbol}: ${e.message}`);
+          }
+        }
+      }
     }
 
-    // ── 2. Fetch recent high-confidence signals ─────────────
+    // ── 2. Fetch recent signals (lower initial threshold, quality gate refines) ─
+    const minConf = config.ENABLE_SIGNAL_QUALITY_GATE ? 0.40 : 0.55;
     const { data: recentSignals } = await supabase
       .from('signals')
       .select('*')
       .eq('status', 'active')
-      .gte('confidence', 0.55)
+      .gte('confidence', minConf)
       .gte('generated_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
       .order('generated_at', { ascending: false })
       .limit(30);
 
     const account = await getOrCreateAggressiveAccount();
     let openCount = (await supabase.from('mock_trades').select('id', { count: 'exact', head: true }).eq('status', 'open')).count || 0;
+
+    // Cache market regime once per tick (shared across signals)
+    let cachedRegime = null;
+    if (config.ENABLE_MARKET_REGIME_FILTER) {
+      try {
+        cachedRegime = await detectMarketRegime();
+      } catch (e) {
+        logger.warn(`[AGGRESSIVE-WORKER] Regime detection failed: ${e.message}`);
+      }
+    }
+
+    // Cache bad trading window check once per tick
+    let isBadWindow = false;
+    if (config.ENABLE_TRADING_WINDOW_FILTER) {
+      try {
+        isBadWindow = await isBadTradingWindow();
+      } catch (e) {
+        logger.warn(`[AGGRESSIVE-WORKER] Trading window check failed: ${e.message}`);
+      }
+    }
 
     for (const signal of recentSignals || []) {
       // Skip if already traded on this symbol (any side)
@@ -68,12 +147,53 @@ export async function runAggressiveWorker() {
       // Skip if max open reached
       if (openCount >= (config.MOCK_MAX_OPEN_TRADES || 50)) break;
 
+      // ── Quality Gate ─────────────────────────────────────
+      if (config.ENABLE_SIGNAL_QUALITY_GATE) {
+        const quality = await evaluateSignalQuality(signal);
+        if (!quality.passed) {
+          logger.debug(`[AGGRESSIVE-WORKER] Signal ${signal.id} (${signal.symbol}) REJECTED: ${quality.reason}`);
+          continue;
+        }
+        // Override confidence with quality-adjusted value
+        signal.confidence = quality.adjustedConfidence ?? signal.confidence;
+      }
+
+      // ── Market Regime Filter ─────────────────────────────
+      if (config.ENABLE_MARKET_REGIME_FILTER && cachedRegime) {
+        const regimeOk = cachedRegime.label !== 'high_volatility' && cachedRegime.label !== 'news_risk';
+        if (!regimeOk) {
+          logger.debug(`[AGGRESSIVE-WORKER] Skipping ${signal.symbol}: regime=${cachedRegime.label}`);
+          continue;
+        }
+      }
+
+      // ── Trading Window Filter ────────────────────────────
+      if (config.ENABLE_TRADING_WINDOW_FILTER && isBadWindow) {
+        logger.debug(`[AGGRESSIVE-WORKER] Skipping ${signal.symbol}: bad trading window`);
+        continue;
+      }
+
+      // ── Dynamic Confidence Threshold ─────────────────────
+      let effectiveConfidence = signal.confidence;
+      if (config.ENABLE_DYNAMIC_CONFIDENCE) {
+        try {
+          const dynamic = await getDynamicThreshold(signal.strategy, signal.symbol);
+          if (dynamic.adjustedThreshold && signal.confidence < dynamic.adjustedThreshold) {
+            logger.debug(`[AGGRESSIVE-WORKER] Signal ${signal.id} (${signal.symbol}) below dynamic threshold ${dynamic.adjustedThreshold.toFixed(2)} (confidence=${signal.confidence.toFixed(2)})`);
+            continue;
+          }
+          effectiveConfidence = dynamic.adjustedConfidence ?? signal.confidence;
+        } catch (e) {
+          logger.warn(`[AGGRESSIVE-WORKER] Dynamic confidence failed: ${e.message}`);
+        }
+      }
+
       const trade = await openAggressiveTrade({
         id: signal.id,
         symbol: signal.symbol,
         side: (signal.side || '').toLowerCase(),
         price: signal.entry_price,
-        confidence: signal.confidence,
+        confidence: effectiveConfidence,
         strategy: signal.strategy,
         timeframe: signal.timeframe,
         volatility_pct: signal.metadata?.volatility_pct || 2,
