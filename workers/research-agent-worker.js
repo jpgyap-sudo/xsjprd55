@@ -170,6 +170,7 @@ export async function runResearchAgentWorker() {
               isSynthetic: r.isSynthetic,
               hasRandomFeatures: r.hasRandomFeatures,
               walkForward: r.walkForward,
+              sourceCredibility: r.sourceCredibility,
               sourceName: r.sourceName || 'backtest_results',
             });
 
@@ -201,6 +202,9 @@ export async function runResearchAgentWorker() {
                   approvedForMock: true,
                   promotionGateScore: gateResult.score,
                   promotionGateFailures: null,
+                  sourceCredibility: r.sourceCredibility,
+                  sourceName: r.sourceName,
+                  rulesHash: r.rulesHash,
                 });
               } catch (e) {
                 logger.warn(`[RESEARCH-WORKER] Lifecycle upsert failed for ${r.strategyName}: ${e.message}`);
@@ -216,7 +220,8 @@ export async function runResearchAgentWorker() {
               try {
                 recordFailure({
                   strategyName: r.strategyName,
-                  rules: [],
+                  rules: r.rules || [],
+                  rulesHash: r.rulesHash,
                   failureReason: gateResult.failures.join('; '),
                   metrics: {
                     totalTrades: r.totalTrades,
@@ -245,6 +250,9 @@ export async function runResearchAgentWorker() {
                   rejectedReason: gateResult.failures.join('; '),
                   promotionGateScore: gateResult.score,
                   promotionGateFailures: gateResult.failures.join('; '),
+                  sourceCredibility: r.sourceCredibility,
+                  sourceName: r.sourceName,
+                  rulesHash: r.rulesHash,
                 });
               } catch (e) {}
             }

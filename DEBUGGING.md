@@ -211,3 +211,11 @@ Prevention: Add mode gate at every action point; log mode on every signal.
 **Fix:** Hardened mock account balance updates in `mock-account-engine`, `execution-engine`, and `aggressive-engine`. Expanded the mock trading dashboard rows with opened time, age/hold duration, margin used, SL/TP, entry/exit, and nonzero decimal formatting for small sizes.
 **Verification:** `node --check` passed for all three mock trading engines and inline dashboard JavaScript compiled successfully.
 **Prevention:** Keep account cards scoped to the same account as displayed trades; never display all trades against an arbitrary first account.
+
+### Promotion Gate v2 failure memory and extractor metadata drift
+**Found:** 2026-05-06 23:11 SGT
+**Status:** FIX APPLIED, pending deploy
+**Problem:** Promotion Gate v2 could block weak strategies but fail to persist useful failure memory. `strategy_failure_memory.last_failed_at` was `NOT NULL`, while inserts only wrote `failed_at`. Extracted strategies also passed `rulesJson` to the Supabase adapter even though it expects `rules`, and rule hashing looked for `threshold` while extracted rules store the number as `value`.
+**Fix:** Insert both failure timestamps, hash `threshold ?? value`, carry proposal rules/hash/source metadata through dynamic backtests, and pass source credibility into lifecycle/gate records. Updated SQLite and Supabase research-agent schemas for Promotion Gate v2 fields and tables.
+**Verification:** `npm test` passes 34/34 when run outside the sandbox. Direct syntax checks pass for the edited ML and mock-trading modules. `npm run lint` is blocked because ESLint 9 needs `eslint.config.js`.
+**Prevention:** Keep schema migrations in lockstep with adapter writes, and include metadata propagation in backtest-result tests before promoting research-agent pipeline changes.
