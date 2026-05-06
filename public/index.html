@@ -463,6 +463,20 @@
     .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
     .suggestion-chip { background: rgba(37,99,235,0.15); border: 1px solid rgba(37,99,235,0.3); color: #60a5fa; padding: 6px 12px; border-radius: 999px; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; }
     .suggestion-chip:hover { background: rgba(37,99,235,0.25); }
+    .agent-selector {
+      background: var(--bg3);
+      color: var(--fg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .agent-selector:hover { border-color: #2563eb; }
+    .agent-selector:focus { border-color: #2563eb; }
 
     /* Empty state */
     .empty-state { text-align: center; padding: 40px 20px; color: var(--fg2); font-size: 0.9rem; }
@@ -1154,6 +1168,11 @@
         </div>
       </div>
     </div>
+
+    <!-- Source Detail Card -->
+    <div class="card" style="margin-bottom:20px;display:none;" id="ra-source-detail-card">
+      <div class="card-body" id="ra-source-detail"></div>
+    </div>
   </div>
 
   <!-- ════════════════════════════════════════════════════ -->
@@ -1456,31 +1475,35 @@
   <div class="tab-panel" id="tab-ai">
     <div class="chat-panel">
       <div class="chat-panel-header">
-        <div class="chat-panel-title">🤖 Crypto Strategist</div>
+        <div class="chat-panel-title">🤖 AI Chat</div>
+        <select id="agent-selector" class="agent-selector" onchange="onAgentChange()">
+          <option value="research">🔬 Research Agent</option>
+          <option value="support">🛠️ Support Assistant</option>
+        </select>
         <span style="font-size:0.75rem;color:var(--fg2);">Powered by Claude</span>
       </div>
       <div class="chat-panel-body" id="chat-body">
-        <div class="msg ai">
-          <strong>Crypto Trading Strategist</strong> at your service.<br><br>
-          I analyze market trends, token strength, liquidity pools, and social momentum. I can help with:
+        <div class="msg ai" id="ai-chat-greeting">
+          <strong>🔬 Research Agent</strong> at your service.<br><br>
+          I specialize in explaining and discussing the trading strategies discovered by the automated research agent. I can help with:
           <ul style="margin:8px 0 0 18px;">
-            <li>Spot & swing trading opportunities</li>
-            <li>LP opportunities on Meteora</li>
-            <li>Bear-market accumulation picks</li>
-            <li>Organic meme coin research</li>
-            <li>Risk assessment & red flags</li>
+            <li>Understanding research-backed trading strategies</li>
+            <li>Reviewing backtest results and performance metrics</li>
+            <li>Exploring promoted and top-ranked strategies</li>
+            <li>Analyzing strategy lifecycle and evolution</li>
+            <li>Discussing research sources and data feeds</li>
           </ul>
-          <div class="suggestions">
-            <span class="suggestion-chip" data-q="What is a good short today?">📉 Good short today?</span>
-            <span class="suggestion-chip" data-q="What is a good buy today?">📈 Good buy today?</span>
-            <span class="suggestion-chip" data-q="Which coin has the most crowded longs?">🎯 Most crowded longs?</span>
-            <span class="suggestion-chip" data-q="Analyze BTC trend and support levels">🔍 Analyze BTC</span>
-            <span class="suggestion-chip" data-q="Any undervalued altcoins for accumulation?">💎 Undervalued alts</span>
+          <div class="suggestions" id="ai-suggestions">
+            <span class="suggestion-chip" data-q="What are the top promoted strategies?">🏆 Top strategies</span>
+            <span class="suggestion-chip" data-q="Show me recent backtest results">📊 Recent backtests</span>
+            <span class="suggestion-chip" data-q="What research sources are available?">📡 Research sources</span>
+            <span class="suggestion-chip" data-q="How does the research agent work?">🔍 How it works</span>
+            <span class="suggestion-chip" data-q="What is the strategy lifecycle?">🔄 Strategy lifecycle</span>
           </div>
         </div>
       </div>
       <div class="chat-input-area">
-        <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask me anything about crypto..."></textarea>
+        <textarea class="chat-input" id="chat-input" rows="1" placeholder="Ask the Research Agent about trading strategies..."></textarea>
         <button class="chat-send" id="chat-send">Send</button>
       </div>
     </div>
@@ -2943,7 +2966,86 @@ document.getElementById('chart-symbol').addEventListener('change', function() {
 const chatBody = document.getElementById('chat-body');
 const chatInput = document.getElementById('chat-input');
 const chatSend = document.getElementById('chat-send');
+const agentSelector = document.getElementById('agent-selector');
 let chatHistory = [];
+let researchSessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+let currentAgent = 'research'; // 'research' or 'support'
+
+// Agent selector greeting messages
+const AGENT_GREETINGS = {
+  research: {
+    title: '🔬 Research Agent',
+    greeting: 'I specialize in explaining and discussing the trading strategies discovered by the automated research agent. I can help with:',
+    bullets: [
+      'Understanding research-backed trading strategies',
+      'Reviewing backtest results and performance metrics',
+      'Exploring promoted and top-ranked strategies',
+      'Analyzing strategy lifecycle and evolution',
+      'Discussing research sources and data feeds'
+    ],
+    suggestions: [
+      { q: 'What are the top promoted strategies?', label: '🏆 Top strategies' },
+      { q: 'Show me recent backtest results', label: '📊 Recent backtests' },
+      { q: 'What research sources are available?', label: '📡 Research sources' },
+      { q: 'How does the research agent work?', label: '🔍 How it works' },
+      { q: 'What is the strategy lifecycle?', label: '🔄 Strategy lifecycle' }
+    ],
+    placeholder: 'Ask the Research Agent about trading strategies...'
+  },
+  support: {
+    title: '🛠️ Support Assistant',
+    greeting: 'I can help you with product features, bug reports, feature suggestions, and system information. I can help with:',
+    bullets: [
+      'Testing product features and functionality',
+      'Submitting bug reports and debug information',
+      'Suggesting new product features and improvements',
+      'Checking system health and API status',
+      'Exploring the product features knowledge base'
+    ],
+    suggestions: [
+      { q: 'What features are available?', label: '📋 List features' },
+      { q: 'Check system health', label: '🩺 Health check' },
+      { q: 'Show me the system architecture', label: '🏗️ Architecture' },
+      { q: 'I want to report a bug', label: '🐛 Report bug' },
+      { q: 'Suggest a product improvement', label: '💡 Suggest feature' }
+    ],
+    placeholder: 'Ask the Support Assistant about the product...'
+  }
+};
+
+function onAgentChange() {
+  const agent = agentSelector.value;
+  currentAgent = agent;
+  const greeting = AGENT_GREETINGS[agent];
+
+  // Clear chat history when switching agents
+  chatHistory = [];
+
+  // Update greeting message
+  const greetingEl = document.getElementById('ai-chat-greeting');
+  const bulletsHtml = greeting.bullets.map(b => `<li>${b}</li>`).join('');
+  const chipsHtml = greeting.suggestions.map(s =>
+    `<span class="suggestion-chip" data-q="${s.q.replace(/"/g, '"')}">${s.label}</span>`
+  ).join('');
+
+  greetingEl.innerHTML = `
+    <strong>${greeting.title}</strong> at your service.<br><br>
+    ${greeting.greeting}
+    <ul style="margin:8px 0 0 18px;">${bulletsHtml}</ul>
+    <div class="suggestions">${chipsHtml}</div>
+  `;
+
+  // Update placeholder
+  chatInput.placeholder = greeting.placeholder;
+
+  // Clear existing messages (keep greeting)
+  const msgs = chatBody.querySelectorAll('.msg:not(#ai-chat-greeting)');
+  msgs.forEach(m => m.remove());
+
+  // Remove typing indicator if present
+  const typing = chatBody.querySelector('.typing');
+  if (typing) typing.remove();
+}
 
 chatInput.addEventListener('input', function() {
   this.style.height = 'auto';
@@ -2984,10 +3086,30 @@ async function sendMessage() {
   chatSend.disabled = true;
 
   try {
-    const res = await fetch('/api/ask', {
+    const agent = agentSelector.value;
+    let endpoint, body;
+
+    if (agent === 'research') {
+      // Research Agent Chat API
+      endpoint = '/api/research-agent-chat';
+      body = JSON.stringify({
+        question: text,
+        sessionId: researchSessionId
+      });
+    } else {
+      // Support Assistant API
+      endpoint = '/api/support-assistant';
+      body = JSON.stringify({
+        email: 'jpgyap@gmail.com',
+        question: text,
+        chatHistory: chatHistory.slice(-10)
+      });
+    }
+
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question: text, chatHistory })
+      body: body
     });
     const data = await res.json();
     typing.remove();
@@ -2995,7 +3117,32 @@ async function sendMessage() {
     const aiMsg = document.createElement('div');
     aiMsg.className = 'msg ai';
     if (data.ok) {
-      let html = data.answer
+      let answer = data.answer || 'No response.';
+      let extraInfo = '';
+
+      // Support Assistant extras
+      if (agent === 'support') {
+        if (data.bugReported) {
+          extraInfo += `\n\n✅ Debug report submitted! Bug ID: ${data.bugReportId}.`;
+        }
+        if (data.testResult) {
+          const statusIcon = data.testResult.ok ? '✅' : '❌';
+          extraInfo += `\n\n${statusIcon} Feature test result: ${data.testResult.ok ? 'Working' : 'Failed'}`;
+          if (data.testResult.error) extraInfo += `\nError: ${data.testResult.error}`;
+        }
+        if (data.bossSuggestionNoted) {
+          extraInfo += `\n\n👑 Boss suggestion noted!`;
+          if (data.bossSuggestion && data.bossSuggestion.taskId) {
+            extraInfo += ` 📋 Task #${data.bossSuggestion.taskId} created.`;
+          }
+        }
+        if (data.mlStatus) {
+          const accuracy = (data.mlStatus.accuracy * 100).toFixed(0);
+          extraInfo += `\n\n🧠 ML Engine: ${data.mlStatus.interactions} interactions | Accuracy: ${accuracy}%`;
+        }
+      }
+
+      let html = (answer + extraInfo)
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
         .replace(/`(.+?)`/g, '<code>$1</code>')
@@ -3006,7 +3153,7 @@ async function sendMessage() {
       aiMsg.innerHTML = html;
 
       chatHistory.push({ role: 'user', content: text });
-      chatHistory.push({ role: 'assistant', content: data.answer });
+      chatHistory.push({ role: 'assistant', content: answer });
       if (chatHistory.length > 12) chatHistory = chatHistory.slice(-12);
     } else {
       aiMsg.textContent = 'Error: ' + (data.error || 'Unknown error');
@@ -3137,6 +3284,7 @@ async function loadResearchAgent() {
     // Store for detail views
     raProposals = data.proposals || [];
     raBacktests = data.backtests || [];
+    raSources = data.recentSources || [];
 
     // Proposals
     const propBody = document.getElementById('ra-proposals-body');
@@ -3196,12 +3344,12 @@ async function loadResearchAgent() {
     // Sources
     const srcBody = document.getElementById('ra-sources-body');
     if (data.recentSources?.length) {
-      srcBody.innerHTML = data.recentSources.map(s => {
+      srcBody.innerHTML = data.recentSources.map((s, idx) => {
         const hints = (s.hints || []).slice(0, 3).join(', ');
         const usedBadge = s.used
           ? '<span style="background:rgba(16,185,129,0.12);color:var(--accent);padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:600;">USED</span>'
           : '<span style="background:var(--bg3);color:var(--fg2);padding:2px 6px;border-radius:4px;font-size:0.65rem;font-weight:600;">NEW</span>';
-        return `<tr>
+        return `<tr style="cursor:pointer;" onclick="showSourceDetail(${idx})" title="Click for details">
           <td style="font-weight:600;font-size:0.85rem;">${s.sourceName}</td>
           <td style="font-size:0.75rem;color:var(--fg2);">${hints || '—'}</td>
           <td>${usedBadge}</td>
@@ -4503,6 +4651,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── Enhanced Research Agent with Clickable Proposals ────
 let raProposals = [];
 let raBacktests = [];
+let raSources = [];
 
 function explainRuleInPlainEnglish(rule) {
   const featureNames = {
@@ -4592,6 +4741,30 @@ function showBacktestDetail(idx) {
   const sharpeColor = (b.sharpeRatio || 0) > 1 ? 'var(--accent)' : (b.sharpeRatio || 0) > 0 ? 'var(--accent2)' : 'var(--accent3)';
   const ddColor = (b.maxDrawdownPct || 0) < 10 ? 'var(--accent)' : (b.maxDrawdownPct || 0) < 20 ? 'var(--accent2)' : 'var(--accent3)';
 
+  // Cross-reference with proposals to get strategy description and rules
+  const matchingProposal = raProposals.find(p => p.name === b.strategyName);
+  const descriptionHtml = matchingProposal
+    ? `<div style="margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:8px;border-left:3px solid var(--accent);">
+        <strong>📖 Strategy Description:</strong>
+        <div style="margin-top:6px;color:var(--fg2);line-height:1.6;">${matchingProposal.description || 'No description available.'}</div>
+       </div>
+       <div style="margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:8px;border-left:3px solid var(--accent2);">
+        <strong>🧠 Strategy Logic:</strong>
+        <div style="margin-top:6px;color:var(--fg2);line-height:1.6;">${explainStrategyLogic(matchingProposal)}</div>
+       </div>
+       <div style="margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:8px;">
+        <strong>⚙️ Signal Rules (${(matchingProposal.rules || []).length}):</strong>
+        <ul style="margin-top:8px;padding-left:0;list-style:none;">${(matchingProposal.rules || []).map(r => {
+          const plain = explainRuleInPlainEnglish(r);
+          return `<li style="margin:4px 0;padding:6px 10px;background:var(--bg2);border-radius:6px;font-size:0.85rem;">
+            <code style="background:rgba(0,0,0,0.2);padding:2px 6px;border-radius:4px;font-size:0.75rem;">${r.feature}</code>
+            <span style="color:var(--fg2);margin-left:8px;">${plain}</span>
+            ${r.weight ? `<span style="color:var(--accent2);font-size:0.75rem;margin-left:8px;">weight: ${r.weight}</span>` : ''}
+          </li>`;
+        }).join('') || '<li style="color:var(--fg2);">No rules defined.</li>'}</ul>
+       </div>`
+    : '<div style="margin-bottom:16px;padding:12px;background:var(--bg3);border-radius:8px;color:var(--fg2);">No matching strategy proposal found — this backtest may have been run on a strategy that was later removed.</div>';
+
   // Simulate trade log view
   const tradeRows = (b.tradeLog || []).slice(0, 10).map(t => {
     const pnlColor = t.pnlPct > 0 ? 'var(--accent)' : 'var(--accent3)';
@@ -4618,6 +4791,7 @@ function showBacktestDetail(idx) {
     <div style="margin-bottom:12px;padding:10px;background:var(--bg3);border-radius:8px;border-left:3px solid ${retColor};">
       <strong>Strategy Quality:</strong> <span style="color:${retColor};">${quality}</span>
     </div>
+    ${descriptionHtml}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:16px;">
       <div style="text-align:center;padding:10px;background:var(--bg3);border-radius:8px;">
         <div style="font-size:1.4rem;font-weight:700;color:${retColor};">${b.totalReturnPct?.toFixed(2) ?? 0}%</div>
@@ -4645,6 +4819,75 @@ function showBacktestDetail(idx) {
       </div>
     </div>
     <div><strong>Recent Trades:</strong>${tradeLogHtml}</div>
+  `;
+}
+
+// ── Source Detail ──────────────────────────────────────
+function showSourceDetail(idx) {
+  const s = raSources[idx];
+  if (!s) return;
+  const el = document.getElementById('ra-source-detail');
+  const card = document.getElementById('ra-source-detail-card');
+  if (!el || !card) return;
+  card.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  const usedBadge = s.used
+    ? '<span style="background:rgba(16,185,129,0.12);color:var(--accent);padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:600;">USED</span>'
+    : '<span style="background:var(--bg3);color:var(--fg2);padding:2px 8px;border-radius:4px;font-size:0.75rem;font-weight:600;">NEW</span>';
+
+  const hintsList = (s.hints || []).length
+    ? `<ul style="margin:8px 0 0 18px;color:var(--fg2);line-height:1.7;">${(s.hints || []).map(h => `<li>${h}</li>`).join('')}</ul>`
+    : '<div style="color:var(--fg2);margin-top:6px;">No hints available.</div>';
+
+  const contentPreview = s.contentPreview
+    ? `<div style="margin-bottom:12px;padding:12px;background:var(--bg3);border-radius:8px;border-left:3px solid var(--accent2);">
+        <strong>📄 Content Preview:</strong>
+        <div style="margin-top:6px;color:var(--fg2);line-height:1.6;font-size:0.85rem;">${s.contentPreview}</div>
+       </div>`
+    : '';
+
+  const description = s.description
+    ? `<div style="margin-bottom:12px;padding:12px;background:var(--bg3);border-radius:8px;border-left:3px solid var(--accent);">
+        <strong>📖 Description:</strong>
+        <div style="margin-top:6px;color:var(--fg2);line-height:1.6;">${s.description}</div>
+       </div>`
+    : '';
+
+  const categoryBadge = s.category
+    ? `<span style="background:rgba(37,99,235,0.12);color:#60a5fa;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600;text-transform:capitalize;">${s.category}</span>`
+    : '';
+
+  const relevancePct = s.relevanceScore != null ? (s.relevanceScore * 100).toFixed(0) + '%' : '—';
+  const relevanceColor = s.relevanceScore > 0.7 ? 'var(--accent)' : s.relevanceScore > 0.4 ? 'var(--accent2)' : 'var(--fg2)';
+
+  const sourceUrl = s.sourceUrl
+    ? `<a href="${s.sourceUrl}" target="_blank" rel="noopener" style="color:#60a5fa;text-decoration:none;font-size:0.85rem;">${s.sourceUrl}</a>`
+    : '<span style="color:var(--fg2);font-size:0.85rem;">No URL</span>';
+
+  const snapshotLink = s.snapshotUrl
+    ? `<div style="margin-top:8px;"><a href="${s.snapshotUrl}" target="_blank" rel="noopener" style="color:#60a5fa;text-decoration:none;font-size:0.85rem;">📸 View Snapshot</a></div>`
+    : '';
+
+  el.innerHTML = `
+    <div style="margin-bottom:8px;font-weight:600;font-size:1.1rem;color:var(--fg);">${s.icon || '📡'} ${s.displayName || s.sourceName}</div>
+    <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      ${usedBadge}
+      ${categoryBadge}
+      <span style="font-size:0.75rem;color:${relevanceColor};">Relevance: ${relevancePct}</span>
+      <span style="font-size:0.75rem;color:var(--fg2);">${new Date(s.createdAt).toLocaleString()}</span>
+    </div>
+    ${description}
+    ${contentPreview}
+    <div style="margin-bottom:12px;padding:12px;background:var(--bg3);border-radius:8px;">
+      <strong>🔍 Source URL:</strong>
+      <div style="margin-top:6px;">${sourceUrl}</div>
+      ${snapshotLink}
+    </div>
+    <div style="padding:12px;background:var(--bg3);border-radius:8px;">
+      <strong>💡 Hints (${(s.hints || []).length}):</strong>
+      ${hintsList}
+    </div>
   `;
 }
 
