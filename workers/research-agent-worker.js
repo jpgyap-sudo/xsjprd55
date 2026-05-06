@@ -10,10 +10,11 @@ import { researchCycle } from '../lib/ml/researchAgent.js';
 import { crawlAllSources } from '../lib/ml/sourceCrawler.js';
 import { extractAndSaveFromResearch } from '../lib/ml/strategyExtractor.js';
 import { runBacktestOnProposals } from '../lib/ml/backtestEngine.js';
-import { recordMockFeedback } from '../lib/ml/feedbackLoop.js';
+import { recordMockFeedback, promoteStrategy } from '../lib/ml/feedbackLoop.js';
 import { crawlTradingViewForAllPairs } from '../lib/research/tv-crawler.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
+import { markProposalTested, upsertStrategyLifecycle } from '../lib/ml/supabase-db.js';
 
 const INTERVAL_MS = 10 * 60 * 1000;
 
@@ -146,23 +147,46 @@ export async function runResearchAgentWorker() {
     // 4. Run backtests on untested proposals across multiple symbols
     const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'DOGEUSDT'];
     let totalBacktested = 0;
+    const allTestedIds = new Set();
     try {
       const { runBacktestOnProposals } = await import('../lib/ml/backtestEngine.js');
       for (const sym of symbols) {
         const btResult = await runBacktestOnProposals(sym, 100);
         totalBacktested += btResult.results?.length || 0;
+        // Track proposal IDs for marking tested after all symbols complete
+        for (const id of btResult.proposalIds || []) {
+          allTestedIds.add(id);
+        }
         // Promote top performers immediately
         for (const r of btResult.results || []) {
           if (r.totalTrades >= 5 && r.winRate >= 0.54) {
             try {
-              const { promoteStrategy } = await import('../lib/ml/feedbackLoop.js');
               await promoteStrategy(r.strategyName, { winRate: r.winRate, totalReturnPct: r.totalReturnPct, trades: r.totalTrades });
               logger.info(`[RESEARCH-WORKER] Auto-promoted ${r.strategyName} — ${(r.winRate*100).toFixed(0)}% WR, ${r.totalTrades} trades`);
+              // Track lifecycle for promoted strategies
+              try {
+                await upsertStrategyLifecycle({
+                  strategyName: r.strategyName,
+                  status: 'promoted',
+                  historicalBacktestScore: r.winRate || 0,
+                  mockTradingScore: 0,
+                  approvedForMock: true,
+                });
+              } catch (e) {}
             } catch (e) {}
           }
         }
       }
-      logger.info(`[RESEARCH-WORKER] Backtested ${totalBacktested} proposals across ${symbols.length} symbols`);
+      // Mark all proposals as tested AFTER all symbols complete
+      for (const id of allTestedIds) {
+        try {
+          await markProposalTested(id);
+        } catch (e) {
+          const { db } = await import('../lib/ml/db.js');
+          db.prepare(`UPDATE strategy_proposals SET tested = 1 WHERE id = ?`).run(id);
+        }
+      }
+      logger.info(`[RESEARCH-WORKER] Backtested ${totalBacktested} proposals across ${symbols.length} symbols, marked ${allTestedIds.size} as tested`);
     } catch (e) {
       logger.warn(`[RESEARCH-WORKER] Backtest cycle failed: ${e.message}`);
     }
