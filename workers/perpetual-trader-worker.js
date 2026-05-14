@@ -2,12 +2,14 @@
 // Perpetual Trader Worker — Signal-driven paper trading engine
 // Polls for new signals, opens perpetual trades, monitors SL/TP.
 // Runs every 60s on VPS via PM2.
+// Wired to Central Brain for risk gate checks.
 // ============================================================
 
 import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
 import { openPerpetualTrade, monitorPerpetualTrades, resetDailyStats } from '../lib/perpetual-trader/engine.js';
 import { isMainModule } from '../lib/entrypoint.js';
+import { brainRiskCheck, logAgentEvent } from '../lib/brain-integration.js';
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -76,6 +78,35 @@ async function pollAndTrade() {
           results.skipped++;
           continue;
         }
+
+        // ── Central Brain Risk Gate ──────────────────────────
+        const riskCheck = await brainRiskCheck({
+          symbol: signal.symbol,
+          timeframe: signal.timeframe || '15m',
+          side: signal.side,
+          mode: process.env.TRADING_MODE || 'paper'
+        });
+
+        if (!riskCheck.approved) {
+          results.skipped++;
+          logger.info(`[perp-worker] Brain BLOCKED ${signal.symbol}: ${riskCheck.verdict} (conf=${riskCheck.confidence?.toFixed(2)})`);
+          await logAgentEvent('perpetual_trader', 'brain_blocked_trade', {
+            signal_id: signal.id,
+            symbol: signal.symbol,
+            verdict: riskCheck.verdict,
+            confidence: riskCheck.confidence
+          });
+          // Don't permanently skip — brain may approve later
+          continue;
+        }
+
+        await logAgentEvent('perpetual_trader', 'brain_approved_trade', {
+          signal_id: signal.id,
+          symbol: signal.symbol,
+          confidence: riskCheck.confidence,
+          verdict: riskCheck.verdict
+        });
+        // ── End Brain Risk Gate ─────────────────────────────
 
         const result = await openPerpetualTrade(signal);
         if (result.ok) {

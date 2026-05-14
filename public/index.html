@@ -1189,6 +1189,15 @@
       <div class="stat-item"><div class="stat-label">Open Positions</div><div class="stat-value" id="mt-open">—</div></div>
     </div>
 
+    <!-- Account Selector -->
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+      <label style="font-size:0.85rem;color:var(--fg2);font-weight:600;">Account:</label>
+      <select id="mt-account-selector" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:0.9rem;cursor:pointer;min-width:200px;" onchange="onMockAccountChange()">
+        <option value="">All Accounts</option>
+      </select>
+      <span style="font-size:0.75rem;color:var(--fg2);" id="mt-account-info"></span>
+    </div>
+
     <div class="grid grid-2">
       <!-- Open Trades -->
       <div class="card" style="margin-bottom:20px;">
@@ -1197,7 +1206,7 @@
           <div id="mt-open-loading" style="text-align:center;padding:20px;color:var(--fg2);">Loading...</div>
           <div id="mt-open-content" style="display:none;">
             <table class="signal-table">
-              <thead><tr><th>Symbol</th><th>Side</th><th>Opened</th><th>Entry</th><th>Size</th><th>Margin</th><th>Lev</th><th>SL</th><th>TP</th></tr></thead>
+              <thead><tr><th>Symbol</th><th>Side</th><th>Opened</th><th>Entry</th><th>Size</th><th>Margin</th><th>Lev</th><th>SL</th><th>TP</th><th>Reason</th><th>Quality</th></tr></thead>
               <tbody id="mt-open-body"></tbody>
             </table>
           </div>
@@ -1226,6 +1235,28 @@
             <thead><tr><th>Strategy</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>Total PnL</th><th>Avg Return</th></tr></thead>
             <tbody id="mt-strat-body"></tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily PnL Chart -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span>📅 Daily PnL (Last 30 Days)</span></div>
+      <div class="card-body" style="padding:0;">
+        <div id="mt-daily-loading" style="text-align:center;padding:20px;color:var(--fg2);">Loading...</div>
+        <div id="mt-daily-content" style="display:none;padding:16px;">
+          <div id="mt-daily-chart" style="display:flex;align-items:flex-end;gap:3px;height:120px;padding:0 8px;overflow-x:auto;"></div>
+          <div style="display:flex;justify-content:space-between;margin-top:6px;padding:0 8px;">
+            <span style="font-size:0.65rem;color:var(--fg2);" id="mt-daily-start"></span>
+            <span style="font-size:0.65rem;color:var(--fg2);" id="mt-daily-end"></span>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:8px;padding:0 8px;flex-wrap:wrap;">
+            <span style="font-size:0.75rem;color:var(--fg2);">Winning Days: <strong id="mt-daily-wins" style="color:var(--accent);">—</strong></span>
+            <span style="font-size:0.75rem;color:var(--fg2);">Losing Days: <strong id="mt-daily-losses" style="color:var(--accent3);">—</strong></span>
+            <span style="font-size:0.75rem;color:var(--fg2);">Best Day: <strong id="mt-daily-best" style="color:var(--accent);">—</strong></span>
+            <span style="font-size:0.75rem;color:var(--fg2);">Worst Day: <strong id="mt-daily-worst" style="color:var(--accent3);">—</strong></span>
+            <span style="font-size:0.75rem;color:var(--fg2);">Avg Day: <strong id="mt-daily-avg">—</strong></span>
+          </div>
         </div>
       </div>
     </div>
@@ -3397,9 +3428,20 @@ loadResearchAgent();
 setInterval(loadResearchAgent, 60000);
 
 // ── Mock Trading ─────────────────────────────────────
+let mtSelectedAccountId = null;
+
+function onMockAccountChange() {
+  const sel = document.getElementById('mt-account-selector');
+  mtSelectedAccountId = sel.value;
+  loadMockTrading();
+}
+
 async function loadMockTrading() {
   try {
-    const res = await fetch('/api/mock-trading-dashboard');
+    const url = mtSelectedAccountId
+      ? '/api/mock-trading-dashboard?accountId=' + encodeURIComponent(mtSelectedAccountId)
+      : '/api/mock-trading-dashboard';
+    const res = await fetch(url);
     const data = await res.json();
     if (!data.ok) throw new Error(data.error);
 
@@ -3446,14 +3488,34 @@ async function loadMockTrading() {
     document.getElementById('mt-trades').textContent = summary.totalTrades ?? '—';
     document.getElementById('mt-open').textContent = summary.openTradeCount ?? '—';
 
+    // Account selector
+    const accSel = document.getElementById('mt-account-selector');
+    if (data.accounts?.length) {
+      const currentVal = accSel.value;
+      accSel.innerHTML = '<option value="">All Accounts</option>' +
+        data.accounts.map(a =>
+          `<option value="${a.id}" ${String(a.id) === String(currentVal) ? 'selected' : ''}>${a.name} ($${Number(a.balance || 0).toLocaleString()})</option>`
+        ).join('');
+      const infoEl = document.getElementById('mt-account-info');
+      if (acc.name) {
+        infoEl.textContent = `Selected: ${acc.name} · Start: $${Number(acc.startBalance || 0).toLocaleString()} · Return: ${ret}`;
+      }
+    }
+
     // Open trades
     const openLoading = document.getElementById('mt-open-loading');
     const openContent = document.getElementById('mt-open-content');
     const openBody = document.getElementById('mt-open-body');
     if (openLoading) openLoading.style.display = 'none';
     if (data.openTrades?.length) {
-      openBody.innerHTML = data.openTrades.map(t => `
-        <tr>
+      openBody.innerHTML = data.openTrades.map(t => {
+        const reason = t.entryReason || '—';
+        const quality = t.qualityScore != null ? t.qualityScore : null;
+        const qualityColor = quality >= 0.7 ? 'var(--accent)' : quality >= 0.4 ? 'var(--accent2)' : 'var(--accent3)';
+        const qualityBadge = quality != null
+          ? `<span style="color:${qualityColor};font-weight:700;">${(quality * 100).toFixed(0)}%</span>`
+          : '<span style="color:var(--fg2);font-size:0.75rem;">—</span>';
+        return `<tr>
           <td><strong>${t.symbol}</strong><br><span style="font-size:0.75rem;color:var(--fg2);">${t.strategy || '—'}</span></td>
           <td><span class="side-badge ${(t.side || '').toUpperCase() === 'LONG' ? 'side-long' : 'side-short'}">${(t.side || '').toUpperCase()}</span></td>
           <td style="font-size:0.75rem;color:var(--fg2);">${fmtTime(t.openedAt)}<br>${fmtDuration(t.ageMinutes)} open</td>
@@ -3463,11 +3525,13 @@ async function loadMockTrading() {
           <td style="font-size:0.85rem;">${t.leverage}x</td>
           <td style="font-size:0.8rem;color:var(--accent3);">${fmtPrice(t.stopLoss)}</td>
           <td style="font-size:0.8rem;color:var(--accent);">${fmtPrice(t.takeProfit)}</td>
-        </tr>
-      `).join('');
+          <td style="font-size:0.72rem;color:var(--fg2);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${reason}">${reason}</td>
+          <td style="text-align:center;">${qualityBadge}</td>
+        </tr>`;
+      }).join('');
       openContent.style.display = 'block';
     } else {
-      openBody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--fg2);padding:16px;">No open positions.</td></tr>';
+      openBody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:var(--fg2);padding:16px;">No open positions.</td></tr>';
       openContent.style.display = 'block';
     }
 
@@ -3533,6 +3597,50 @@ async function loadMockTrading() {
     const avgEl = document.getElementById('mt-avg');
     avgEl.textContent = avg != null ? avg.toFixed(2) + '%' : '—';
     avgEl.style.color = avg > 0 ? 'var(--accent)' : avg < 0 ? 'var(--accent3)' : 'var(--fg2)';
+
+    // Daily PnL Chart
+    const dailyLoading = document.getElementById('mt-daily-loading');
+    const dailyContent = document.getElementById('mt-daily-content');
+    const dailyChart = document.getElementById('mt-daily-chart');
+    if (data.dailyPnl?.length) {
+      const bars = data.dailyPnl.slice(-30);
+      const maxAbs = Math.max(...bars.map(b => Math.abs(b.pnl || 0)), 1);
+      const halfMax = maxAbs / 2;
+      dailyChart.innerHTML = bars.map(b => {
+        const pnl = b.pnl || 0;
+        const pct = (Math.abs(pnl) / maxAbs) * 100;
+        const height = Math.max(3, pct);
+        const isGreen = pnl >= 0;
+        const color = isGreen ? 'var(--accent)' : 'var(--accent3)';
+        const dateLabel = b.date ? new Date(b.date + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '—';
+        return `<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:28px;" title="${dateLabel}: $${pnl.toLocaleString(undefined, { maximumFractionDigits: 0 })}">
+          <div style="width:20px;height:${height}px;background:${color};border-radius:3px 3px 0 0;opacity:0.85;transition:height 0.3s;"></div>
+          <span style="font-size:0.55rem;color:var(--fg2);margin-top:2px;white-space:nowrap;">${dateLabel}</span>
+        </div>`;
+      }).join('');
+      const winningDays = bars.filter(b => (b.pnl || 0) > 0).length;
+      const losingDays = bars.filter(b => (b.pnl || 0) < 0).length;
+      const bestDay = Math.max(...bars.map(b => b.pnl || 0), 0);
+      const worstDay = Math.min(...bars.map(b => b.pnl || 0), 0);
+      const avgDay = bars.reduce((s, b) => s + (b.pnl || 0), 0) / bars.length;
+      document.getElementById('mt-daily-wins').textContent = winningDays;
+      document.getElementById('mt-daily-losses').textContent = losingDays;
+      document.getElementById('mt-daily-best').textContent = bestDay > 0 ? '+$' + Number(bestDay).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
+      document.getElementById('mt-daily-worst').textContent = worstDay < 0 ? '-$' + Math.abs(Number(worstDay)).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
+      document.getElementById('mt-daily-avg').textContent = avgDay >= 0 ? '+$' + Number(avgDay).toLocaleString(undefined, { maximumFractionDigits: 0 }) : '-$' + Math.abs(Number(avgDay)).toLocaleString(undefined, { maximumFractionDigits: 0 });
+      if (bars.length) {
+        document.getElementById('mt-daily-start').textContent = bars[0]?.date || '';
+        document.getElementById('mt-daily-end').textContent = bars[bars.length - 1]?.date || '';
+      }
+      if (dailyLoading) dailyLoading.style.display = 'none';
+      if (dailyContent) dailyContent.style.display = 'block';
+    } else {
+      if (dailyLoading) dailyLoading.style.display = 'none';
+      if (dailyContent) {
+        dailyContent.style.display = 'block';
+        dailyChart.innerHTML = '<div style="text-align:center;padding:20px;color:var(--fg2);font-size:0.85rem;">No daily PnL data yet.</div>';
+      }
+    }
 
     // RL Decision (async, non-blocking)
     try {
