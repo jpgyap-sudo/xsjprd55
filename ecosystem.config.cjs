@@ -531,6 +531,28 @@ module.exports = {
       restart_delay: 3000,
       max_restarts: 10,
       min_uptime: '10s'
+    },
+    {
+      name: 'simulation-learning-worker',
+      script: './workers/simulation-learning-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps',
+        ENABLE_SIMULATION_LEARNING: 'true',
+        SIMULATION_LEARNING_INTERVAL_MS: '1800000'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/sim-learning-combined.log',
+      out_file: './logs/sim-learning-out.log',
+      error_file: './logs/sim-learning-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
     }
   ]
 };

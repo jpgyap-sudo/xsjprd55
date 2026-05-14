@@ -8,6 +8,7 @@
     "dev": "node server.js",
     "build": "echo 'No build step required'",
     "test": "node --test test",
+    "test:advisor": "node --test test/advisor.test.mjs",
     "test:perpetual": "node scripts/test-perpetual-trader-smoke.mjs",
     "verify:perpetual": "node scripts/verify-perpetual-trader.mjs",
     "lint": "eslint .",
@@ -16,7 +17,8 @@
     "api-debugger": "node workers/api-debugger-worker.js --once",
     "api-debugger:watch": "node workers/api-debugger-worker.js",
     "bug-hunter": "node workers/bug-hunter-worker.js --once",
-    "bug-hunter:watch": "node workers/bug-hunter-worker.js"
+    "bug-hunter:watch": "node workers/bug-hunter-worker.js",
+    "simulation-learning": "node workers/simulation-learning-worker.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

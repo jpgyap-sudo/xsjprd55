@@ -1,6 +1,7 @@
 // ============================================================
 // Telegram Webhook Handler — /api/telegram
 // Commands: /signal, /market, /status, /scan, /close, /test, /help, /ai
+// Advisor: /ask, /strategy, /risk, /backtest, /analyze
 // AI Chat: directed non-command text (mention/reply/DM) is routed to Claude
 // Callbacks: sig_confirm, sig_dismiss, trade_close
 // ============================================================
@@ -16,6 +17,8 @@ import { scanNewsSignals } from '../lib/news-signal.js';
 import { getPatternStats } from '../lib/pattern-learner.js';
 import { runLearningLoop } from '../lib/learning-loop.js';
 import { getSources } from '../lib/data-source-manager.js';
+import { runAdvisor } from '../lib/advisor/runAdvisor.js';
+import { runOpenClaw, checkOpenClaw } from '../lib/openclaw.js';
 
 const GROUP_ID = process.env.TELEGRAM_GROUP_CHAT_ID;
 const ADMIN_ID = process.env.TELEGRAM_ADMIN_USER_ID;
@@ -457,11 +460,151 @@ async function cmdPatterns(args, chatId) {
   }
 }
 
+// ── Advisor Commands ────────────────────────────────────────
+
+async function cmdStrategy(args, chatId) {
+  const symbol = (args[0] || '').toUpperCase();
+  const timeframe = args[1] || '1h';
+  if (!symbol) {
+    return sendTelegram(chatId, '📊 *Strategy Analysis*\nUsage: `/strategy SYMBOL [timeframe]`\nExample: `/strategy BTCUSDT 4h`');
+  }
+  try {
+    await sendTelegram(chatId, `🧠 Analyzing ${symbol} ${timeframe}...`);
+    const result = await runAdvisor({
+      symbol,
+      timeframe,
+      intent: 'strategy',
+      source: 'telegram'
+    });
+    const r = result.report;
+    const biasEmoji = r.bias === 'long' ? '🟢' : r.bias === 'short' ? '🔴' : r.bias === 'neutral' ? '⚪' : '🚫';
+    let msg = `${biasEmoji} *Strategy: ${symbol}* (${timeframe})\n\n`;
+    msg += `*Bias:* ${r.bias.toUpperCase()}\n`;
+    msg += `*Confidence:* ${(r.confidence * 100).toFixed(0)}%\n`;
+    msg += `*Risk Score:* ${(r.risk_score * 100).toFixed(0)}%\n\n`;
+    if (r.entry_zone?.from && r.entry_zone?.to) {
+      msg += `*Entry Zone:* $${r.entry_zone.from} – $${r.entry_zone.to}\n`;
+    }
+    if (r.stop_loss) msg += `*Stop Loss:* $${r.stop_loss}\n`;
+    if (r.take_profits?.length) {
+      msg += `*Take Profits:* ${r.take_profits.map(tp => `$${tp}`).join(', ')}\n`;
+    }
+    if (r.reasons?.length) {
+      msg += `\n*Reasons:*\n${r.reasons.map(rs => `• ${rs}`).join('\n')}\n`;
+    }
+    if (r.warnings?.length) {
+      msg += `\n⚠️ *Warnings:*\n${r.warnings.map(w => `• ${w}`).join('\n')}\n`;
+    }
+    msg += `\n_${r.disclaimer || 'Advisor only. Not financial advice.'}_`;
+    return sendTelegram(chatId, msg);
+  } catch (e) {
+    return sendTelegram(chatId, `❌ Strategy analysis failed: ${e.message}`);
+  }
+}
+
+async function cmdRisk(args, chatId) {
+  const symbol = (args[0] || '').toUpperCase();
+  if (!symbol) {
+    return sendTelegram(chatId, '🛡️ *Risk Assessment*\nUsage: `/risk SYMBOL`\nExample: `/risk ETHUSDT`');
+  }
+  try {
+    await sendTelegram(chatId, `🛡️ Assessing risk for ${symbol}...`);
+    const result = await runAdvisor({
+      symbol,
+      timeframe: '1h',
+      intent: 'risk',
+      source: 'telegram'
+    });
+    const r = result.report;
+    const riskLevel = r.risk_score > 0.7 ? '🔴 HIGH' : r.risk_score > 0.4 ? '🟡 MEDIUM' : '🟢 LOW';
+    let msg = `🛡️ *Risk Assessment: ${symbol}*\n\n`;
+    msg += `*Risk Score:* ${(r.risk_score * 100).toFixed(0)}% — ${riskLevel}\n`;
+    msg += `*Bias:* ${r.bias.toUpperCase()}\n`;
+    msg += `*Confidence:* ${(r.confidence * 100).toFixed(0)}%\n\n`;
+    if (r.warnings?.length) {
+      msg += `*Risk Factors:*\n${r.warnings.map(w => `• ${w}`).join('\n')}\n\n`;
+    }
+    msg += `_${r.disclaimer || 'Advisor only. Not financial advice.'}_`;
+    return sendTelegram(chatId, msg);
+  } catch (e) {
+    return sendTelegram(chatId, `❌ Risk assessment failed: ${e.message}`);
+  }
+}
+
+async function cmdBacktest(args, chatId) {
+  const symbol = (args[0] || '').toUpperCase();
+  if (!symbol) {
+    return sendTelegram(chatId, '📜 *Backtest Summary*\nUsage: `/backtest SYMBOL`\nExample: `/backtest PEPEUSDT`');
+  }
+  try {
+    await sendTelegram(chatId, `📜 Fetching backtest memory for ${symbol}...`);
+    const { data: backtests } = await supabase
+      .from('strategy_backtests')
+      .select('*')
+      .eq('symbol', symbol)
+      .order('created_at', { ascending: false })
+      .limit(5);
+    if (!backtests?.length) {
+      return sendTelegram(chatId, `📭 No backtest data for ${symbol}. Run research agent first.`);
+    }
+    let msg = `📜 *Backtest Memory: ${symbol}*\n\n`;
+    for (const b of backtests) {
+      const wr = b.win_rate ? `${(b.win_rate * 100).toFixed(0)}%` : 'N/A';
+      const pf = b.profit_factor ? b.profit_factor.toFixed(2) : 'N/A';
+      msg += `*${b.timeframe}* — ${b.trades_count} trades\n`;
+      msg += `Win Rate: ${wr} | Profit Factor: ${pf}\n`;
+      if (b.max_drawdown) msg += `Max DD: ${(b.max_drawdown * 100).toFixed(0)}%\n`;
+      msg += '\n';
+    }
+    return sendTelegram(chatId, msg);
+  } catch (e) {
+    return sendTelegram(chatId, `❌ Backtest fetch failed: ${e.message}`);
+  }
+}
+
+async function cmdAnalyze(args, chatId) {
+  const prompt = args.join(' ').trim();
+  if (!prompt) {
+    return sendTelegram(chatId, '🔎 *AI Analysis*\nUsage: `/analyze QUESTION`\nExample: `/analyze What is the market structure of BTC?`\n\nUses OpenClaw AI for deep analysis.');
+  }
+  try {
+    // Check if OpenClaw is available
+    const ocStatus = checkOpenClaw();
+    if (!ocStatus.available) {
+      // Fall back to askAI
+      await sendTelegram(chatId, '🔎 OpenClaw not available, using AI advisor...');
+      const result = await askAI({ question: prompt });
+      if (!result.ok) return sendTelegram(chatId, `❌ AI error: ${result.error}`);
+      const chunks = result.answer.match(/[\s\S]{1,4000}/g) || [result.answer];
+      for (const chunk of chunks) await sendTelegram(chatId, chunk);
+      return;
+    }
+    await sendTelegram(chatId, '🔎 Running OpenClaw analysis...');
+    const output = runOpenClaw(prompt, { type: 'analysis', timeout: 30000 });
+    const chunks = output.match(/[\s\S]{1,4000}/g) || [output];
+    for (const chunk of chunks) await sendTelegram(chatId, chunk);
+  } catch (e) {
+    // Fallback to askAI
+    try {
+      const result = await askAI({ question: prompt });
+      if (!result.ok) return sendTelegram(chatId, `❌ Analysis failed: ${e.message}`);
+      const chunks = result.answer.match(/[\s\S]{1,4000}/g) || [result.answer];
+      for (const chunk of chunks) await sendTelegram(chatId, chunk);
+    } catch (e2) {
+      return sendTelegram(chatId, `❌ Analysis failed: ${e.message}`);
+    }
+  }
+}
+
 async function cmdHelp(chatId) {
   const msg =
     `*Available Commands*\n\n` +
-    `🤖 *AI Advisor*\n` +
+    `🧠 *AI Consultant*\n` +
     `/ask QUESTION — Ask the AI anything (e.g. "/ask good short today?")\n` +
+    `/strategy SYMBOL [TF] — Full strategy analysis (e.g. "/strategy BTCUSDT 4h")\n` +
+    `/risk SYMBOL — Risk assessment for a symbol\n` +
+    `/backtest SYMBOL — Backtest memory for a symbol\n` +
+    `/analyze QUESTION — Deep AI analysis via OpenClaw\n` +
     `Or just type any message without a "/" — the AI will reply!\n\n` +
     `📰 *News Signals*\n` +
     `/news — Latest crypto headlines with sentiment\n` +
@@ -615,6 +758,10 @@ export default async function handler(req, res) {
       case '/help':         await cmdHelp(chatId); break;
       case '/start':        await cmdHelp(chatId); break;
       case '/ask':          await cmdAsk(args, chatId, userId, sender); break;
+      case '/strategy':     await cmdStrategy(args, chatId); break;
+      case '/risk':         await cmdRisk(args, chatId); break;
+      case '/backtest':     await cmdBacktest(args, chatId); break;
+      case '/analyze':      await cmdAnalyze(args, chatId); break;
       case '/suggestions':  await cmdSuggestions(chatId); break;
       case '/learn':        await cmdLearn(chatId); break;
       case '/sources':      await cmdSources(chatId); break;
