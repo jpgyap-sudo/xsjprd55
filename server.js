@@ -93,20 +93,25 @@ function discoverRoutes(dir, prefix = '') {
 // Auto-discover API routes (flat + nested)
 const apiRoutes = discoverRoutes(apiDir);
 for (const { route, file } of apiRoutes) {
-  app.all(route, async (req, res) => {
-    try {
-      const handler = await loadHandler(file);
-      if (!handler) {
-        return res.status(404).json({ error: 'Handler not found' });
+  // Register exact route AND wildcard so sub-paths (e.g. /api/brain/health) reach the handler
+  const registerRoute = (pattern) => {
+    app.all(pattern, async (req, res) => {
+      try {
+        const handler = await loadHandler(file);
+        if (!handler) {
+          return res.status(404).json({ error: 'Handler not found' });
+        }
+        await handler(req, res);
+      } catch (e) {
+        console.error(`[server] Error in ${route}:`, e);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Internal server error', message: e.message });
+        }
       }
-      await handler(req, res);
-    } catch (e) {
-      console.error(`[server] Error in ${route}:`, e);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Internal server error', message: e.message });
-      }
-    }
-  });
+    });
+  };
+  registerRoute(route);
+  registerRoute(`${route}/*`);
 }
 
 // Health check at root (optional)
