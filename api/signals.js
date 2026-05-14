@@ -8,6 +8,7 @@ import { config } from '../lib/config.js';
 import { logger } from '../lib/logger.js';
 import { extractPattern } from '../lib/pattern-learner.js';
 import { fetchOHLCV } from '../lib/exchange.js';
+import { enrichSignalWithBrain, logAgentEvent } from '../lib/brain-integration.js';
 import {
   validateSignal, buildSignal, formatSignalMessage,
   checkRiskGates, logAudit
@@ -262,6 +263,33 @@ export default async function handler(req, res) {
             if (saveErr) {
               results.errors.push({ pair, tf, error: saveErr.message });
               continue;
+            }
+
+            // Enrich signal with Central Brain scoring (non-blocking)
+            try {
+              const enriched = await enrichSignalWithBrain(saved);
+              if (enriched.brain_confidence !== undefined) {
+                await supabase.from('signals')
+                  .update({
+                    brain_confidence: enriched.brain_confidence,
+                    brain_side: enriched.brain_side,
+                    brain_risk_verdict: enriched.brain_risk_verdict,
+                    brain_explanation: enriched.brain_explanation,
+                    brain_score_breakdown: enriched.brain_score_breakdown,
+                    brain_risk_gates: enriched.brain_risk_gates,
+                    brain_generated_at: enriched.brain_generated_at
+                  })
+                  .eq('id', saved.id);
+                Object.assign(saved, enriched);
+                await logAgentEvent('signal_generator', 'brain_enrichment', {
+                  signal_id: saved.id,
+                  symbol: saved.symbol,
+                  brain_confidence: enriched.brain_confidence,
+                  brain_risk_verdict: enriched.brain_risk_verdict
+                });
+              }
+            } catch (brainErr) {
+              logger.warn('[SIGNALS] Brain enrichment failed:', brainErr.message);
             }
 
             // Extract pattern for learning (non-blocking)

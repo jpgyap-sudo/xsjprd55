@@ -466,6 +466,50 @@ module.exports = {
       restart_delay: 3000,
       max_restarts: 10,
       min_uptime: '10s'
+    },
+    {
+      name: 'trading-brain-worker',
+      script: './workers/brain-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps',
+        BRAIN_SCAN_INTERVAL_MS: '300000',
+        BRAIN_SYMBOLS: 'BTCUSDT,ETHUSDT',
+        BRAIN_TIMEFRAMES: '15m,1h,4h'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/brain-combined.log',
+      out_file: './logs/brain-out.log',
+      error_file: './logs/brain-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
+    },
+    {
+      name: 'trading-learning-worker',
+      script: './workers/learning-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps',
+        BRAIN_LEARNING_INTERVAL_MS: '86400000'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/brain-learning-combined.log',
+      out_file: './logs/brain-learning-out.log',
+      error_file: './logs/brain-learning-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
     }
   ]
 };

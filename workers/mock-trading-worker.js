@@ -11,6 +11,7 @@ import { getOrCreateMockAccount, openMockTrade, closeMockTrade } from '../lib/mo
 import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
 import { fetchPublicPrice } from '../lib/market-price.js';
 import { isMainModule } from '../lib/entrypoint.js';
+import { brainRiskCheck, logAgentEvent } from '../lib/brain-integration.js';
 
 const INTERVAL_MS = 3 * 60 * 1000;
 
@@ -71,6 +72,38 @@ export async function runMockTradingWorker() {
       if (!signal) continue;
 
       const normalizedSide = (signal.side || '').toLowerCase();
+
+      // Run Central Brain risk gate before opening trade
+      try {
+        const riskCheck = await brainRiskCheck({
+          symbol: signal.symbol,
+          timeframe: signal.timeframe || '15m',
+          side: normalizedSide,
+          mode: process.env.TRADING_MODE || 'paper'
+        });
+
+        if (!riskCheck.approved) {
+          logger.info(`[MOCK-WORKER] Brain blocked ${signal.symbol} ${normalizedSide}: ${riskCheck.verdict}`);
+          await logAgentEvent('mock_trading', 'brain_blocked_trade', {
+            symbol: signal.symbol,
+            side: normalizedSide,
+            verdict: riskCheck.verdict,
+            confidence: riskCheck.confidence
+          });
+          continue;
+        }
+
+        // Log brain approval
+        await logAgentEvent('mock_trading', 'brain_approved_trade', {
+          symbol: signal.symbol,
+          side: normalizedSide,
+          brain_confidence: riskCheck.confidence,
+          brain_verdict: riskCheck.verdict
+        });
+      } catch (brainErr) {
+        logger.warn(`[MOCK-WORKER] Brain risk check failed for ${signal.symbol}: ${brainErr.message}`);
+        // Fall through — allow trade if brain is unavailable
+      }
 
       // Dedup by open position for this symbol (any side)
       const { data: existing } = await supabase

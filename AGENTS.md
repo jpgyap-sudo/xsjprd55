@@ -83,6 +83,16 @@ Responsibilities:
 - Confirm cron jobs run on schedule (signal scans, heartbeat checks)
 - Set up uptime monitoring for signal feeders and Telegram delivery
 
+**Supabase CLI Access:**
+The Supabase CLI (v2.98.2) is installed and linked to project `nqcgnwpfxnbtdrvtkwej` on the local dev machine. Use it for:
+- `supabase db remote commit` — pull latest remote schema into `supabase/migrations/`
+- `supabase db push` — push local migrations to remote
+- `supabase db diff` — compare local vs remote schema
+- `supabase gen types typescript --local` — generate TypeScript types
+- `supabase start` — start local Supabase stack (requires Docker)
+
+Credentials are in `.env` (sourced from VPS production). The access token is stored via `supabase login`.
+
 **Runbooks:**
 - If signal cron fails 2 times → alert admin
 - If Telegram webhook returns 4xx/5xx → auto-retry with exponential backoff
@@ -362,6 +372,93 @@ Every signal broadcast to Telegram must conform to:
 
 ---
 
+## Secondary Agent: Trading Central Brain
+
+**Scope:** Centralized decision layer that connects all agents and signal sources.
+
+**Responsibilities:**
+- Run the brain pipeline: buildSignalContext → scoreStrategy → runRiskGate → explainDecision → saveSignalMemory
+- Score strategies using weighted composite (EMA 30%, RSI 25%, Volume 15%, Liquidation 15%, News 15%)
+- Enforce risk gates: stale data, low confidence, market health, news conflicts, live mode authorization
+- Explain decisions via local logic or AI providers (Kimi, Claude, OpenAI)
+- Save every decision to `brain_signal_memory` for audit and learning
+- Run learning cycles to analyze past decisions and update strategy weights
+- Flag underperforming strategies (win rate < 40%) for review
+
+**Brain Pipeline Flow:**
+```
+Input (symbol, timeframe, mode)
+  │
+  ▼
+buildSignalContext()  ──► market-memory.js (market_cache)
+  │                        liquidation-agent.js (liquidation_cache/events)
+  │                        news-sentiment-agent.js (social_intel/news_articles)
+  │
+  ▼
+scoreStrategy()       ──► Composite score with weighted breakdown
+  │
+  ▼
+runRiskGate()         ──► 5 gates: stale_data, low_confidence, market_health, news_conflict, live_mode
+  │
+  ▼
+explainDecision()     ──► model-router.js (local/kimi/claude/openai)
+  │
+  ▼
+saveSignalMemory()    ──► brain_signal_memory table
+```
+
+**Brain Database Tables:**
+| Table | Purpose |
+|-------|---------|
+| `brain_signal_memory` | Every brain decision with context, score, and risk verdict |
+| `brain_events` | Telemetry log of all brain activity |
+| `brain_learning_reports` | Learning cycle reports with strategy suggestions |
+| `brain_strategy_weights` | Adaptive weights per strategy/symbol/timeframe |
+
+**Brain Workers (PM2):**
+- `trading-brain-worker` — Scans BRAIN_SYMBOLS × BRAIN_TIMEFRAMES every BRAIN_SCAN_INTERVAL_MS
+- `trading-learning-worker` — Runs learning cycle every BRAIN_LEARNING_INTERVAL_MS
+
+**Brain API Endpoints:**
+- `GET /api/brain/health` — Brain health check
+- `POST /api/brain/signal` — Run brain for a symbol+timeframe
+- `POST /api/brain/learn` — Run learning cycle
+
+**Brain Configuration (`.env`):**
+```env
+BRAIN_SCAN_INTERVAL_MS=300000
+BRAIN_LEARNING_INTERVAL_MS=86400000
+BRAIN_SYMBOLS=BTCUSDT,ETHUSDT
+BRAIN_TIMEFRAMES=15m,1h,4h
+BRAIN_AI_PROVIDER=local
+BRAIN_LIVE_MODE=false
+```
+
+**Brain Library Files:**
+| File | Purpose |
+|------|---------|
+| `lib/brain/brain-router.js` | Main orchestrator — runs the full pipeline |
+| `lib/brain/signal-context-builder.js` | Fetches market, liquidation, news in parallel |
+| `lib/brain/market-memory.js` | Market data queries + signal memory persistence |
+| `lib/brain/strategy-scorer.js` | Composite score calculation |
+| `lib/brain/risk-gate.js` | 5 safety gates |
+| `lib/brain/model-router.js` | AI explanation routing (local/kimi/claude/openai) |
+| `lib/brain/liquidation-agent.js` | Liquidation context from existing tables |
+| `lib/brain/news-sentiment-agent.js` | News/social sentiment from existing tables |
+| `lib/brain/learning-engine.js` | Learning cycle — win rates, suggestions, weight updates |
+| `lib/brain/backtest-memory.js` | Backtest result summarization |
+| `lib/brain/brain-telemetry.js` | Event logging to brain_events |
+
+**Safety Gates:**
+- Block signals with stale market data (>5 min old)
+- Block signals with confidence < 0.4
+- Block signals when market data fetch fails
+- Block signals where news sentiment strongly contradicts strategy direction
+- Block live mode unless BRAIN_LIVE_MODE=true is explicitly set
+- Never auto-enable live trading
+
+---
+
 ## Tech Stack Defaults
 
 | Layer | Default Tech |
@@ -372,10 +469,11 @@ Every signal broadcast to Telegram must conform to:
 | Bot | Telegram Bot API (webhook mode) |
 | Exchange APIs | CCXT library (Binance, Bybit, OKX) |
 | Signals | WebSocket + REST polling hybrid |
+| Brain | Trading Central Brain (lib/brain/) |
 | Timezone | UTC for logs, user-local for display |
 | Runtime | Node.js ESM or Python 3.11+ |
 
 ---
 
-*Last updated: 2026-05-05*
+*Last updated: 2026-05-14*
 *Project: Trading Signal Telegram Bot*

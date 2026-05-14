@@ -22,6 +22,45 @@ AI-powered crypto trading signal alerts delivered via Telegram. Built for **pape
 | **Auto-Discovery** | Bot constantly scans for new data sources and APIs to improve signal accuracy |
 | **App Suggestions** | Bot generates actionable improvement ideas with voting and implementation tracking |
 | **Data Health Dashboard** | Real-time exchange API, news, liquidation freshness + crawler fallback tracking |
+| **Trading Central Brain** | Centralized decision layer that scores strategies, runs risk gates, and learns from outcomes |
+
+## Trading Central Brain
+
+The **Trading Central Brain** is a centralized decision layer that connects all agents and signal sources. It evaluates every trading opportunity through a multi-stage pipeline:
+
+```
+[Market Data] ─┐
+[Liquidations] ─┤──► buildSignalContext() ──► scoreStrategy() ──► runRiskGate() ──► explainDecision() ──► saveSignalMemory()
+[News/Social]  ─┘
+```
+
+**Pipeline stages:**
+1. **Signal Context Builder** — Fetches market data, liquidation context, and news sentiment in parallel for a symbol+timeframe
+2. **Strategy Scorer** — Computes a composite score from EMA, RSI, volume, liquidation bias, and news sentiment (weighted: 30/25/15/15/15)
+3. **Risk Gate** — Blocks signals on: stale data (>5 min), low confidence (<0.4), degraded market health, news conflicts, unauthorized live mode
+4. **Model Router** — Explains decisions via local logic (default) or AI providers (Kimi, Claude, OpenAI)
+5. **Signal Memory** — Saves every decision to `brain_signal_memory` for audit and learning
+
+**Learning Cycle** — The brain periodically analyzes past decisions, groups by strategy/symbol/timeframe, calculates win rates, and updates strategy weights. Underperforming strategies (win rate < 40%) are flagged for review.
+
+**API endpoints:**
+- `GET /api/brain/health` — Brain health check
+- `POST /api/brain/signal` — Run brain for a symbol+timeframe
+- `POST /api/brain/learn` — Run learning cycle
+
+**Workers:**
+- `trading-brain-worker` — Scans configured symbols/timeframes every `BRAIN_SCAN_INTERVAL_MS` (default 5 min)
+- `trading-learning-worker` — Runs learning cycle every `BRAIN_LEARNING_INTERVAL_MS` (default 24h)
+
+**Configuration (`.env`):**
+```env
+BRAIN_SCAN_INTERVAL_MS=300000
+BRAIN_LEARNING_INTERVAL_MS=86400000
+BRAIN_SYMBOLS=BTCUSDT,ETHUSDT
+BRAIN_TIMEFRAMES=15m,1h,4h
+BRAIN_AI_PROVIDER=local
+BRAIN_LIVE_MODE=false
+```
 
 ## Self-Improving Architecture
 
@@ -77,6 +116,49 @@ This bot is designed to **grow and improve itself over time**:
          [Supabase]  <--data-->  [Dashboard]
          (signals, trades,        (static HTML served
           health logs)            from /public on VPS)
+
+---
+
+## Supabase CLI Setup
+
+The Supabase CLI is installed and linked to the project. This enables local schema management, migrations, and type generation.
+
+### Quick Reference
+
+```bash
+# Check CLI version
+supabase --version
+
+# Pull latest remote schema
+supabase db remote commit
+
+# View schema diff (local vs remote)
+supabase db diff
+
+# Push local migrations to remote
+supabase db push
+
+# Generate TypeScript types from schema
+supabase gen types typescript --local > lib/database.types.ts
+
+# Start local Supabase stack (Docker required)
+supabase start
+
+# Reset local database
+supabase db reset
+```
+
+### Configuration
+
+| Setting | Value |
+|---------|-------|
+| Project Ref | `nqcgnwpfxnbtdrvtkwej` |
+| Project ID | `xsjprd55` |
+| Config File | [`supabase/config.toml`](supabase/config.toml) |
+| Migrations | [`supabase/migrations/`](supabase/migrations/) |
+| SQL Schemas | [`supabase/*.sql`](supabase/) |
+
+> **Note:** The Supabase access token is stored locally via `supabase login`. The actual database credentials (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) are in `.env` and sourced from the VPS production environment.
 ```
 
 ### Why VPS over Vercel?
@@ -111,6 +193,9 @@ Vercel is **not recommended** for this project. The VPS handles everything: API,
 | `GET /api/bot?type=sources` | Dashboard / Telegram | None | View connected data sources |
 | `GET /api/bot?type=patterns` | Dashboard / Telegram | None | Signal pattern stats |
 | `GET /api/bot?type=learn` | Cron daily 4am UTC | `x-cron-secret` | Run learning loop |
+| `GET /api/brain/health` | Any | None | **Trading Central Brain** health check |
+| `POST /api/brain/signal` | Manual / admin | None | Run brain pipeline for a symbol+timeframe |
+| `POST /api/brain/learn` | Manual / admin | None | Run brain learning cycle |
 
 > **Cron protection:** Endpoints that trigger scans, learning, or reports require the `x-cron-secret` header matching `CRON_SECRET` in `.env`. Dashboard reads use passive endpoints and must not trigger signal generation.
 
@@ -136,8 +221,12 @@ Vercel is **not recommended** for this project. The VPS handles everything: API,
 | `perpetual_mock_trades` | Perpetual paper positions, exits, PnL, and margin |
 | `perpetual_trader_logs` | Perpetual trader decision audit trail |
 | `signal_memory` | Signal context and outcomes for learning/research |
+| `brain_signal_memory` | **Trading Central Brain** — every brain decision with context, score, and risk verdict |
+| `brain_events` | **Trading Central Brain** — telemetry log of all brain activity |
+| `brain_learning_reports` | **Trading Central Brain** — learning cycle reports with strategy suggestions |
+| `brain_strategy_weights` | **Trading Central Brain** — adaptive weights per strategy/symbol/timeframe |
 
-> Run `supabase/schema.sql`, `supabase/schema_additions.sql`, and `supabase/perpetual-trader-schema.sql` in the Supabase SQL Editor to create tables, indexes, and RLS policies.
+> Run `supabase/schema.sql`, `supabase/schema_additions.sql`, `supabase/perpetual-trader-schema.sql`, and `supabase/001_trading_brain_schema.sql` in the Supabase SQL Editor to create tables, indexes, and RLS policies.
 
 ---
 
