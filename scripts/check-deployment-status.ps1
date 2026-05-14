@@ -3,7 +3,7 @@
 # Run: powershell -ExecutionPolicy Bypass -File scripts\check-deployment-status.ps1
 # ============================================================
 
-$VPS_IP = if ($env:VPS_IP) { $env:VPS_IP } else { "165.22.110.111" }
+$VPS_IP = if ($env:VPS_IP) { $env:VPS_IP } else { "100.64.175.88" }
 $VPS_USER = if ($env:VPS_USER) { $env:VPS_USER } else { "root" }
 
 function Write-Section($title) {

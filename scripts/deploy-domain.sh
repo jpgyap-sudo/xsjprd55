@@ -1,12 +1,12 @@
 #!/bin/bash
 # ============================================================
 # Domain Deploy Script — bot.abcx124.xyz
-# Run this ON your VPS after DNS A-record points to 165.22.110.111
+# Run this ON your VPS after DNS A-record points to 100.64.175.88 (Tailscale)
 # ============================================================
 set -e
 
 DOMAIN="bot.abcx124.xyz"
-VPS_IP="165.22.110.111"
+VPS_IP="100.64.175.88"
 PROJECT_DIR="/opt/trading-bot"
 REPO="https://github.com/jpgyap-sudo/xsjprd55.git"
 

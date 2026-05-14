@@ -10,7 +10,7 @@ const path = require('path');
 
 // Configuration
 const CONFIG = {
-  vpsIp: process.env.VPS_IP || '165.22.110.111',
+  vpsIp: process.env.VPS_IP || '100.64.175.88',
   baseUrl: process.env.API_BASE_URL || 'http://localhost:3000',
   reportDir: './test-reports',
   apiTestInterval: 10 * 60 * 1000,      // 10 minutes

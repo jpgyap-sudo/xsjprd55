@@ -18,7 +18,7 @@ const CONFIG = {
   workerCheckInterval: 15 * 60 * 1000, // 15 minutes
   logAnalysisInterval: 30 * 60 * 1000, // 30 minutes
   reportInterval: 60 * 60 * 1000, // 1 hour
-  vpsIp: '165.22.110.111',
+  vpsIp: '100.64.175.88',
   baseUrl: 'http://localhost:3000'
 };
 

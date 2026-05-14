@@ -453,7 +453,7 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         DEPLOYMENT_TARGET: 'vps',
-        VPS_IP: '165.22.110.111',
+        VPS_IP: '100.64.175.88',
         API_BASE_URL: 'http://localhost:3000'
       },
       autorestart: true,

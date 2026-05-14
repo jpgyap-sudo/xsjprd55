@@ -20,7 +20,7 @@ import path from 'path';
 import { createClient } from '@supabase/supabase-js';
 import '../lib/env.js';
 
-const VPS_IP = process.env.VPS_IP || '165.22.110.111';
+const VPS_IP = process.env.VPS_IP || '100.64.175.88';
 const VPS_USER = process.env.VPS_USER || 'root';
 const VPS_PROJECT_PATH = process.env.VPS_PROJECT_PATH || '~/xsjprd55';
 const GITHUB_REPO = process.env.GITHUB_REPO || 'jpgyap-sudo/xsjprd55';
