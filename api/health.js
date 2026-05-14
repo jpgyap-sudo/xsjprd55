@@ -8,6 +8,7 @@ import { config } from '../lib/config.js';
 import { supabase } from '../lib/supabase.js';
 import { createExchange } from '../lib/exchange.js';
 import { getBotInfo } from '../lib/telegram.js';
+import { checkOpenClaw } from '../lib/openclaw.js';
 
 async function checkSupabase() {
   try {
@@ -136,7 +137,8 @@ export default async function handler(req, res) {
       checkAnthropic(),
       checkCoinGecko(),
       checkOkxFunding(),
-      checkLunarCrush()
+      checkLunarCrush(),
+      checkOpenClaw()
     ]);
 
     const [
@@ -150,7 +152,8 @@ export default async function handler(req, res) {
       anthropicStatus,
       coinGeckoStatus,
       okxFundingStatus,
-      lunarCrushStatus
+      lunarCrushStatus,
+      openclawStatus
     ] = results.map(r => r.status === 'fulfilled' ? r.value : { ok: false, error: r.reason?.message || 'Check failed' });
 
     const checks = {
@@ -177,6 +180,9 @@ export default async function handler(req, res) {
       },
       data_feeds: {
         lunarcrush: lunarCrushStatus
+      },
+      analysis: {
+        openclaw: openclawStatus
       },
       timestamp: new Date().toISOString()
     };

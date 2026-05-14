@@ -510,6 +510,27 @@ module.exports = {
       restart_delay: 3000,
       max_restarts: 10,
       min_uptime: '10s'
+    },
+    {
+      name: 'openclaw-analysis-worker',
+      script: './workers/openclaw-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps',
+        OPENCLAW_SCAN_INTERVAL_MS: '3600000'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/openclaw-combined.log',
+      out_file: './logs/openclaw-out.log',
+      error_file: './logs/openclaw-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
     }
   ]
 };
