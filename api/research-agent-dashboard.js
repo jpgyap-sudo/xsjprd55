@@ -50,6 +50,20 @@ export default async function handler(req, res) {
     // ML model info (with error boundary)
     let model = null;
     try {
+      // Ensure logger is available before importing ML modules
+      let loggerModule;
+      try {
+        loggerModule = await import('../lib/logger.js');
+      } catch (loggerErr) {
+        // Create fallback logger if the real one fails to load
+        const fallbackLogger = {
+          info: (...args) => console.log('[logger]', ...args),
+          warn: (...args) => console.warn('[logger]', ...args),
+          error: (...args) => console.error('[logger]', ...args),
+          debug: (...args) => console.debug('[logger]', ...args),
+        };
+        globalThis.__fallbackLogger = fallbackLogger;
+      }
       const { loadActiveModel } = await import('../lib/ml/model.js');
       model = loadActiveModel();
     } catch (e) {

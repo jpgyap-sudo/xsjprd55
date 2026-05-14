@@ -2437,7 +2437,7 @@ function switchTab(tab) {
     'api-status': () => { loadApiStatus(); },
     'signals': () => { loadSignals(); },
     'news': () => { loadNews(); },
-    'catalyst': () => { loadCatalyst(); },
+    'catalyst': () => { loadCatalysts(); },
     'perpetual-trader': () => { loadPerpetualTrader(); },
     'autonomous': () => { loadAutonomousReport(); }
   };
@@ -3616,9 +3616,12 @@ async function loadApiStatus() {
   const timeEl = document.getElementById('api-status-time');
 
   try {
-    const res = await fetch('/api/health');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    const res = await fetch('/api/health', { signal: controller.signal });
+    clearTimeout(timeoutId);
     const data = await res.json();
-    if (!data.ok) throw new Error(data.error);
+    if (!data.ok) throw new Error(data.error || 'Health check failed');
 
     loading.style.display = 'none';
     error.style.display = 'none';
@@ -3627,6 +3630,7 @@ async function loadApiStatus() {
 
     const renderGroup = (containerId, group) => {
       const container = document.getElementById(containerId);
+      if (!container) return;
       if (!group || !Object.keys(group).length) {
         container.innerHTML = '<div style="color:var(--fg2);font-size:0.8rem;">No services configured</div>';
         return;
@@ -3656,10 +3660,11 @@ async function loadApiStatus() {
     renderGroup('status-data', data.checks?.data_feeds);
 
   } catch (e) {
+    console.error('API Status load error:', e);
     loading.style.display = 'none';
     content.style.display = 'none';
     error.style.display = 'block';
-    timeEl.textContent = 'Check failed';
+    if (timeEl) timeEl.textContent = 'Check failed';
   }
 }
 loadApiStatus();

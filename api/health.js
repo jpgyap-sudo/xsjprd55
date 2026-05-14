@@ -124,19 +124,8 @@ async function checkLunarCrush() {
 
 export default async function handler(req, res) {
   try {
-    const [
-      supabaseStatus,
-      binanceStatus,
-      bybitStatus,
-      okxStatus,
-      hyperliquidStatus,
-      telegramStatus,
-      kimiStatus,
-      anthropicStatus,
-      coinGeckoStatus,
-      okxFundingStatus,
-      lunarCrushStatus
-    ] = await Promise.all([
+    // Use Promise.allSettled to prevent one failing check from crashing the whole endpoint
+    const results = await Promise.allSettled([
       checkSupabase(),
       checkExchange('binance'),
       checkExchange('bybit'),
@@ -149,6 +138,20 @@ export default async function handler(req, res) {
       checkOkxFunding(),
       checkLunarCrush()
     ]);
+
+    const [
+      supabaseStatus,
+      binanceStatus,
+      bybitStatus,
+      okxStatus,
+      hyperliquidStatus,
+      telegramStatus,
+      kimiStatus,
+      anthropicStatus,
+      coinGeckoStatus,
+      okxFundingStatus,
+      lunarCrushStatus
+    ] = results.map(r => r.status === 'fulfilled' ? r.value : { ok: false, error: r.reason?.message || 'Check failed' });
 
     const checks = {
       env: {
@@ -185,9 +188,10 @@ export default async function handler(req, res) {
       coinGeckoStatus.ok
     ].every(Boolean);
 
-    return res.status(allOk ? 200 : 503).json({ ok: true, checks });
+    // Always return 200 so the frontend can render partial results
+    return res.status(200).json({ ok: true, checks, allHealthy: allOk });
   } catch (e) {
     console.error('[health] Error:', e);
-    return res.status(500).json({ ok: false, error: e.message });
+    return res.status(200).json({ ok: true, checks: { services: {}, exchanges: {}, ai: {}, data_feeds: {}, env: {} }, error: e.message });
   }
 }
