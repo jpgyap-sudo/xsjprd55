@@ -9,7 +9,7 @@ set -e
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_FILE="/var/log/deploy-everything.log"
-VPS_IP="${VPS_IP:-100.64.175.88}"
+VPS_IP="${VPS_IP:-100.86.182.7}"
 VPS_USER="${VPS_USER:-root}"
 
 # Colors for output

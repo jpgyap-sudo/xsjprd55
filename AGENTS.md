@@ -188,7 +188,7 @@ node workers/deploy-checker.js --history
 
 **Configuration (Environment Variables):**
 ```env
-VPS_IP=100.64.175.88
+VPS_IP=100.86.182.7
 VPS_USER=root
 VPS_SSH_KEY=/root/.ssh/id_ed25519
 GITHUB_REPO=jpgyap-sudo/xsjprd55

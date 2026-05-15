@@ -15,7 +15,7 @@ const REPO_ROOT = path.resolve(__dirname, '..');
 
 // Configuration
 const CONFIG = {
-    vpsIp: process.env.VPS_IP || '100.64.175.88',
+    vpsIp: process.env.VPS_IP || '100.86.182.7',
     vpsUser: process.env.VPS_USER || 'root',
     vpsPath: process.env.VPS_PROJECT_PATH || '/root/xsjprd55',
     vpsSshKey: process.env.VPS_SSH_KEY || path.join(process.env.HOME || '/root', '.ssh/id_ed25519'),

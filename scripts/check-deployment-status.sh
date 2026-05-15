@@ -5,7 +5,7 @@
 # ============================================================
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VPS_IP="${VPS_IP:-100.64.175.88}"
+VPS_IP="${VPS_IP:-100.86.182.7}"
 VPS_USER="${VPS_USER:-root}"
 
 cd "$PROJECT_DIR" || exit 1

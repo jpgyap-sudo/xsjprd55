@@ -166,10 +166,10 @@ const PRODUCT_FEATURES = [
 
 // ── System Architecture Knowledge ──────────────────────────
 const SYSTEM_ARCHITECTURE = {
-  overview: `The xsjprd55 system is a crypto trading signal Telegram bot with a self-improving architecture. It runs on a VPS (DigitalOcean Ubuntu 22.04, 100.64.175.88 Tailscale) managed by PM2, with Supabase as the database and a static HTML dashboard served from /public.`,
+  overview: `The xsjprd55 system is a crypto trading signal Telegram bot with a self-improving architecture. It runs on a VPS (DigitalOcean Ubuntu 22.04, 100.86.182.7 Tailscale) managed by PM2, with Supabase as the database and a static HTML dashboard served from /public.`,
 
   deployment: {
-    host: 'VPS (DigitalOcean / Ubuntu 22.04) — IP: 100.64.175.88 (Tailscale)',
+    host: 'VPS (DigitalOcean / Ubuntu 22.04) — IP: 100.86.182.7 (Tailscale)',
     domain: 'bot.abcx124.xyz',
     processManager: 'PM2 — 25+ workers managed via ecosystem.config.cjs',
     reverseProxy: 'Nginx or Caddy with SSL via Let\u2019s Encrypt',
@@ -183,7 +183,7 @@ const SYSTEM_ARCHITECTURE = {
   },
 
   architectureDiagram: `
-[Telegram]  <--webhook-->  [VPS 100.64.175.88 (Tailscale) / bot.abcx124.xyz]
+[Telegram]  <--webhook-->  [VPS 100.86.182.7 (Tailscale) / bot.abcx124.xyz]
                                 |
             +-------------------+-------------------+
             |                   |                   |
