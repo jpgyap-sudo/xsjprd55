@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Research Agent Dashboard</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --red: #f85149;
+      --yellow: #d29922;
+      --orange: #d4760b;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .header .subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .refresh-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .refresh-btn:hover { opacity: 0.9; }
+    .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .last-updated {
+      color: var(--text-muted);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .stat-card .label {
+      color: var(--text-muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-card .value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+    .stat-card .value.green { color: var(--green); }
+    .stat-card .value.yellow { color: var(--yellow); }
+    .stat-card .value.red { color: var(--red); }
+    .stat-card .value.blue { color: var(--accent); }
+    .section {
+      margin-bottom: 24px;
+    }
+    .section h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .section h2 .count {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+    th {
+      background: #1c2128;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+    tr:hover { background: #1c2128; }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge.green { background: rgba(63,185,80,0.15); color: var(--green); }
+    .badge.red { background: rgba(248,81,73,0.15); color: var(--red); }
+    .badge.yellow { background: rgba(210,153,34,0.15); color: var(--yellow); }
+    .badge.blue { background: rgba(88,166,255,0.15); color: var(--accent); }
+    .badge.gray { background: rgba(139,148,158,0.15); color: var(--text-muted); }
+    .tier-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .tier-badge.S { background: linear-gradient(135deg, #ffd700, #ffaa00); color: #000; }
+    .tier-badge.A { background: linear-gradient(135deg, #58a6ff, #1f6feb); color: #fff; }
+    .tier-badge.B { background: linear-gradient(135deg, #3fb950, #238636); color: #fff; }
+    .tier-badge.C { background: linear-gradient(135deg, #d29922, #9e6a03); color: #fff; }
+    .tier-badge.F { background: linear-gradient(135deg, #f85149, #da3633); color: #fff; }
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: #21262d;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-bar .fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s;
+    }
+    .fill.green { background: var(--green); }
+    .fill.yellow { background: var(--yellow); }
+    .fill.red { background: var(--red); }
+    .fill.blue { background: var(--accent); }
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+    }
+    .tab {
+      padding: 8px 16px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .rules-list {
+      font-size: 12px;
+      color: var(--text-muted);
+      max-width: 300px;
+    }
+    .rules-list code {
+      background: #1c2128;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+    .error-banner {
+      background: rgba(248,81,73,0.1);
+      border: 1px solid var(--red);
+      color: var(--red);
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      display: none;
+    }
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: var(--text-muted);
+    }
+    .loading .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .metric-cell {
+      font-variant-numeric: tabular-nums;
+    }
+    .positive { color: var(--green); }
+    .negative { color: var(--red); }
+    .neutral { color: var(--text-muted); }
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      th, td { padding: 6px 8px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>🧪 Research Agent Dashboard</h1>
+      <div class="subtitle">Strategy proposals, backtest results, promotion pipeline</div>
+      <div class="last-updated" id="lastUpdated">Loading...</div>
+    </div>
+    <button class="refresh-btn" id="refreshBtn" onclick="loadData()">⟳ Refresh</button>
+  </div>
+
+  <div class="error-banner" id="errorBanner"></div>
+
+  <!-- Stats -->
+  <div class="stats-grid" id="statsGrid">
+    <div class="stat-card"><div class="label">Sources</div><div class="value blue" id="statSources">—</div></div>
+    <div class="stat-card"><div class="label">Proposals</div><div class="value yellow" id="statProposals">—</div></div>
+    <div class="stat-card"><div class="label">Backtests</div><div class="value blue" id="statBacktests">—</div></div>
+    <div class="stat-card"><div class="label">Promoted</div><div class="value green" id="statPromoted">—</div></div>
+    <div class="stat-card"><div class="label">Lifecycle</div><div class="value" id="statLifecycle">—</div></div>
+    <div class="stat-card"><div class="label">Ranked Strats</div><div class="value" id="statRanked">—</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('proposals')">📋 Proposals</button>
+    <button class="tab" onclick="switchTab('backtests')">📊 Backtests</button>
+    <button class="tab" onclick="switchTab('lifecycle')">🔄 Lifecycle</button>
+    <button class="tab" onclick="switchTab('sources')">📰 Sources</button>
+    <button class="tab" onclick="switchTab('rankings')">🏆 Rankings</button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div>Loading research agent data...</div>
+  </div>
+
+  <!-- Proposals Tab -->
+  <div class="tab-content active" id="tab-proposals">
+    <div class="section">
+      <h2>Strategy Proposals <span class="count" id="proposalsCount"></span></h2>
+      <div id="proposalsContent"><div class="empty-state"><div class="icon">📋</div>No proposals yet</div></div>
+    </div>
+  </div>
+
+  <!-- Backtests Tab -->
+  <div class="tab-content" id="tab-backtests">
+    <div class="section">
+      <h2>Backtest Results <span class="count" id="backtestsCount"></span></h2>
+      <div id="backtestsContent"><div class="empty-state"><div class="icon">📊</div>No backtests yet</div></div>
+    </div>
+  </div>
+
+  <!-- Lifecycle Tab -->
+  <div class="tab-content" id="tab-lifecycle">
+    <div class="section">
+      <h2>Strategy Lifecycle <span class="count" id="lifecycleCount"></span></h2>
+      <div id="lifecycleContent"><div class="empty-state"><div class="icon">🔄</div>No lifecycle entries yet</div></div>
+    </div>
+  </div>
+
+  <!-- Sources Tab -->
+  <div class="tab-content" id="tab-sources">
+    <div class="section">
+      <h2>Research Sources <span class="count" id="sourcesCount"></span></h2>
+      <div id="sourcesContent"><div class="empty-state"><div class="icon">📰</div>No sources yet</div></div>
+    </div>
+  </div>
+
+  <!-- Rankings Tab -->
+  <div class="tab-content" id="tab-rankings">
+    <div class="section">
+      <h2>Strategy Rankings <span class="count" id="rankingsCount"></span></h2>
+      <div id="rankingsContent"><div class="empty-state"><div class="icon">🏆</div>No rankings yet</div></div>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api/research-agent-dashboard';
+
+    function switchTab(name) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab[onclick*="${name}"]`).classList.add('active');
+      document.getElementById(`tab-${name}`).classList.add('active');
+    }
+
+    function fmtPct(v) {
+      if (v == null) return '—';
+      return (v * 100).toFixed(1) + '%';
+    }
+
+    function fmtNum(v, d = 2) {
+      if (v == null) return '—';
+      return Number(v).toFixed(d);
+    }
+
+    function fmtPnl(v) {
+      if (v == null) return '—';
+      const n = Number(v);
+      return (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
+    }
+
+    function badge(status) {
+      if (status === 'promoted' || status === 'approved') return '<span class="badge green">✓ Promoted</span>';
+      if (status === 'mock_testing') return '<span class="badge blue">🧪 Mock</span>';
+      if (status === 'quarantine') return '<span class="badge yellow">⚠ Quarantine</span>';
+      if (status === 'rejected') return '<span class="badge red">✗ Rejected</span>';
+      if (status === 'active') return '<span class="badge green">● Active</span>';
+      if (status === 'pending') return '<span class="badge gray">○ Pending</span>';
+      if (status === true || status === 'true') return '<span class="badge green">✓ Yes</span>';
+      if (status === false || status === 'false') return '<span class="badge red">✗ No</span>';
+      return `<span class="badge gray">${status || '—'}</span>`;
+    }
+
+    function tierBadge(tier) {
+      if (!tier) return '—';
+      return `<span class="tier-badge ${tier}">${tier}</span>`;
+    }
+
+    function pnlClass(v) {
+      if (v == null) return 'neutral';
+      return v >= 0 ? 'positive' : 'negative';
+    }
+
+    async function loadData() {
+      const btn = document.getElementById('refreshBtn');
+      const loading = document.getElementById('loading');
+      const errorBanner = document.getElementById('errorBanner');
+      btn.disabled = true;
+      loading.style.display = 'block';
+      errorBanner.style.display = 'none';
+
+      try {
+        const res = await fetch(API);
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'API returned error');
+        render(data);
+      } catch (err) {
+        errorBanner.textContent = '⚠ Error loading data: ' + err.message;
+        errorBanner.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        loading.style.display = 'none';
+        document.getElementById('lastUpdated').textContent = 'Last updated: ' + new Date().toLocaleString();
+      }
+    }
+
+    function render(data) {
+      const p = data.proposals || [];
+      const b = data.backtests || [];
+      const l = data.lifecycle || [];
+      const s = data.recentSources || [];
+      const r = data.rankedStrategies || [];
+      const prom = data.promotedStrategies || [];
+
+      // Stats
+      document.getElementById('statSources').textContent = s.length;
+      document.getElementById('statProposals').textContent = p.length;
+      document.getElementById('statBacktests').textContent = b.length;
+      document.getElementById('statPromoted').textContent = prom.length;
+      document.getElementById('statLifecycle').textContent = l.length;
+      document.getElementById('statRanked').textContent = r.length;
+
+      // Proposals
+      document.getElementById('proposalsCount').textContent = `(${p.length})`;
+      if (p.length === 0) {
+        document.getElementById('proposalsContent').innerHTML = '<div class="empty-state"><div class="icon">📋</div>No proposals yet</div>';
+      } else {
+        let html = `<table><thead><tr>
+          <th>Name</th><th>Confidence</th><th>Rules</th><th>Tested</th><th>Promoted</th><th>Rejected</th>
+        </tr></thead><tbody>`;
+        for (const prop of p) {
+          const rules = Array.isArray(prop.rules) ? prop.rules : [];
+          const rulesHtml = rules.length > 0
+            ? rules.map(r => `<code>${r.feature || '?'} ${r.operator || '?'} ${r.threshold ?? r.value ?? '?'}</code>`).join(', ')
+            : '<span class="neutral">none</span>';
+          html += `<tr>
+            <td><strong>${prop.name || 'unnamed'}</strong></td>
+            <td class="metric-cell">${fmtNum(prop.confidence * 100, 0)}%</td>
+            <td><div class="rules-list">${rulesHtml}</div></td>
+            <td>${badge(prop.tested)}</td>
+            <td>${badge(prop.promoted)}</td>
+            <td>${badge(prop.rejected)}</td>
+          </tr>`;
+        }
+        html += '</tbody></table>';
+        document.getElementById('proposalsContent').innerHTML = html;
+      }
+
+      // Backtests
+      document.getElementById('backtestsCount').textContent = `(${b.length})`;
+      if (b.length === 0) {
+        document.getElementById('backtestsContent').innerHTML = '<div class="empty-state"><div class="icon">📊</div>No backtests yet</div>';
+      } else {
+        let html = `<table><thead><tr>
+          <th>Strategy</th><th>Symbol</th><th>Return</th><th>Trades</th><th>Win Rate</th>
+          <th>PF</th><th>Sharpe</th><th>Max DD</th>
+        </tr></thead><tbody>`;
+        for (const bt of b) {
+          html += `<tr>
+            <td><strong>${bt.strategyName || 'unnamed'}</strong></td>
+            <td>${bt.symbol || '—'}</td>
+            <td class="metric-cell ${pnlClass(bt.totalReturnPct)}">${fmtPnl(bt.totalReturnPct)}</td>
+            <td class="metric-cell">${bt.totalTrades ?? '—'}</td>
+            <td class="metric-cell">${fmtPct(bt.winRate)}</td>
+            <td class="metric-cell">${fmtNum(bt.profitFactor)}</td>
+            <td class="metric-cell">${fmtNum(bt.sharpeRatio)}</td>
+            <td class="metric-cell">${fmtNum(bt.maxDrawdownPct, 1)}%</td>
+          </tr>`;
+        }
+        html += '</tbody></table>';
+        document.getElementById('backtestsContent').innerHTML = html;
+      }
+
+      // Lifecycle
+      document.getElementById('lifecycleCount').textContent = `(${l.length})`;
+      if (l.length === 0) {
+        document.getElementById('lifecycleContent').innerHTML = '<div class="empty-state"><div class="icon">🔄</div>No lifecycle entries yet</div>';
+      } else {
+        let html = `<table><thead><tr>
+          <th>Strategy</th><th>Status</th><th>Backtest Score</th><th>Mock Score</th><th>Approved</th><th>Updated</th>
+        </tr></thead><tbody>`;
+        for (const lc of l) {
+          html += `<tr>
+            <td><strong>${lc.strategyName || 'unnamed'}</strong></td>
+            <td>${badge(lc.status)}</td>
+            <td class="metric-cell">${fmtNum(lc.historicalBacktestScore)}</td>
+            <td class="metric-cell">${fmtNum(lc.mockTradingScore)}</td>
+            <td>${badge(lc.approvedForMock)}</td>
+            <td>${lc.updatedAt ? new Date(lc.updatedAt).toLocaleDateString() : '—'}</td>
+          </tr>`;
+        }
+        html += '</tbody></table>';
+        document.getElementById('lifecycleContent').innerHTML = html;
+      }
+
+      // Sources
+      document.getElementById('sourcesCount').textContent = `(${s.length})`;
+      if (s.length === 0) {
+        document.getElementById('sourcesContent').innerHTML = '<div class="empty-state"><div class="icon">📰</div>No sources yet</div>';
+      } else {
+        let html = `<table><thead><tr>
+          <th>Source</th><th>Content</th><th>Hints</th><th>Used</th><th>Date</th>
+        </tr></thead><tbody>`;
+        for (const src of s) {
+          const hints = Array.isArray(src.hints) ? src.hints : [];
+          const hintsHtml = hints.length > 0
+            ? hints.slice(0, 3).map(h => `<code>${h}</code>`).join(', ')
+            : '<span class="neutral">none</span>';
+          html += `<tr>
+            <td>${src.icon || '📄'} <strong>${src.sourceName || 'unknown'}</strong></td>
+            <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${src.contentPreview || '—'}</td>
+            <td><div class="rules-list">${hintsHtml}</div></td>
+            <td>${badge(src.used)}</td>
+            <td>${src.createdAt ? new Date(src.createdAt).toLocaleDateString() : '—'}</td>
+          </tr>`;
+        }
+        html += '</tbody></table>';
+        document.getElementById('sourcesContent').innerHTML = html;
+      }
+
+      // Rankings
+      document.getElementById('rankingsCount').textContent = `(${r.length})`;
+      if (r.length === 0) {
+        document.getElementById('rankingsContent').innerHTML = '<div class="empty-state"><div class="icon">🏆</div>No rankings yet</div>';
+      } else {
+        let html = `<table><thead><tr>
+          <th>Rank</th><th>Tier</th><th>Strategy</th><th>Score</th><th>Win Rate</th><th>PF</th><th>Sharpe</th><th>Trades</th>
+        </tr></thead><tbody>`;
+        for (let i = 0; i < r.length; i++) {
+          const row = r[i];
+          html += `<tr>
+            <td>#${i + 1}</td>
+            <td>${tierBadge(row.tier)}</td>
+            <td><strong>${row.strategyName || row.name || 'unnamed'}</strong></td>
+            <td class="metric-cell">${fmtNum(row.compositeScore ?? row.score)}</td>
+            <td class="metric-cell">${fmtPct(row.winRate)}</td>
+            <td class="metric-cell">${fmtNum(row.profitFactor)}</td>
+            <td class="metric-cell">${fmtNum(row.sharpeRatio)}</td>
+            <td class="metric-cell">${row.totalTrades ?? row.trades ?? '—'}</td>
+          </tr>`;
+        }
+        html += '</tbody></table>';
+        document.getElementById('rankingsContent').innerHTML = html;
+      }
+    }
+
+    // Auto-load on page load
+    loadData();
+    // Auto-refresh every 60 seconds
+    setInterval(loadData, 60000);
+  </script>
+</body>
+</html>

@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PM2 Process Monitor — xsjprd55</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --green: #3fb950;
+      --red: #f85149;
+      --yellow: #d29922;
+      --blue: #58a6ff;
+      --orange: #d4760a;
+      --online: #3fb950;
+      --stopped: #8b949e;
+      --errored: #f85149;
+      --launching: #d29922;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 600;
+    }
+    .header h1 span {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    .header-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .header-controls button {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+    .header-controls button:hover {
+      background: #21262d;
+    }
+    .header-controls button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .last-updated {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .status-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    .stat-card .value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .stat-card .label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-card.online .value { color: var(--online); }
+    .stat-card.errored .value { color: var(--errored); }
+    .stat-card.stopped .value { color: var(--stopped); }
+    .stat-card.launching .value { color: var(--launching); }
+    .stat-card.memory .value { color: var(--blue); }
+    .stat-card.cpu .value { color: var(--orange); }
+    .stat-card.coverage .value { color: var(--yellow); }
+
+    .warnings-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+    .warnings-section h3 {
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: var(--yellow);
+    }
+    .warnings-section .warning-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 13px;
+    }
+    .warnings-section .warning-item .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-errored { background: var(--red); color: #fff; }
+    .badge-restarts { background: var(--orange); color: #fff; }
+    .badge-memory { background: var(--blue); color: #fff; }
+    .badge-missing { background: var(--yellow); color: #000; }
+
+    .pm2-info {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      color: var(--text-muted);
+      flex-wrap: wrap;
+    }
+    .pm2-info .info-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pm2-info .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .dot.alive { background: var(--green); }
+    .dot.dead { background: var(--red); }
+
+    .filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .filters button {
+      background: var(--card);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .filters button:hover { color: var(--text); }
+    .filters button.active {
+      background: var(--blue);
+      color: #fff;
+      border-color: var(--blue);
+    }
+
+    .search-bar {
+      margin-bottom: 16px;
+    }
+    .search-bar input {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+    }
+    .search-bar input:focus {
+      border-color: var(--blue);
+    }
+    .search-bar input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .process-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 12px;
+    }
+    .process-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      transition: border-color 0.2s;
+    }
+    .process-card:hover {
+      border-color: var(--blue);
+    }
+    .process-card .top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .process-card .name {
+      font-size: 14px;
+      font-weight: 600;
+      word-break: break-all;
+    }
+    .process-card .pm-id {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: 6px;
+    }
+    .process-card .status-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .status-badge.online { background: rgba(63, 185, 80, 0.15); color: var(--online); }
+    .status-badge.stopped { background: rgba(139, 148, 158, 0.15); color: var(--stopped); }
+    .status-badge.errored { background: rgba(248, 81, 73, 0.15); color: var(--errored); }
+    .status-badge.launching { background: rgba(210, 153, 34, 0.15); color: var(--launching); }
+    .status-badge.unknown { background: rgba(139, 148, 158, 0.1); color: var(--text-muted); }
+
+    .process-card .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .process-card .metric {
+      font-size: 12px;
+    }
+    .process-card .metric .m-label {
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 2px;
+    }
+    .process-card .metric .m-value {
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .process-card .metric .m-value.warning {
+      color: var(--yellow);
+    }
+    .process-card .metric .m-value.danger {
+      color: var(--red);
+    }
+
+    .process-card .log-links {
+      display: flex;
+      gap: 8px;
+      font-size: 11px;
+    }
+    .process-card .log-links a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+    .process-card .log-links a:hover {
+      text-decoration: underline;
+    }
+
+    .missing-section {
+      margin-top: 24px;
+    }
+    .missing-section h3 {
+      font-size: 14px;
+      margin-bottom: 12px;
+      color: var(--yellow);
+    }
+    .missing-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .missing-list .missing-item {
+      background: var(--card);
+      border: 1px dashed var(--border);
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .error-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+    .error-state h2 {
+      font-size: 20px;
+      margin-bottom: 8px;
+      color: var(--red);
+    }
+    .error-state p {
+      font-size: 14px;
+    }
+
+    @media (max-width: 640px) {
+      .process-grid {
+        grid-template-columns: 1fr;
+      }
+      .status-bar {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>PM2 Process Monitor <span>— xsjprd55</span></h1>
+    <div class="header-controls">
+      <span class="last-updated" id="lastUpdated">—</span>
+      <button id="refreshBtn" onclick="fetchStatus()">⟳ Refresh</button>
+      <button id="autoRefreshBtn" onclick="toggleAutoRefresh()">Auto: ON</button>
+    </div>
+  </div>
+
+  <div class="pm2-info" id="pm2Info">
+    <span class="info-item"><span class="dot" id="daemonDot"></span> Daemon: <span id="daemonStatus">—</span></span>
+    <span class="info-item">PM2 v<span id="pm2Version">—</span></span>
+  </div>
+
+  <div class="status-bar" id="statusBar">
+    <div class="stat-card online"><div class="value" id="statRunning">—</div><div class="label">Running</div></div>
+    <div class="stat-card stopped"><div class="value" id="statStopped">—</div><div class="label">Stopped</div></div>
+    <div class="stat-card errored"><div class="value" id="statErrored">—</div><div class="label">Errored</div></div>
+    <div class="stat-card launching"><div class="value" id="statLaunching">—</div><div class="label">Launching</div></div>
+    <div class="stat-card memory"><div class="value" id="statMemory">—</div><div class="label">Memory</div></div>
+    <div class="stat-card cpu"><div class="value" id="statCpu">—</div><div class="label">CPU %</div></div>
+    <div class="stat-card coverage"><div class="value" id="statCoverage">—</div><div class="label">Coverage</div></div>
+  </div>
+
+  <div id="warningsContainer"></div>
+
+  <div class="filters" id="filters">
+    <button class="active" data-filter="all" onclick="setFilter('all')">All</button>
+    <button data-filter="online" onclick="setFilter('online')">Running</button>
+    <button data-filter="stopped" onclick="setFilter('stopped')">Stopped</button>
+    <button data-filter="errored" onclick="setFilter('errored')">Errored</button>
+    <button data-filter="launching" onclick="setFilter('launching')">Launching</button>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search processes by name..." oninput="renderProcesses()">
+  </div>
+
+  <div id="processContainer">
+    <div class="error-state">
+      <h2>Loading...</h2>
+      <p>Fetching PM2 process status from /api/pm2-status</p>
+    </div>
+  </div>
+
+  <div id="missingContainer" class="missing-section"></div>
+
+  <script>
+    let currentData = null;
+    let currentFilter = 'all';
+    let autoRefreshInterval = null;
+    let autoRefreshEnabled = true;
+
+    async function fetchStatus() {
+      const btn = document.getElementById('refreshBtn');
+      btn.disabled = true;
+      btn.textContent = '⟳ Loading...';
+
+      try {
+        const res = await fetch('/api/pm2-status');
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        currentData = await res.json();
+        render();
+      } catch (err) {
+        document.getElementById('processContainer').innerHTML = `
+          <div class="error-state">
+            <h2>Failed to Load</h2>
+            <p>${err.message}</p>
+            <p style="margin-top:8px;font-size:12px;">Make sure the server is running and PM2 is available.</p>
+          </div>
+        `;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '⟳ Refresh';
+      }
+    }
+
+    function render() {
+      if (!currentData) return;
+      const d = currentData;
+
+      // Last updated
+      document.getElementById('lastUpdated').textContent = new Date(d.timestamp).toLocaleString();
+
+      // PM2 info
+      document.getElementById('daemonDot').className = 'dot ' + (d.pm2.daemonAlive ? 'alive' : 'dead');
+      document.getElementById('daemonStatus').textContent = d.pm2.daemonAlive ? 'Alive' : 'Dead';
+      document.getElementById('pm2Version').textContent = d.pm2.version || '—';
+
+      // Stats
+      document.getElementById('statRunning').textContent = d.summary.running;
+      document.getElementById('statStopped').textContent = d.summary.stopped;
+      document.getElementById('statErrored').textContent = d.summary.errored;
+      document.getElementById('statLaunching').textContent = d.summary.launching;
+      document.getElementById('statMemory').textContent = d.summary.totalMemoryFormatted;
+      document.getElementById('statCpu').textContent = d.summary.totalCpu + '%';
+      document.getElementById('statCoverage').textContent = d.summary.coveragePct + '%';
+
+      // Warnings
+      renderWarnings(d.summary.warnings, d.summary.missing);
+
+      // Processes
+      renderProcesses();
+
+      // Missing workers
+      renderMissing(d.summary.missing);
+    }
+
+    function renderWarnings(warnings, missing) {
+      const container = document.getElementById('warningsContainer');
+      if ((!warnings || warnings.length === 0) && (!missing || missing.length === 0)) {
+        container.innerHTML = '';
+        return;
+      }
+
+      let html = '<div class="warnings-section"><h3>⚠ Warnings</h3>';
+      if (warnings) {
+        for (const w of warnings) {
+          let badgeClass = 'badge-' + w.issue;
+          if (w.issue === 'high_restarts') badgeClass = 'badge-restarts';
+          if (w.issue === 'high_memory') badgeClass = 'badge-memory';
+          if (w.issue === 'errored') badgeClass = 'badge-errored';
+          html += `<div class="warning-item">
+            <span class="badge ${badgeClass}">${w.issue}</span>
+            <strong>${w.name}</strong> — ${w.value}
+          </div>`;
+        }
+      }
+      if (missing && missing.length > 0) {
+        html += `<div class="warning-item">
+          <span class="badge badge-missing">MISSING</span>
+          <strong>${missing.length}</strong> defined workers not found in PM2
+        </div>`;
+      }
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function renderProcesses() {
+      const container = document.getElementById('processContainer');
+      if (!currentData || !currentData.processes) {
+        container.innerHTML = '<div class="error-state"><h2>No Data</h2></div>';
+        return;
+      }
+
+      const search = (document.getElementById('searchInput').value || '').toLowerCase();
+      let filtered = currentData.processes;
+
+      if (currentFilter !== 'all') {
+        filtered = filtered.filter(p => p.status === currentFilter);
+      }
+      if (search) {
+        filtered = filtered.filter(p => p.name.toLowerCase().includes(search));
+      }
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="error-state"><h2>No Matching Processes</h2><p>Try adjusting your filter or search.</p></div>';
+        return;
+      }
+
+      // Sort: online first, then by name
+      filtered.sort((a, b) => {
+        const order = { online: 0, launching: 1, stopped: 2, errored: 3, unknown: 4 };
+        const oa = order[a.status] || 99;
+        const ob = order[b.status] || 99;
+        if (oa !== ob) return oa - ob;
+        return a.name.localeCompare(b.name);
+      });
+
+      let html = '<div class="process-grid">';
+      for (const p of filtered) {
+        const statusClass = ['online', 'stopped', 'errored', 'launching'].includes(p.status) ? p.status : 'unknown';
+        const memClass = p.memory > 300 * 1024 * 1024 ? 'danger' : p.memory > 200 * 1024 * 1024 ? 'warning' : '';
+        const restartClass = p.restarts > 10 ? 'danger' : p.restarts > 5 ? 'warning' : '';
+
+        html += `<div class="process-card">
+          <div class="top-row">
+            <div>
+              <span class="name">${esc(p.name)}</span>
+              ${p.pmId !== null && p.pmId !== undefined ? `<span class="pm-id">#${p.pmId}</span>` : ''}
+            </div>
+            <span class="status-badge ${statusClass}">${p.status}</span>
+          </div>
+          <div class="metrics">
+            <div class="metric">
+              <span class="m-label">PID</span>
+              <span class="m-value">${p.pid || '—'}</span>
+            </div>
+            <div class="metric">
+              <span class="m-label">CPU</span>
+              <span class="m-value">${p.cpu != null ? p.cpu + '%' : '—'}</span>
+            </div>
+            <div class="metric">
+              <span class="m-label">Memory</span>
+              <span class="m-value ${memClass}">${p.memoryFormatted || '—'}</span>
+            </div>
+            <div class="metric">
+              <span class="m-label">Uptime</span>
+              <span class="m-value">${p.uptimeFormatted || '—'}</span>
+            </div>
+            <div class="metric">
+              <span class="m-label">Restarts</span>
+              <span class="m-value ${restartClass}">${p.restarts != null ? p.restarts : '—'}</span>
+            </div>
+            <div class="metric">
+              <span class="m-label">Unstable</span>
+              <span class="m-value">${p.unstableRestarts != null ? p.unstableRestarts : '—'}</span>
+            </div>
+          </div>
+          <div class="log-links">
+            ${p.outLog ? `<a href="#" onclick="alert('Log: ${esc(p.outLog)}'); return false;">stdout</a>` : ''}
+            ${p.errorLog ? `<a href="#" onclick="alert('Log: ${esc(p.errorLog)}'); return false;">stderr</a>` : ''}
+            ${p.logFile ? `<a href="#" onclick="alert('Log: ${esc(p.logFile)}'); return false;">combined</a>` : ''}
+          </div>
+        </div>`;
+      }
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    function renderMissing(missing) {
+      const container = document.getElementById('missingContainer');
+      if (!missing || missing.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+      let html = '<div class="warnings-section"><h3>⚠ Missing Workers (defined in ecosystem but not in PM2)</h3>';
+      html += '<div class="missing-list">';
+      for (const name of missing) {
+        html += `<span class="missing-item">${esc(name)}</span>`;
+      }
+      html += '</div></div>';
+      container.innerHTML = html;
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('#filters button').forEach(b => {
+        b.classList.toggle('active', b.dataset.filter === filter);
+      });
+      renderProcesses();
+    }
+
+    function toggleAutoRefresh() {
+      autoRefreshEnabled = !autoRefreshEnabled;
+      const btn = document.getElementById('autoRefreshBtn');
+      if (autoRefreshEnabled) {
+        btn.textContent = 'Auto: ON';
+        startAutoRefresh();
+      } else {
+        btn.textContent = 'Auto: OFF';
+        stopAutoRefresh();
+      }
+    }
+
+    function startAutoRefresh() {
+      stopAutoRefresh();
+      autoRefreshInterval = setInterval(fetchStatus, 10000);
+    }
+
+    function stopAutoRefresh() {
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+      }
+    }
+
+    function esc(s) {
+      if (!s) return '';
+      return String(s).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>').replace(/"/g, '"');
+    }
+
+    // Initial load
+    fetchStatus();
+    startAutoRefresh();
+  </script>
+</body>
+</html>

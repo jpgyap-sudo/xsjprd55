@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "eslint": "^9.15.0",
+    "pm2-logrotate": "^3.0.0",
     "supabase": "^2.95.3"
   },
   "engines": {

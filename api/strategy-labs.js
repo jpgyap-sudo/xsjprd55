@@ -12,7 +12,7 @@ import { getMockDashboard, openMockTrades } from '../lib/ml/mockTrader.js';
 import { getPromotedStrategies } from '../lib/ml/feedbackLoop.js';
 import { loadActiveModel } from '../lib/ml/model.js';
 import { rankAllStrategies } from '../lib/ml/strategyEvaluator.js';
-import { backtestAllStrategies, backtestDynamicStrategy, storeBacktestResult } from '../lib/ml/backtestEngine.js';
+import { backtestAllStrategies, backtestDynamicStrategy, storeBacktestResultAsync } from '../lib/ml/backtestEngine.js';
 import { initMlDb } from '../lib/ml/db.js';
 
 export default async function handler(req, res) {
@@ -37,12 +37,12 @@ export default async function handler(req, res) {
 
     let results;
     if (proposalId) {
-      const result = backtestDynamicStrategy(proposalId, candles, symbol);
-      if (result) storeBacktestResult(result, symbol);
+      const result = await backtestDynamicStrategy(proposalId, candles, symbol);
+      if (result) await storeBacktestResultAsync(result, symbol);
       results = [result];
     } else {
       results = backtestAllStrategies(candles, symbol);
-      for (const r of results) storeBacktestResult(r, symbol);
+      for (const r of results) await storeBacktestResultAsync(r, symbol);
     }
 
     return res.status(200).json({
@@ -121,7 +121,7 @@ export default async function handler(req, res) {
     };
 
     const builtin = runStrategyLab(input);
-    const dynamic = runResearchStrategyLab(input);
+    const dynamic = await runResearchStrategyLab(input);
     const all = [...builtin, ...dynamic];
 
     return res.status(200).json({

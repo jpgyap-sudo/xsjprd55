@@ -1,0 +1,13 @@
+[eval]:1
+process.stdin.resume(); let d=''; process.stdin.on('data',c==c); process.stdin.on('end',()= p=JSON.parse(d); console.log('bin:', JSON.stringify(p.bin), 'main:', p.main, 'type:', p.type)})
+                                                                                         ^
+
+SyntaxError: Unexpected token ')'
+    at makeContextifyScript (node:internal/vm:185:14)
+    at node:internal/process/execution:107:22
+    at [eval]-wrapper:6:24
+    at runScript (node:internal/process/execution:101:62)
+    at evalScript (node:internal/process/execution:133:3)
+    at node:internal/main/eval_string:51:3
+
+Node.js v20.20.2

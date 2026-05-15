@@ -60,5 +60,71 @@ describe('Trading Central Brain', () => {
       assert.equal(decision.timeframe, '15m', 'default timeframe should be 15m');
       assert.equal(decision.mode, 'paper', 'default mode should be paper');
     });
+
+    it('should accept ETHUSDT symbol', async () => {
+      const decision = await runTradingBrain({
+        symbol: 'ETHUSDT',
+        timeframe: '1h',
+        mode: 'paper'
+      });
+
+      assert.equal(decision.symbol, 'ETHUSDT');
+      assert.equal(decision.timeframe, '1h');
+    });
+
+    it('should accept live mode parameter', async () => {
+      const decision = await runTradingBrain({
+        symbol: 'BTCUSDT',
+        timeframe: '15m',
+        mode: 'live'
+      });
+
+      assert.equal(decision.mode, 'live');
+    });
+
+    it('should always return risk_gates as array', async () => {
+      const decision = await runTradingBrain({
+        symbol: 'BTCUSDT',
+        timeframe: '15m',
+        mode: 'paper'
+      });
+
+      assert.ok(Array.isArray(decision.risk_gates));
+    });
+
+    it('should return explanation as string', async () => {
+      const decision = await runTradingBrain({
+        symbol: 'BTCUSDT',
+        timeframe: '15m',
+        mode: 'paper'
+      });
+
+      assert.equal(typeof decision.explanation, 'string');
+      assert.ok(decision.explanation.length > 0);
+    });
+
+    it('should return context_summary with all required fields', async () => {
+      const decision = await runTradingBrain({
+        symbol: 'BTCUSDT',
+        timeframe: '15m',
+        mode: 'paper'
+      });
+
+      const summary = decision.context_summary;
+      assert.ok('market_ok' in summary);
+      assert.ok('liquidation_bias' in summary);
+      assert.ok('news_sentiment' in summary);
+      assert.ok('market_age_seconds' in summary);
+    });
+
+    it('should handle 4h timeframe', async () => {
+      const decision = await runTradingBrain({
+        symbol: 'BTCUSDT',
+        timeframe: '4h',
+        mode: 'paper'
+      });
+
+      assert.equal(decision.timeframe, '4h');
+    });
   });
 });

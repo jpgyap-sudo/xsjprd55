@@ -14,7 +14,68 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
+
+// ── Request timeout — abort requests that take too long ─────
+const REQUEST_TIMEOUT_MS = parseInt(process.env.REQUEST_TIMEOUT_MS || '30000', 10);
+app.use((req, res, next) => {
+  // Skip timeout for static files and health checks
+  if (req.path === '/' || req.path.startsWith('/api/health')) return next();
+
+  const timer = setTimeout(() => {
+    if (!res.headersSent) {
+      res.status(504).json({ error: 'Request timed out', timeout_ms: REQUEST_TIMEOUT_MS });
+    }
+  }, REQUEST_TIMEOUT_MS);
+
+  res.on('finish', () => clearTimeout(timer));
+  next();
+});
+
+// ── CORS — allow all origins for dashboard access ──────────
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-cron-secret');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
+// ── Rate limiting — simple in-memory per-IP ────────────────
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 120;          // 120 requests per minute
+const rateLimitMap = new Map();
+setInterval(() => rateLimitMap.clear(), RATE_LIMIT_WINDOW_MS); // periodic cleanup
+
+app.use((req, res, next) => {
+  const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+  if (now > entry.resetAt) {
+    entry.count = 0;
+    entry.resetAt = now + RATE_LIMIT_WINDOW_MS;
+  }
+  entry.count++;
+  rateLimitMap.set(ip, entry);
+  if (entry.count > RATE_LIMIT_MAX) {
+    return res.status(429).json({ error: 'Too many requests — slow down' });
+  }
+  next();
+});
+
+// ── Request validation — reject oversized or malformed bodies ──
+app.use((req, res, next) => {
+  if (req.method === 'POST' || req.method === 'PUT') {
+    const body = req.body;
+    if (body && typeof body === 'object') {
+      const bodyStr = JSON.stringify(body);
+      if (bodyStr.length > 500_000) {
+        return res.status(413).json({ error: 'Request body too large' });
+      }
+    }
+  }
+  next();
+});
 
 // ── Auth middleware for admin/cron endpoints ───────────────
 // Endpoints that trigger scans, learning loops, or mutations
