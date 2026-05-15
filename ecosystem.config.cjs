@@ -446,6 +446,29 @@ module.exports = {
       min_uptime: '1s'
     },
     {
+      name: 'vps-deployer-agent',
+      script: './workers/vps-deployer-agent.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps',
+        VPS_IP: '100.86.182.7',
+        ENABLE_AUTO_DEPLOY: 'true'
+      },
+      autorestart: false,
+      cron_restart: '*/2 * * * *',
+      max_memory_restart: '256M',
+      log_file: './logs/vps-deployer-agent-combined.log',
+      out_file: './logs/vps-deployer-agent-out.log',
+      error_file: './logs/vps-deployer-agent-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 3,
+      min_uptime: '1s'
+    },
+    {
       name: 'continuous-test-monitor',
       script: './workers/continuous-test-monitor.cjs',
       instances: 1,
