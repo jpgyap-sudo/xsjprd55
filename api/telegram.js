@@ -616,18 +616,13 @@ async function cmdOpenClaw(args, chatId, userId, senderName) {
     );
   }
 
-  // Send thinking message — we'll keep it as the single status message
+  // Send thinking message — we'll edit it in-place with the response
   const thinkingMsg = await sendTelegram(chatId, '🧠 *OpenClaw is thinking...*\n_Gathering market data, signals, and context..._');
   const thinkingMsgId = thinkingMsg?.message_id;
 
   try {
-    // Step 1: Build trading context with 15s timeout
-    const context = await buildTradingContext({ question, timeout: 15000 });
-    const contextText = formatTradingContext(context);
-
-    // Step 2: Use AI provider as primary path (fast, non-blocking, already has market context)
-    // Skip OpenClaw CLI (execSync) — it blocks the event loop and the server 30s timeout
-    // kills the request before it can respond
+    // Use askAI() directly — it already fetches market context + news internally
+    // No need to call buildTradingContext() separately (avoids double-fetching)
     const aiResult = await askAI({
       question: `You are OpenClaw — a highly intelligent trading analysis agent integrated into a Telegram bot.
 
@@ -657,9 +652,6 @@ You have access to comprehensive trading context including:
 - Use emojis for structure
 - End with actionable takeaway
 
-Trading Context:
-${contextText}
-
 User Question: ${question}
 
 Provide a thorough, data-driven analysis.`,
@@ -671,7 +663,7 @@ Provide a thorough, data-driven analysis.`,
     const answer = aiResult.answer;
     const provider = aiResult.provider;
 
-    // Step 3: Split into Telegram-friendly chunks (max 4000 chars)
+    // Split into Telegram-friendly chunks (max 4000 chars)
     const chunks = answer.match(/[\s\S]{1,4000}/g) || [answer];
 
     // Edit the thinking message with the first chunk, send rest as new messages
@@ -679,7 +671,6 @@ Provide a thorough, data-driven analysis.`,
       try {
         await editMessage(chatId, thinkingMsgId, chunks[0]);
       } catch (e) {
-        // If edit fails (e.g., message too old), send as new
         await sendTelegram(chatId, chunks[0]);
       }
     } else {
@@ -690,7 +681,7 @@ Provide a thorough, data-driven analysis.`,
       await sendTelegram(chatId, chunks[i]);
     }
 
-    // Step 4: Log the interaction
+    // Log the interaction
     try {
       await supabase.from('audit_log').insert({
         action: 'openclaw_telegram',
@@ -706,24 +697,6 @@ Provide a thorough, data-driven analysis.`,
 
   } catch (e) {
     console.error('[telegram] OpenClaw command error:', e);
-    // Final fallback to basic askAI (no trading context, just the question)
-    try {
-      const result = await askAI({ question });
-      if (result.ok) {
-        const chunks = result.answer.match(/[\s\S]{1,4000}/g) || [result.answer];
-        if (thinkingMsgId) {
-          try {
-            await editMessage(chatId, thinkingMsgId, chunks[0]);
-          } catch (e2) {
-            await sendTelegram(chatId, chunks[0]);
-          }
-        } else {
-          await sendTelegram(chatId, chunks[0]);
-        }
-        for (let i = 1; i < chunks.length; i++) await sendTelegram(chatId, chunks[i]);
-        return;
-      }
-    } catch (e2) { /* ignore */ }
     const errorText = `❌ OpenClaw analysis failed: ${e.message}`;
     if (thinkingMsgId) {
       try { await editMessage(chatId, thinkingMsgId, errorText); } catch (e2) { await sendTelegram(chatId, errorText); }
