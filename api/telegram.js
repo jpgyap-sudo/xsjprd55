@@ -2,6 +2,7 @@
 // Telegram Webhook Handler — /api/telegram
 // Commands: /signal, /market, /status, /scan, /close, /test, /help, /ai
 // Advisor: /ask, /strategy, /risk, /backtest, /analyze
+// OpenClaw: /oc, /openclaw — Smart trading Q&A with full context
 // AI Chat: directed non-command text (mention/reply/DM) is routed to Claude
 // Callbacks: sig_confirm, sig_dismiss, trade_close
 // ============================================================
@@ -19,6 +20,7 @@ import { runLearningLoop } from '../lib/learning-loop.js';
 import { getSources } from '../lib/data-source-manager.js';
 import { runAdvisor } from '../lib/advisor/runAdvisor.js';
 import { runOpenClaw, checkOpenClaw } from '../lib/openclaw.js';
+import { buildTradingContext, formatTradingContext } from '../lib/openclaw-trading-context.js';
 
 const GROUP_ID = process.env.TELEGRAM_GROUP_CHAT_ID;
 const ADMIN_ID = process.env.TELEGRAM_ADMIN_USER_ID;
@@ -596,6 +598,133 @@ async function cmdAnalyze(args, chatId) {
   }
 }
 
+// ── OpenClaw Smart Trading Q&A ─────────────────────────────
+
+async function cmdOpenClaw(args, chatId, userId, senderName) {
+  const question = args.join(' ').trim();
+  if (!question) {
+    return sendTelegram(chatId,
+      `🧠 *OpenClaw Trading AI*\n` +
+      `Ask me anything about crypto trading, markets, signals, or strategies.\n\n` +
+      `Examples:\n` +
+      `/oc What's the best short right now?\n` +
+      `/oc Analyze BTCUSDT — is it a good long?\n` +
+      `/oc How are our strategies performing?\n` +
+      `/oc What's the market sentiment today?\n` +
+      `/oc Explain the liquidation risk for ETH\n` +
+      `/oc Should I take profit on my open trades?`
+    );
+  }
+
+  await sendTelegram(chatId, '🧠 *OpenClaw is thinking...*\n_Gathering market data, signals, and context..._');
+
+  try {
+    // Try the internal API first (faster, no HTTP overhead)
+    const context = await buildTradingContext({ question });
+    const contextText = formatTradingContext(context);
+
+    const ocStatus = checkOpenClaw();
+    let answer;
+    let provider;
+
+    if (ocStatus.available) {
+      await sendTelegram(chatId, '🔍 *Running deep analysis...*');
+      const openclawPrompt = `You are OpenClaw — a highly intelligent trading analysis agent integrated into a Telegram bot.
+
+Your role is to answer trading-related questions with deep market insight, data-driven analysis, and clear reasoning.
+
+## YOUR CAPABILITIES
+You have access to comprehensive trading context including:
+- Real-time market data (prices, volumes, BTC/ETH dominance)
+- Funding rates (identify crowded longs/shorts)
+- Liquidation intelligence (best short/long candidates, OI data)
+- Active trading signals with confidence levels
+- Open trades with current PnL
+- Strategy performance metrics (win rates by strategy)
+- Brain signal memory and learning insights
+- Recent news with sentiment analysis
+
+## HOW TO ANALYZE
+1. Ground your answer in the actual data provided
+2. Provide structured analysis with emojis
+3. Be honest about uncertainty
+4. Never claim guaranteed profits
+5. Always include risk disclaimers
+
+## OUTPUT FORMAT
+- Use Markdown (*bold*, _italic_)
+- Keep under 4000 chars per message
+- Use emojis for structure
+- End with actionable takeaway
+
+Trading Context:
+${contextText}
+
+User Question: ${question}
+
+Provide a thorough, data-driven analysis.`;
+
+      const result = runOpenClaw(openclawPrompt, { type: 'analysis', timeout: 60000 });
+
+      if (result.ok) {
+        answer = result.output;
+        provider = 'openclaw';
+      } else {
+        console.warn('[telegram] OpenClaw failed, falling back to AI:', result.error);
+        const aiResult = await askAI({
+          question: `You are a smart trading advisor. Answer this question with data-driven analysis.\n\nTrading Context:\n${contextText}\n\nUser Question: ${question}`,
+          maxTokens: 4096,
+        });
+        if (!aiResult.ok) throw new Error(aiResult.error);
+        answer = aiResult.answer;
+        provider = aiResult.provider;
+      }
+    } else {
+      // OpenClaw not available — use AI provider with trading context
+      const aiResult = await askAI({
+        question: `You are a smart trading advisor. Answer this question with data-driven analysis.\n\nTrading Context:\n${contextText}\n\nUser Question: ${question}`,
+        maxTokens: 4096,
+      });
+      if (!aiResult.ok) throw new Error(aiResult.error);
+      answer = aiResult.answer;
+      provider = aiResult.provider;
+    }
+
+    // Split into Telegram-friendly chunks (max 4000 chars)
+    const chunks = answer.match(/[\s\S]{1,4000}/g) || [answer];
+    for (const chunk of chunks) {
+      await sendTelegram(chatId, chunk);
+    }
+
+    // Log the interaction
+    try {
+      await supabase.from('audit_log').insert({
+        action: 'openclaw_telegram',
+        metadata: {
+          question: question.slice(0, 500),
+          provider,
+          chat_id: chatId,
+          user_id: userId,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } catch (e) { /* non-critical */ }
+
+  } catch (e) {
+    console.error('[telegram] OpenClaw command error:', e);
+    // Final fallback to basic askAI
+    try {
+      const result = await askAI({ question });
+      if (result.ok) {
+        const chunks = result.answer.match(/[\s\S]{1,4000}/g) || [result.answer];
+        for (const chunk of chunks) await sendTelegram(chatId, chunk);
+        return;
+      }
+    } catch (e2) { /* ignore */ }
+    await sendTelegram(chatId, `❌ OpenClaw analysis failed: ${e.message}`);
+  }
+}
+
 async function cmdHelp(chatId) {
   const msg =
     `*Available Commands*\n\n` +
@@ -606,6 +735,10 @@ async function cmdHelp(chatId) {
     `/backtest SYMBOL — Backtest memory for a symbol\n` +
     `/analyze QUESTION — Deep AI analysis via OpenClaw\n` +
     `Or just type any message without a "/" — the AI will reply!\n\n` +
+    `🤖 *OpenClaw Smart Trading*\n` +
+    `/oc QUESTION — Smart trading Q&A with full market context\n` +
+    `   (e.g. "/oc What's the best short right now?")\n` +
+    `   OpenClaw analyzes signals, trades, news, and liquidation data\n\n` +
     `📰 *News Signals*\n` +
     `/news — Latest crypto headlines with sentiment\n` +
     `/newsscan — Scan news for trade signals NOW\n\n` +
@@ -729,11 +862,44 @@ export default async function handler(req, res) {
       cleanText = text.slice(botUsernameClean.length).trim();
     }
 
-    try {
-      await cmdAsk(cleanText.split(/\s+/), chatId, userId, sender);
-    } catch (e) {
-      console.error('Telegram AI error:', e);
-      if (chatId) await sendTelegram(chatId, `❌ AI error: ${e.message}`);
+    // Detect if this is a trading-related question — route through OpenClaw for smarter answers
+    const tradingKeywords = [
+      'short', 'long', 'signal', 'trade', 'market', 'btc', 'eth', 'sol',
+      'buy', 'sell', 'entry', 'price', 'liquidation', 'funding', 'oi',
+      'position', 'pnl', 'profit', 'loss', 'strategy', 'analysis',
+      'chart', 'trend', 'support', 'resistance', 'breakout', 'dump',
+      'pump', 'bearish', 'bullish', 'crypto', 'coin', 'token', 'altcoin',
+      'leverage', 'margin', 'future', 'perpetual', 'spot', 'swap',
+      'rsi', 'macd', 'ema', 'volume', 'order', 'book', 'depth',
+      'risk', 'stop', 'loss', 'take', 'profit', 'tp', 'sl',
+    ];
+    const words = cleanText.toLowerCase().split(/\s+/);
+    const tradingWordCount = words.filter(w => tradingKeywords.includes(w)).length;
+    const isTradingQuestion = tradingWordCount >= 2 || words.some(w =>
+      w.endsWith('usdt') || w.endsWith('usd') || /^[a-z]{2,6}usdt$/.test(w)
+    );
+
+    if (isTradingQuestion) {
+      // Route through OpenClaw for smart trading analysis
+      try {
+        await cmdOpenClaw(cleanText.split(/\s+/), chatId, userId, sender);
+      } catch (e) {
+        console.error('Telegram OpenClaw error:', e);
+        // Fallback to basic AI
+        try {
+          await cmdAsk(cleanText.split(/\s+/), chatId, userId, sender);
+        } catch (e2) {
+          if (chatId) await sendTelegram(chatId, `❌ Error: ${e.message}`);
+        }
+      }
+    } else {
+      // General questions — use standard AI
+      try {
+        await cmdAsk(cleanText.split(/\s+/), chatId, userId, sender);
+      } catch (e) {
+        console.error('Telegram AI error:', e);
+        if (chatId) await sendTelegram(chatId, `❌ AI error: ${e.message}`);
+      }
     }
     return res.status(200).send('OK');
   }
@@ -762,6 +928,8 @@ export default async function handler(req, res) {
       case '/risk':         await cmdRisk(args, chatId); break;
       case '/backtest':     await cmdBacktest(args, chatId); break;
       case '/analyze':      await cmdAnalyze(args, chatId); break;
+      case '/oc':           await cmdOpenClaw(args, chatId, userId, sender); break;
+      case '/openclaw':     await cmdOpenClaw(args, chatId, userId, sender); break;
       case '/suggestions':  await cmdSuggestions(chatId); break;
       case '/learn':        await cmdLearn(chatId); break;
       case '/sources':      await cmdSources(chatId); break;
