@@ -623,6 +623,7 @@ async function cmdOpenClaw(args, chatId, userId, senderName) {
   try {
     // Use askAI() directly — it already fetches market context + news internally
     // No need to call buildTradingContext() separately (avoids double-fetching)
+    console.log(`[telegram] OpenClaw calling askAI for question: "${question.slice(0, 80)}..."`);
     const aiResult = await askAI({
       question: `You are OpenClaw — a highly intelligent trading analysis agent integrated into a Telegram bot.
 
@@ -656,12 +657,14 @@ User Question: ${question}
 
 Provide a thorough, data-driven analysis.`,
       maxTokens: 4096,
+      timeoutMs: 25000, // 25s total timeout — leaves 5s buffer before server 30s timeout
     });
 
     if (!aiResult.ok) throw new Error(aiResult.error || 'AI analysis failed');
 
     const answer = aiResult.answer;
     const provider = aiResult.provider;
+    console.log(`[telegram] OpenClaw got response from ${provider} (${answer.length} chars)`);
 
     // Split into Telegram-friendly chunks (max 4000 chars)
     const chunks = answer.match(/[\s\S]{1,4000}/g) || [answer];
@@ -681,6 +684,8 @@ Provide a thorough, data-driven analysis.`,
       await sendTelegram(chatId, chunks[i]);
     }
 
+    console.log(`[telegram] OpenClaw response sent successfully (${chunks.length} chunks)`);
+
     // Log the interaction
     try {
       await supabase.from('audit_log').insert({
@@ -696,7 +701,7 @@ Provide a thorough, data-driven analysis.`,
     } catch (e) { /* non-critical */ }
 
   } catch (e) {
-    console.error('[telegram] OpenClaw command error:', e);
+    console.error('[telegram] OpenClaw command error:', e.message);
     const errorText = `❌ OpenClaw analysis failed: ${e.message}`;
     if (thinkingMsgId) {
       try { await editMessage(chatId, thinkingMsgId, errorText); } catch (e2) { await sendTelegram(chatId, errorText); }
