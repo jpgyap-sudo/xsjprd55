@@ -329,13 +329,36 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         DEPLOYMENT_TARGET: 'vps',
-        PERPETUAL_TRADER_INTERVAL_SECONDS: 60
+        PERPETUAL_TRADER_INTERVAL_SECONDS: 60,
+        PERPETUAL_MAX_TRADE_AGE_HOURS: 72
       },
       autorestart: true,
       max_memory_restart: '256M',
       log_file: './logs/perp-trader-combined.log',
       out_file: './logs/perp-trader-out.log',
       error_file: './logs/perp-trader-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
+    },
+    {
+      name: 'strategy-monitor-worker',
+      script: './workers/strategy-monitor-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps',
+        STRATEGY_MIN_WIN_RATE: '0.40',
+        STRATEGY_MIN_TRADES: '10'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/strategy-monitor-combined.log',
+      out_file: './logs/strategy-monitor-out.log',
+      error_file: './logs/strategy-monitor-error.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       kill_timeout: 5000,
       restart_delay: 3000,

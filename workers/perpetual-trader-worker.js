@@ -10,6 +10,7 @@ import { logger } from '../lib/logger.js';
 import { openPerpetualTrade, monitorPerpetualTrades, resetDailyStats } from '../lib/perpetual-trader/engine.js';
 import { isMainModule } from '../lib/entrypoint.js';
 import { brainRiskCheck, logAgentEvent } from '../lib/brain-integration.js';
+import { fetchPublicPrice } from '../lib/market-price.js';
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -165,6 +166,85 @@ async function checkDailyReset() {
   }
 }
 
+/**
+ * Force-close stale perpetual trades that have been open too long
+ * (e.g., trades from May 5 that are still open 10+ days later)
+ */
+async function closeStaleTrades() {
+  try {
+    const maxAgeHours = Number(process.env.PERPETUAL_MAX_TRADE_AGE_HOURS || 72); // 3 days default
+    const cutoff = new Date(Date.now() - maxAgeHours * 60 * 60 * 1000).toISOString();
+
+    const { data: staleTrades } = await supabase
+      .from('perpetual_mock_trades')
+      .select('*')
+      .eq('status', 'open')
+      .lt('created_at', cutoff)
+      .limit(20);
+
+    if (!staleTrades?.length) return 0;
+
+    let closed = 0;
+    for (const trade of staleTrades) {
+      try {
+        // Fetch current price to close at market
+        const { price } = await fetchPublicPrice(trade.symbol);
+        const exitPrice = price || trade.entry_price;
+
+        // Calculate PnL
+        const isLong = (trade.side || '').toLowerCase() === 'long';
+        const pnlPct = isLong
+          ? ((exitPrice - trade.entry_price) / trade.entry_price) * 100
+          : ((trade.entry_price - exitPrice) / trade.entry_price) * 100;
+        const pnl = (trade.position_size || 0) * (pnlPct / 100);
+
+        await supabase
+          .from('perpetual_mock_trades')
+          .update({
+            status: 'closed',
+            exit_price: exitPrice,
+            pnl: pnl,
+            pnl_pct: pnlPct,
+            closed_at: new Date().toISOString(),
+            close_reason: 'stale_timeout',
+            close_detail: `Force-closed after ${maxAgeHours}h (created ${trade.created_at})`
+          })
+          .eq('id', trade.id);
+
+        // Update account balance — fetch current, then add PnL
+        const { data: account } = await supabase
+          .from('perpetual_mock_accounts')
+          .select('current_balance, total_pnl')
+          .eq('id', trade.account_id)
+          .single();
+
+        if (account) {
+          await supabase
+            .from('perpetual_mock_accounts')
+            .update({
+              current_balance: Number(account.current_balance || 0) + pnl,
+              total_pnl: Number(account.total_pnl || 0) + pnl
+            })
+            .eq('id', trade.account_id);
+        }
+
+        closed++;
+        logger.info(`[perp-worker] Force-closed stale trade ${trade.id} (${trade.symbol}) — PnL: $${pnl.toFixed(2)}`);
+      } catch (e) {
+        logger.warn(`[perp-worker] Failed to close stale trade ${trade.id}: ${e.message}`);
+      }
+    }
+
+    if (closed > 0) {
+      logger.info(`[perp-worker] Closed ${closed} stale trades older than ${maxAgeHours}h`);
+    }
+    return closed;
+  } catch (e) {
+    logger.warn(`[perp-worker] Stale trade cleanup failed: ${e.message}`);
+    return 0;
+  }
+}
+
 export async function runPerpetualTraderCycle() {
   const started = Date.now();
   if (isSupabaseNoOp()) {
@@ -174,6 +254,9 @@ export async function runPerpetualTraderCycle() {
   logger.info('[perp-worker] Starting cycle...');
 
   await checkDailyReset();
+
+  // Close stale trades first (trades open >72h)
+  const staleClosed = await closeStaleTrades();
 
   const monitorResult = await monitorTrades();
   const tradeResult = await pollAndTrade();
@@ -186,10 +269,11 @@ export async function runPerpetualTraderCycle() {
   }
 
   const duration = Date.now() - started;
-  logger.info(`[perp-worker] Cycle complete in ${duration}ms: opened=${tradeResult.opened}, monitored=${monitorResult.checked}, closed=${monitorResult.closed}`);
+  logger.info(`[perp-worker] Cycle complete in ${duration}ms: stale=${staleClosed}, opened=${tradeResult.opened}, monitored=${monitorResult.checked}, closed=${monitorResult.closed}`);
 
   return {
     ok: true,
+    staleClosed,
     tradeResult,
     monitorResult,
     duration_ms: duration

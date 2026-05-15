@@ -1,6 +1,7 @@
 // ============================================================
-// Mock Trading Worker
-// Opens paper trades for high-probability signals and monitors them.
+// Mock Trading Worker v2 — Research Agent Integration
+// Opens paper trades for high-probability signals AND consumes
+// promoted strategies from the Research Agent's strategy_lifecycle.
 // Runs every 3 minutes on VPS.
 // ============================================================
 
@@ -14,6 +15,9 @@ import { isMainModule } from '../lib/entrypoint.js';
 import { brainRiskCheck, logAgentEvent } from '../lib/brain-integration.js';
 
 const INTERVAL_MS = 3 * 60 * 1000;
+
+// Track which promoted strategies we've already processed to avoid duplicates
+const PROCESSED_PROMOTED_STRATEGIES = new Set();
 
 export async function runMockTradingWorker() {
   if (!config.ENABLE_MOCK_TRADING_WORKER) {
@@ -190,6 +194,95 @@ export async function runMockTradingWorker() {
       }
     } catch (e) {
       // improvement ideas are best-effort
+    }
+
+    // ── Research Agent Integration ──────────────────────────────
+    // Consume promoted strategies from strategy_lifecycle and test them
+    try {
+      const { data: promotedStrategies } = await supabase
+        .from('strategy_lifecycle')
+        .select('*')
+        .eq('approved_for_mock', true)
+        .order('promotion_gate_score', { ascending: false })
+        .limit(10);
+
+      if (promotedStrategies?.length) {
+        let tested = 0;
+        for (const strat of promotedStrategies) {
+          // Skip if we already processed this strategy
+          const dedupKey = `${strat.strategy_name}_${strat.rules_hash || 'no_hash'}`;
+          if (PROCESSED_PROMOTED_STRATEGIES.has(dedupKey)) continue;
+          PROCESSED_PROMOTED_STRATEGIES.add(dedupKey);
+
+          // Check if this strategy already has mock trades
+          const { data: existingTrades } = await supabase
+            .from('mock_trades')
+            .select('id')
+            .eq('strategy', strat.strategy_name)
+            .limit(1);
+
+          if (existingTrades?.length) {
+            logger.debug(`[MOCK-WORKER] Strategy ${strat.strategy_name} already has mock trades — skipping`);
+            continue;
+          }
+
+          // Fetch recent signals for this strategy to test
+          const { data: strategySignals } = await supabase
+            .from('signals')
+            .select('*')
+            .eq('strategy', strat.strategy_name)
+            .eq('status', 'active')
+            .order('generated_at', { ascending: false })
+            .limit(5);
+
+          if (!strategySignals?.length) {
+            logger.debug(`[MOCK-WORKER] No active signals for promoted strategy ${strat.strategy_name}`);
+            continue;
+          }
+
+          // Open mock trades for each signal
+          for (const signal of strategySignals) {
+            try {
+              // Check for existing open trade on this symbol
+              const { data: existing } = await supabase
+                .from('mock_trades')
+                .select('id')
+                .eq('symbol', signal.symbol)
+                .eq('status', 'open')
+                .limit(1);
+              if (existing?.length) continue;
+
+              await openMockTrade({
+                ...signal,
+                id: signal.id,
+                side: (signal.side || '').toLowerCase(),
+                strategy: strat.strategy_name,
+                best_leverage: 2,
+                stop_loss_pct: 1.5,
+                take_profit_pct: 3.0
+              }, { finalProbability: Math.round((signal.confidence || 0.5) * 100) });
+
+              tested++;
+              logger.info(`[MOCK-WORKER] Opened research-agent trade for ${strat.strategy_name} on ${signal.symbol}`);
+            } catch (e) {
+              logger.warn(`[MOCK-WORKER] Research-agent trade failed for ${strat.strategy_name}/${signal.symbol}: ${e.message}`);
+            }
+          }
+        }
+
+        if (tested > 0) {
+          logger.info(`[MOCK-WORKER] Research Agent Integration: tested ${tested} trades from ${promotedStrategies.length} promoted strategies`);
+        }
+      }
+    } catch (e) {
+      logger.warn(`[MOCK-WORKER] Research Agent integration failed: ${e.message}`);
+    }
+
+    // Prune processed set to prevent memory leak
+    if (PROCESSED_PROMOTED_STRATEGIES.size > 1000) {
+      const toKeep = Array.from(PROCESSED_PROMOTED_STRATEGIES).slice(-500);
+      PROCESSED_PROMOTED_STRATEGIES.clear();
+      for (const k of toKeep) PROCESSED_PROMOTED_STRATEGIES.add(k);
     }
 
     logger.info('[MOCK-WORKER] Tick complete');

@@ -220,8 +220,10 @@ export default async function handler(req, res) {
             close: latest[4], volume: latest[5]
           }, { onConflict: 'symbol,exchange,timeframe,timestamp' });
 
-          // Run strategies
-          const strategies = [strategy_EMACross, strategy_RSIBounce, strategy_Momentum];
+          // Run strategies — Momentum_EMA20 disabled (0% WR, -$295K over 253 trades)
+          // Volume_Breakout also disabled (0% WR, -$860K over 247 trades)
+          // Only EMA_Cross and RSI_Bounce have positive expectancy
+          const strategies = [strategy_EMACross, strategy_RSIBounce];
           for (const stratFn of strategies) {
             const rawSignal = stratFn(pair, tf, ohlcv);
             if (!rawSignal) continue;
