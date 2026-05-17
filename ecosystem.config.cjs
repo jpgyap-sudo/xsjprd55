@@ -795,6 +795,28 @@ module.exports = {
       restart_delay: 3000,
       max_restarts: 10,
       min_uptime: '10s'
+    },
+    {
+      name: 'tll-notification-worker',
+      script: './workers/tll-notification-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps',
+        TLL_NOTIFY_ENABLED: 'true',
+        TLL_NOTIFY_INTERVAL_MS: '300000'
+      },
+      autorestart: true,
+      max_memory_restart: '128M',
+      log_file: './logs/tll-notify-combined.log',
+      out_file: './logs/tll-notify-out.log',
+      error_file: './logs/tll-notify-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
     }
   ]
 };
