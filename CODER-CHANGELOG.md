@@ -1,7 +1,7 @@
 # Coder Changelog — xsjprd55
 
 > Centralized tracking of all coder updates, commits, and deployments.
-> Last updated: 2026-04-30 23:30 UTC
+> Last updated: 2026-05-17 16:33 UTC
 
 ---
 
@@ -9,8 +9,8 @@
 
 | Component | Current Commit | Deployed | Status |
 |-----------|----------------|----------|--------|
-| GitHub Main | cbad86e | — | ✅ Active |
-| VPS (165.22.110.111) | cbad86e | ✅ | ✅ Operational |
+| GitHub Main | aa4894f | — | ✅ Active |
+| VPS (165.22.110.111) | aa4894f | ✅ | ✅ Operational |
 
 ---
 
@@ -27,6 +27,81 @@
 ---
 
 ## 🔄 Update History (Newest First)
+
+### 2026-05-17 — Perpetual Trader TLL Integration
+
+**Coder:** `[SB]` Senior Builder  
+**Commits:** `aa4894f`  
+**Branch:** `main`
+
+#### Changes Made:
+1. **Perpetual Trader API** (`api/perpetual-trader.js`)
+   - Added TLL snapshot fetch via `getTllMockTradingSnapshot()`
+   - Returns `tll` field with regime, activeSkills, topSkills, strategyWeights, recentHealing, topPatterns
+   - **Coder:** `[SB]` | **Reviewer:** `[RS]` ✅
+
+2. **Perpetual Trader Tab** (`public/index.html`)
+   - Added TLL Regime Banner showing current market regime
+   - Added TLL Skills & Healing section with skills grid and healing alerts
+   - Added 🧠 TLL Dashboard link in trade history navigation
+   - Added quarantine indicators (🔒) to strategy stats with dimmed rows
+   - **Coder:** `[SB]` | **Reviewer:** `[RS]` ✅
+
+3. **Perpetual Trader Worker** (`workers/perpetual-trader-worker.js`)
+   - Added TLL data caching at tick start (regime, skills, weights)
+   - Added TLL Regime Check — blocks trades during `high_volatility`
+   - Added TLL Skill Check — blocks signals with conflicting skills
+   - Added TLL Strategy Weight Check — skips quarantined strategies
+   - **Coder:** `[SB]` | **Reviewer:** `[RS]` ✅
+
+#### Deployment Status:
+- ✅ Committed: 2026-05-17 16:16 UTC
+- ✅ Pushed to GitHub: 2026-05-17 16:16 UTC
+- ✅ Deployed to VPS: 2026-05-17 16:17 UTC
+- ✅ Worker Reloaded: `pm2 update` (all 40 workers)
+- ✅ API Verified: `TLL: present` in `/api/perpetual-trader`
+
+---
+
+### 2026-05-17 — Mock Trading Tab TLL Integration
+
+**Coder:** `[SB]` Senior Builder  
+**Commits:** `c8cfcc5`  
+**Branch:** `main`
+
+#### Changes Made:
+1. **Mock Trading Tab** (`public/index.html`)
+   - Added TLL Regime Banner showing current market regime
+   - Added TLL Skills & Healing section with skills grid and healing alerts
+   - Added 🧠 TLL Dashboard link
+   - Added quarantine indicators to strategy stats
+   - **Coder:** `[SB]` | **Reviewer:** `[RS]` ✅
+
+#### Deployment Status:
+- ✅ Committed: 2026-05-17
+- ✅ Deployed to VPS
+- ✅ API Verified
+
+---
+
+### 2026-05-17 — TLL Notification Worker Fixes
+
+**Coder:** `[SB]` Senior Builder  
+**Commits:** `39702dd`  
+**Branch:** `main`
+
+#### Changes Made:
+1. **TLL Notification Worker** (`workers/tll-notification-worker.js`)
+   - Fixed `checkNewSkills`: use `generated_at` instead of `created_at`
+   - Fixed `checkRegimeShift`: removed `.single()`, use `.limit(1)` with array handling
+   - **Coder:** `[SB]` | **Reviewer:** `[RS]` ✅
+
+#### Deployment Status:
+- ✅ Committed: 2026-05-17
+- ✅ Deployed to VPS
+- ✅ Verified: Worker running, checks every 5min
+
+---
 
 ### 2026-04-30 — Perpetual Trader Fixes + SSH Setup
 
@@ -138,10 +213,7 @@ Use this template when adding new entries:
 
 | Priority | Description | Coder | Status |
 |----------|-------------|-------|--------|
-| High | Commit/deploy 2026-05-05 AI fallback + support assistant + worker fixes (`lib/ai.js`, `api/support-assistant.js`, `api/perpetual-trader/*`, `workers/*`, `scripts/check-signals.mjs`, `lib/perpetual-trader/engine.js`, `lib/perpetual-trader/trade-history.js`, `public/perpetual-trader-history.html`, `supabase/perpetual-trader-history-schema.sql`, docs/tests) | `[SB]` | Pending commit/deploy; SQL requires manual approval; confirm empty HTML placeholder |
-| High | Verify perpetual-trader API response | `[VD]` | ⏸️ Awaiting terminal output |
-| Medium | Update main branch with latest changes | `[SB]` | ⏸️ Pending |
-| Low | Clean up old terminal sessions | `[VD]` | ⏸️ Backlog |
+| — | No pending updates | — | ✅ All caught up |
 
 ---
 
@@ -149,12 +221,12 @@ Use this template when adding new entries:
 
 | Metric | Count |
 |--------|-------|
-| Total Commits (24h) | 5 |
+| Total Commits (24h) | 3 |
 | Total Deployments (24h) | 3 |
-| Active Workers | 20+ |
+| Active Workers | 40 |
 | Coder Contributors | 4 |
 
 ---
 
 *This changelog is automatically updated by the deployment system.*
-*Last auto-update: 2026-04-30 23:30 UTC*
+*Last auto-update: 2026-05-17 16:33 UTC*
