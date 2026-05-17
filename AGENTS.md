@@ -459,6 +459,124 @@ BRAIN_LIVE_MODE=false
 
 ---
 
+## Secondary Agent: Trading Learning Layer (TLL)
+
+**Scope:** Autonomous learning layer inspired by SuperRoo's neural coding signals. Continuously improves trading strategies through pattern discovery, regime detection, adaptive weight tuning, skill generation, and strategy healing.
+
+**TLL Pipeline Flow:**
+```
+Input (brain_signal_memory resolved outcomes)
+  │
+  ▼
+recordSignalOutcome()  ──► Resolves expired signals against current price
+  │                        Saves win/loss/breakeven to brain_signal_memory
+  ▼
+discoverPatterns()     ──► Analyzes feature buckets (RSI, timeframe, side, volatility, news, hour)
+  │                        Finds favorable/unfavorable conditions with statistical confidence
+  ▼
+detectMarketRegime()  ──► Classifies market: trending, choppy, ranging, quiet, mixed
+  │                        Based on volatility + recent win rate
+  ▼
+tuneAdaptiveWeights()  ──► Adjusts brain_strategy_weights per regime affinity
+  │                        70% regime-based + 30% historical performance
+  ▼
+generateTradingSkills() ──► Generates reusable "trading skills" from patterns
+  │                         Like SuperRoo skills: "When RSI<30 on BTC 15m, LONG has 72% WR"
+  ▼
+healStrategies()       ──► Auto-quarantines strategies with win rate < 25%
+                           Suggests parameter adjustments for underperformers
+```
+
+**TLL Database Tables:**
+| Table | Purpose |
+|-------|---------|
+| `tll_patterns` | Discovered feature-based win/loss patterns with confidence scores |
+| `tll_regime_log` | Market regime detection history |
+| `tll_skills` | Generated trading skills from discovered patterns |
+| `tll_healing_log` | Strategy healing/quarantine records |
+
+**TLL Workers (PM2):**
+- `trading-learning-layer-worker` — Runs TLL pipeline every 30 min (configurable via `TLL_INTERVAL_MS`)
+
+**TLL API Endpoints:**
+- `GET /api/learning-layer` — TLL status dashboard
+- `POST /api/learning-layer?action=run` — Trigger TLL cycle manually
+- `GET /api/learning-layer?view=patterns` — Discovered patterns
+- `GET /api/learning-layer?view=skills` — Generated trading skills
+- `GET /api/learning-layer?view=regime` — Current market regime
+- `GET /api/learning-layer?view=healing` — Healing log
+
+**TLL Configuration (`.env`):**
+```env
+TLL_ENABLED=true
+TLL_INTERVAL_MS=1800000
+TLL_OUTCOME_TTL_HOURS=24
+TLL_MAX_RESOLVE=200
+```
+
+**TLL Library Files:**
+| File | Purpose |
+|------|---------|
+| `lib/learning-layer/index.js` | Main orchestrator — runs the full 6-step pipeline |
+| `lib/learning-layer/outcome-recorder.js` | Resolves expired signals against current price |
+| `lib/learning-layer/pattern-discoverer.js` | Feature-based pattern clustering (8 feature extractors) |
+| `lib/learning-layer/regime-detector.js` | Market regime classification (5 regimes) |
+| `lib/learning-layer/weight-tuner.js` | Adaptive weight adjustment per regime affinity |
+| `lib/learning-layer/skill-generator.js` | Generates reusable trading skills from patterns |
+| `lib/learning-layer/strategy-healer.js` | Auto-quarantines underperformers, suggests fixes |
+
+**TLL → Mock Trading Bridge (`lib/learning-layer/mock-trading-bridge.js`):**
+
+| Function | Purpose |
+|----------|---------|
+| `recordMockTradeOutcome()` | Records a single closed mock trade into `brain_signal_memory` for TLL analysis |
+| `ingestRecentMockTradeOutcomes()` | Batch-ingests all recently closed mock trades with dedup |
+| `getTllRegimeForMockTrading()` | Maps TLL regime (trending/choppy/ranging/quiet/mixed) → mock trading regime (trending/ranging/high_volatility/news_risk) |
+| `getActiveTllSkills()` | Fetches active TLL skills with minimum confidence threshold |
+| `checkSignalAgainstTllSkills()` | Checks a signal against active skills, returns confidence boost/penalty |
+| `getTllStrategyWeights()` | Fetches TLL-adjusted strategy weights, excluding quarantined strategies |
+| `isStrategyQuarantined()` | Checks if a strategy has been quarantined by TLL healing |
+| `getTllHealingForMockTrading()` | Fetches recent TLL healing records relevant to mock trading |
+| `getTllMockTradingSnapshot()` | Unified snapshot for dashboard (regime + skills + weights + healing + patterns) |
+
+**Integration Points:**
+- Wired into `lib/learning-loop.js` as step 6 (replaces standalone brain cycle)
+- Exposed via `lib/brain-integration.js` as `runIntegratedTLL()`
+- Runs as standalone PM2 worker `trading-learning-layer-worker`
+- Logs telemetry to `brain_events` via `logBrainEvent('tll_cycle', ...)`
+
+**Mock Trading → TLL Data Flow:**
+1. **Outcome Ingestion** — Every trade close path feeds into TLL:
+   - `lib/mock-trading/mock-account-engine.js` `closeMockTrade()` → `recordMockTradeOutcome()`
+   - `lib/mock-trading/aggressive-engine.js` `closeAggressiveTrade()` → `recordMockTradeOutcome()`
+   - `lib/mock-trading/execution-engine.js` `closeExecution()` → `recordMockTradeOutcome()`
+   - `lib/learning-layer/outcome-recorder.js` `recordSignalOutcome()` → `ingestRecentMockTradeOutcomes()`
+2. **Pattern Discovery** — TLL analyzes both brain signals AND mock trade outcomes (stored in `brain_signal_memory`)
+3. **Strategy Healing** — `lib/learning-layer/strategy-healer.js` `healMockStrategies()` checks `mock_trades` table directly
+
+**TLL → Mock Trading Data Flow:**
+1. **Regime Awareness** — Both workers cache TLL regime at tick start:
+   - `workers/mock-trading-worker.js` — blocks trades during `high_volatility` TLL regime
+   - `workers/aggressive-mock-worker.js` — supplements its own regime filter with TLL regime
+2. **Skill-Based Filtering** — Both workers check signals against TLL skills:
+   - `checkSignalAgainstTllSkills()` returns boost/penalty based on skill alignment
+   - Signals with conflicting skills (boost < -0.05) are blocked
+3. **Strategy Weight Respect** — Both workers check `tllWeights[strategyName] === 0`:
+   - Quarantined strategies (weight=0) are skipped entirely
+4. **Healing Integration** — TLL healing records are surfaced in the dashboard API
+
+**Safety Gates:**
+- Disabled entirely via `TLL_ENABLED=false`
+- Outcome resolution capped at `TLL_MAX_RESOLVE` per cycle
+- Pattern discovery requires minimum 5 samples per bucket
+- Skill generation requires minimum 0.6 confidence
+- Strategy healing only acts on strategies with 10+ resolved signals
+- Quarantine only triggers at win rate < 25%
+- Mock trade ingestion is non-blocking (failures don't affect trade lifecycle)
+- TLL data is cached once per worker tick (not fetched per-signal)
+
+---
+
 ## Tech Stack Defaults
 
 | Layer | Default Tech |
@@ -470,10 +588,11 @@ BRAIN_LIVE_MODE=false
 | Exchange APIs | CCXT library (Binance, Bybit, OKX) |
 | Signals | WebSocket + REST polling hybrid |
 | Brain | Trading Central Brain (lib/brain/) |
+| Learning Layer | Trading Learning Layer (lib/learning-layer/) |
 | Timezone | UTC for logs, user-local for display |
 | Runtime | Node.js ESM or Python 3.11+ |
 
 ---
 
-*Last updated: 2026-05-14*
+*Last updated: 2026-05-17*
 *Project: Trading Signal Telegram Bot*

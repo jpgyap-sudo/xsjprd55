@@ -771,6 +771,30 @@ module.exports = {
       restart_delay: 3000,
       max_restarts: 10,
       min_uptime: '10s'
+    },
+    {
+      name: 'trading-learning-layer-worker',
+      script: './workers/trading-learning-layer-worker.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        DEPLOYMENT_TARGET: 'vps',
+        TLL_ENABLED: 'true',
+        TLL_INTERVAL_MS: '1800000',
+        TLL_OUTCOME_TTL_HOURS: '24',
+        TLL_MAX_RESOLVE: '200'
+      },
+      autorestart: true,
+      max_memory_restart: '256M',
+      log_file: './logs/tll-combined.log',
+      out_file: './logs/tll-out.log',
+      error_file: './logs/tll-error.log',
+      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+      kill_timeout: 5000,
+      restart_delay: 3000,
+      max_restarts: 10,
+      min_uptime: '10s'
     }
   ]
 };

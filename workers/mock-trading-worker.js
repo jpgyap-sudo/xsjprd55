@@ -1,7 +1,12 @@
 // ============================================================
-// Mock Trading Worker v2 — Research Agent Integration
+// Mock Trading Worker v3 — TLL-Integrated
 // Opens paper trades for high-probability signals AND consumes
 // promoted strategies from the Research Agent's strategy_lifecycle.
+// Now integrates with Trading Learning Layer (TLL) for:
+//   - Regime-aware trading
+//   - Skill-based signal filtering
+//   - Strategy weight awareness
+//   - Quarantine respect
 // Runs every 3 minutes on VPS.
 // ============================================================
 
@@ -13,6 +18,15 @@ import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
 import { fetchPublicPrice } from '../lib/market-price.js';
 import { isMainModule } from '../lib/entrypoint.js';
 import { brainRiskCheck, logAgentEvent } from '../lib/brain-integration.js';
+
+// TLL imports
+import {
+  getTllRegimeForMockTrading,
+  getActiveTllSkills,
+  getTllStrategyWeights,
+  isStrategyQuarantined,
+  checkSignalAgainstTllSkills,
+} from '../lib/learning-layer/mock-trading-bridge.js';
 
 const INTERVAL_MS = 3 * 60 * 1000;
 
@@ -31,6 +45,26 @@ export async function runMockTradingWorker() {
   }
 
   logger.info('[MOCK-WORKER] Tick');
+
+  // ── Cache TLL data once per tick ──────────────────────────
+  let tllRegime = null;
+  let tllSkills = [];
+  let tllWeights = {};
+  try {
+    const [regime, skills, weights] = await Promise.all([
+      getTllRegimeForMockTrading(),
+      getActiveTllSkills(0.6),
+      getTllStrategyWeights(),
+    ]);
+    tllRegime = regime;
+    tllSkills = skills;
+    tllWeights = weights;
+    if (regime.regime !== 'unknown') {
+      logger.debug(`[MOCK-WORKER] TLL regime: ${regime.regime} (${regime.tllRegime})`);
+    }
+  } catch (e) {
+    logger.debug('[MOCK-WORKER] TLL cache failed:', e.message);
+  }
 
   try {
     // 1. Open new mock trades for recent high-probability signals
@@ -107,6 +141,37 @@ export async function runMockTradingWorker() {
       } catch (brainErr) {
         logger.warn(`[MOCK-WORKER] Brain risk check failed for ${signal.symbol}: ${brainErr.message}`);
         // Fall through — allow trade if brain is unavailable
+      }
+
+      // ── TLL Regime Check ──────────────────────────────────
+      if (tllRegime && tllRegime.regime === 'high_volatility') {
+        logger.debug(`[MOCK-WORKER] TLL blocked ${signal.symbol}: high_volatility regime`);
+        await logAgentEvent('mock_trading', 'tll_blocked_trade', {
+          symbol: signal.symbol,
+          side: normalizedSide,
+          reason: 'high_volatility_regime',
+          regime: tllRegime.regime,
+        });
+        continue;
+      }
+
+      // ── TLL Skill Check ───────────────────────────────────
+      if (tllSkills.length > 0) {
+        const skillCheck = checkSignalAgainstTllSkills(
+          { side: normalizedSide, symbol: signal.symbol, strategy: signal.strategy },
+          tllSkills
+        );
+        if (skillCheck.conflictingSkills.length > 0 && skillCheck.boost < -0.05) {
+          logger.debug(`[MOCK-WORKER] TLL skills blocked ${signal.symbol}: ${skillCheck.conflictingSkills.join(', ')}`);
+          continue;
+        }
+      }
+
+      // ── TLL Strategy Weight Check ─────────────────────────
+      const strategyName = signal.strategy || signal.strategy_name;
+      if (strategyName && tllWeights[strategyName] === 0) {
+        logger.debug(`[MOCK-WORKER] TLL blocked ${signal.symbol}: strategy "${strategyName}" is quarantined`);
+        continue;
       }
 
       // Dedup by open position for this symbol (any side)

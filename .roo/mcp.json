@@ -8,7 +8,8 @@
 			],
 			"alwaysAllow": [
 				"puppeteer_navigate",
-				"puppeteer_screenshot"
+				"puppeteer_screenshot",
+				"puppeteer_evaluate"
 			]
 		}
 	}

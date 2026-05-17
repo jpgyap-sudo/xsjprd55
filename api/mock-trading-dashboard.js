@@ -1,7 +1,7 @@
 // ============================================================
 // Mock Trading Dashboard API (Supabase version)
 // Returns paper account stats, open/closed trades, PnL analysis,
-// and strategy performance for the mock trading tab.
+// strategy performance, AND TLL insights for the mock trading tab.
 // NOTE: Reads from Supabase (where mock-trading-worker writes).
 // ============================================================
 
@@ -316,6 +316,23 @@ export default async function handler(req, res) {
       diagnostics,
       ts: new Date().toISOString(),
     };
+
+    // ── TLL Insights (non-blocking) ────────────────────────────
+    try {
+      const { getTllMockTradingSnapshot } = await import('../lib/learning-layer/mock-trading-bridge.js');
+      const tllSnapshot = await getTllMockTradingSnapshot();
+      responseBody.tll = {
+        regime: tllSnapshot.regime,
+        activeSkills: tllSnapshot.activeSkills,
+        topSkills: tllSnapshot.topSkills,
+        strategyWeights: tllSnapshot.strategyWeights,
+        recentHealing: tllSnapshot.recentHealing,
+        topPatterns: tllSnapshot.topPatterns,
+      };
+    } catch (tllErr) {
+      logger.debug('[mock-trading-dashboard] TLL snapshot skipped:', tllErr.message);
+      responseBody.tll = null;
+    }
 
     // Trade history (last 100 open/close events)
     try {

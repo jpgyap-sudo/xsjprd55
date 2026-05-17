@@ -1,11 +1,10 @@
 // ============================================================
-// Aggressive Mock Trading Worker v4
+// Aggressive Mock Trading Worker v5 — TLL-Integrated
 // Trades public perpetual symbols using ML-adaptive leverage.
-// Integrates with TV TA, ML service, and RL agent.
+// Integrates with TV TA, ML service, RL agent, and TLL.
+// v5: Added TLL regime adapter, skill-based filtering,
+//     strategy weight awareness, quarantine respect.
 // Runs every 90 seconds.
-// v4: Added signal quality gate, market regime filter,
-//     dynamic confidence, trading window filter,
-//     post-trade learning, and exit engine.
 // ============================================================
 
 import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
@@ -31,6 +30,14 @@ import { learnFromTrade } from '../lib/mock-trading/post-trade-learning.js';
 import { updateScorecard } from '../lib/mock-trading/strategy-scorecard.js';
 import { enhancedCloseLogic } from '../lib/mock-trading/exit-engine.js';
 
+// TLL imports
+import {
+  getTllRegimeForMockTrading,
+  getActiveTllSkills,
+  getTllStrategyWeights,
+  checkSignalAgainstTllSkills,
+} from '../lib/learning-layer/mock-trading-bridge.js';
+
 const INTERVAL_MS = 90 * 1000;
 const TV_SCAN_BATCH_SIZE = 15;
 
@@ -46,6 +53,26 @@ export async function runAggressiveWorker() {
   }
 
   logger.info('[AGGRESSIVE-WORKER] Tick');
+
+  // ── Cache TLL data once per tick ──────────────────────────
+  let tllRegime = null;
+  let tllSkills = [];
+  let tllWeights = {};
+  try {
+    const [regime, skills, weights] = await Promise.all([
+      getTllRegimeForMockTrading(),
+      getActiveTllSkills(0.6),
+      getTllStrategyWeights(),
+    ]);
+    tllRegime = regime;
+    tllSkills = skills;
+    tllWeights = weights;
+    if (regime.regime !== 'unknown') {
+      logger.debug(`[AGGRESSIVE-WORKER] TLL regime: ${regime.regime} (${regime.tllRegime})`);
+    }
+  } catch (e) {
+    logger.debug('[AGGRESSIVE-WORKER] TLL cache failed:', e.message);
+  }
 
   try {
     // ── 1. Close / monitor existing trades ──────────────────
@@ -165,6 +192,32 @@ export async function runAggressiveWorker() {
           logger.debug(`[AGGRESSIVE-WORKER] Skipping ${signal.symbol}: regime=${cachedRegime.label}`);
           continue;
         }
+      }
+
+      // ── TLL Regime Supplement ────────────────────────────
+      // Use TLL regime as an additional signal (not a replacement)
+      if (tllRegime && tllRegime.regime === 'high_volatility') {
+        logger.debug(`[AGGRESSIVE-WORKER] TLL regime supplement: ${signal.symbol} blocked (high_volatility)`);
+        continue;
+      }
+
+      // ── TLL Skill Check ──────────────────────────────────
+      if (tllSkills.length > 0) {
+        const skillCheck = checkSignalAgainstTllSkills(
+          { side: (signal.side || '').toUpperCase(), symbol: signal.symbol, strategy: signal.strategy },
+          tllSkills
+        );
+        if (skillCheck.conflictingSkills.length > 0 && skillCheck.boost < -0.05) {
+          logger.debug(`[AGGRESSIVE-WORKER] TLL skills blocked ${signal.symbol}: ${skillCheck.conflictingSkills.join(', ')}`);
+          continue;
+        }
+      }
+
+      // ── TLL Strategy Weight Check ────────────────────────
+      const strategyName = signal.strategy;
+      if (strategyName && tllWeights[strategyName] === 0) {
+        logger.debug(`[AGGRESSIVE-WORKER] TLL blocked ${signal.symbol}: strategy "${strategyName}" is quarantined`);
+        continue;
       }
 
       // ── Trading Window Filter ────────────────────────────

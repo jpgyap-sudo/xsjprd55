@@ -1,0 +1,18 @@
+
+>>>> In-memory PM2 is out-of-date, do:
+>>>> $ pm2 update
+In memory PM2 version: 5.4.3
+Local PM2 version: 6.0.14
+---
+[eval]:1
+const d=require('fs').readFileSync('/dev/stdin','utf8');const j=JSON.parse(d);console.log('Total:',j.length,'Online:',j.filter(p===='online').length,'Stopped:',j.filter(p===='stopped').length,'Errored:',j.filter(p===='errored').length)
+                                                                                                                                   ^
+Expression expected
+
+SyntaxError: Unexpected token '='
+    at makeContextifyScript (node:internal/vm:185:14)
+    at compileScript (node:internal/process/execution:383:10)
+    at evalTypeScript (node:internal/process/execution:256:22)
+    at node:internal/main/eval_string:74:3
+
+Node.js v22.22.2
