@@ -44,14 +44,14 @@ async function checkNewSkills() {
       .select('*')
       .eq('active', true)
       .gte('confidence', 0.7)
-      .order('created_at', { ascending: false })
+      .order('generated_at', { ascending: false })
       .limit(5);
 
     if (error) throw error;
     if (!data?.length) return [];
 
     const newSkills = data.filter(s => {
-      const createdAt = s.created_at || s.generated_at;
+      const createdAt = s.generated_at;
       return createdAt && createdAt >= lastCheckTime;
     });
 
@@ -93,19 +93,20 @@ async function checkRegimeShift() {
       .from('tll_regime_log')
       .select('*')
       .order('detected_at', { ascending: false })
-      .limit(1)
-      .single();
+      .limit(1);
 
     if (error) throw error;
-    if (!data) return null;
+    if (!data?.length) return null;
 
-    if (lastKnownRegime && data.regime !== lastKnownRegime) {
-      lastKnownRegime = data.regime;
-      return data;
+    const latest = data[0];
+
+    if (lastKnownRegime && latest.regime !== lastKnownRegime) {
+      lastKnownRegime = latest.regime;
+      return latest;
     }
 
     if (!lastKnownRegime) {
-      lastKnownRegime = data.regime;
+      lastKnownRegime = latest.regime;
     }
 
     return null;
