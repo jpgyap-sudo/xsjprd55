@@ -183,16 +183,15 @@ async function ingestMockTrades() {
     const batch = newTrades.slice(i, i + BATCH_SIZE);
     const records = batch.map(trade => ({
       symbol: trade.symbol,
-      side: trade.side || 'LONG',
+      timeframe: trade.timeframe || '15m',
+      side: (trade.side || 'long').toUpperCase(),
       entry_price: trade.entry_price,
+      confidence: trade.probability_at_entry || trade.confidence || 0.5,
+      strategy: trade.strategy_name || trade.strategy || 'unknown',
+      mode: 'paper',
+      generated_at: trade.created_at || trade.opened_at || new Date().toISOString(),
       resolved_at: trade.closed_at || new Date().toISOString(),
       resolved_pnl: trade.pnl_pct || 0,
-      generated_at: trade.created_at || trade.opened_at || new Date().toISOString(),
-      source: 'mock_trade_backfill',
-      strategy: trade.strategy || 'unknown',
-      timeframe: trade.timeframe || '15m',
-      confidence: trade.confidence || 0.5,
-      mode: 'paper',
       metadata: {
         mock_trade_id: trade.id,
         pnl_usd: trade.pnl_usd || 0,
