@@ -1189,6 +1189,45 @@
       <div class="stat-item"><div class="stat-label">Open Positions</div><div class="stat-value" id="mt-open">—</div></div>
     </div>
 
+    <!-- TLL Regime Banner -->
+    <div class="card" style="margin-bottom:16px;display:none;" id="mt-tll-banner">
+      <div class="card-body" style="padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="font-size:1.4rem;" id="mt-tll-regime-icon">🌊</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.85rem;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span>Market Regime: <strong id="mt-tll-regime-name" style="text-transform:capitalize;">—</strong></span>
+            <span style="font-size:0.7rem;color:var(--fg2);" id="mt-tll-regime-details"></span>
+          </div>
+          <div style="font-size:0.75rem;color:var(--fg2);margin-top:2px;display:flex;gap:12px;flex-wrap:wrap;" id="mt-tll-regime-meta"></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="font-size:0.7rem;color:var(--fg2);" id="mt-tll-skills-count"></span>
+          <a href="/tll-dashboard.html" target="_blank" style="font-size:0.7rem;color:var(--accent);text-decoration:none;white-space:nowrap;padding:4px 10px;border:1px solid var(--accent);border-radius:6px;">🔬 TLL Dashboard →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- TLL Skills & Healing Alerts -->
+    <div class="card" style="margin-bottom:16px;display:none;" id="mt-tll-insights">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🧠 TLL Insights</span>
+        <span style="font-size:0.7rem;color:var(--fg2);" id="mt-tll-insights-subtitle">Learning Layer</span>
+      </div>
+      <div class="card-body" style="padding:12px 16px;">
+        <div id="mt-tll-skills-container" style="display:none;">
+          <div style="font-size:0.75rem;font-weight:600;color:var(--fg2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">Active Skills</div>
+          <div id="mt-tll-skills-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;"></div>
+        </div>
+        <div id="mt-tll-healing-container" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+          <div style="font-size:0.75rem;font-weight:600;color:var(--fg2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">🩺 Healing Alerts</div>
+          <div id="mt-tll-healing-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+        <div id="mt-tll-empty" style="text-align:center;padding:16px;color:var(--fg2);font-size:0.8rem;display:none;">
+          No TLL insights yet. The learning layer is analyzing trade outcomes.
+        </div>
+      </div>
+    </div>
+
     <!-- Account Selector -->
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
       <label style="font-size:0.85rem;color:var(--fg2);font-weight:600;">Account:</label>
@@ -3502,6 +3541,92 @@ async function loadMockTrading() {
       }
     }
 
+    // ── TLL Insights ──────────────────────────────────
+    const tll = data.tll;
+    const tllBanner = document.getElementById('mt-tll-banner');
+    const tllInsights = document.getElementById('mt-tll-insights');
+    if (tll && tll.regime) {
+      // Regime banner
+      const regimeIcons = { trending: '📈', choppy: '🌊', ranging: '↔️', quiet: '💤', mixed: '🔀' };
+      const regimeIcon = regimeIcons[tll.regime.regime] || '📊';
+      document.getElementById('mt-tll-regime-icon').textContent = regimeIcon;
+      document.getElementById('mt-tll-regime-name').textContent = tll.regime.regime || '—';
+      document.getElementById('mt-tll-regime-name').style.color =
+        tll.regime.regime === 'trending' ? 'var(--accent)' :
+        tll.regime.regime === 'choppy' ? 'var(--accent3)' :
+        tll.regime.regime === 'ranging' ? 'var(--accent2)' :
+        'var(--fg2)';
+      const details = tll.regime.details || {};
+      document.getElementById('mt-tll-regime-details').textContent =
+        details.adx != null ? `ADX: ${details.adx.toFixed(1)}` :
+        details.adxPct != null ? `ADX: ${(details.adxPct * 100).toFixed(1)}%` : '';
+      const metaEl = document.getElementById('mt-tll-regime-meta');
+      const metaParts = [];
+      if (details.atrPct != null) metaParts.push(`ATR: ${(details.atrPct * 100).toFixed(2)}%`);
+      if (details.volatility) metaParts.push(`Vol: ${details.volatility}`);
+      if (details.newsRiskScore != null) metaParts.push(`News Risk: ${(details.newsRiskScore * 100).toFixed(0)}%`);
+      metaEl.innerHTML = metaParts.length ? metaParts.join(' · ') : '';
+      const skillCount = tll.activeSkills?.length || tll.topSkills?.length || 0;
+      document.getElementById('mt-tll-skills-count').textContent = `${skillCount} active skill${skillCount !== 1 ? 's' : ''}`;
+      tllBanner.style.display = 'block';
+
+      // Skills grid
+      const skillsGrid = document.getElementById('mt-tll-skills-grid');
+      const skillsContainer = document.getElementById('mt-tll-skills-container');
+      const skills = tll.topSkills || tll.activeSkills || [];
+      if (skills.length) {
+        skillsGrid.innerHTML = skills.slice(0, 6).map(s => {
+          const conf = s.confidence || s.winRate || 0;
+          const confColor = conf >= 0.7 ? 'var(--accent)' : conf >= 0.5 ? 'var(--accent2)' : 'var(--fg2)';
+          const wr = s.winRate || s.confidence || 0;
+          return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+            <div style="font-size:0.8rem;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${s.name || s.skill_name || 'Skill'}">${s.name || s.skill_name || 'Skill'}</div>
+            <div style="display:flex;gap:8px;font-size:0.7rem;color:var(--fg2);">
+              <span>Conf: <strong style="color:${confColor};">${(conf * 100).toFixed(0)}%</strong></span>
+              ${s.sampleSize ? `<span>N: ${s.sampleSize}</span>` : ''}
+              ${s.regime ? `<span>📊 ${s.regime}</span>` : ''}
+            </div>
+            ${s.description ? `<div style="font-size:0.7rem;color:var(--fg2);margin-top:4px;line-height:1.3;">${s.description}</div>` : ''}
+          </div>`;
+        }).join('');
+        skillsContainer.style.display = 'block';
+      } else {
+        skillsContainer.style.display = 'none';
+      }
+
+      // Healing alerts
+      const healingList = document.getElementById('mt-tll-healing-list');
+      const healingContainer = document.getElementById('mt-tll-healing-container');
+      const healing = tll.recentHealing || [];
+      if (healing.length) {
+        healingList.innerHTML = healing.slice(0, 4).map(h => {
+          const action = h.action || h.type || 'review';
+          const actionIcon = action === 'quarantine' ? '🔒' : action === 'review' ? '🔍' : '🩺';
+          const wr = h.winRate != null ? h.winRate : (h.win_rate != null ? h.win_rate : null);
+          const wrPct = wr != null ? (wr * 100).toFixed(1) + '%' : '';
+          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:6px;font-size:0.75rem;">
+            <span>${actionIcon}</span>
+            <div style="flex:1;">
+              <strong>${h.strategy || h.strategy_name || 'Strategy'}</strong>
+              ${wrPct ? ` — WR: ${wrPct}` : ''}
+              ${h.reason ? `<span style="color:var(--fg2);"> — ${h.reason}</span>` : ''}
+            </div>
+            ${h.suggestion ? `<span style="color:var(--accent2);font-size:0.7rem;">💡 ${h.suggestion}</span>` : ''}
+          </div>`;
+        }).join('');
+        healingContainer.style.display = 'block';
+      } else {
+        healingContainer.style.display = 'none';
+      }
+
+      document.getElementById('mt-tll-insights-subtitle').textContent =
+        `${skillCount} skills · ${healing.length} healing events`;
+      tllInsights.style.display = 'block';
+    } else {
+      tllBanner.style.display = 'none';
+      tllInsights.style.display = 'none';
+    }
+
     // Open trades
     const openLoading = document.getElementById('mt-open-loading');
     const openContent = document.getElementById('mt-open-content');
@@ -3563,14 +3688,20 @@ async function loadMockTrading() {
       closedContent.style.display = 'block';
     }
 
-    // Strategy stats
+    // Strategy stats (with TLL quarantine awareness)
     const stratContent = document.getElementById('mt-strat-content');
     const stratBody = document.getElementById('mt-strat-body');
+    const tllWeights = tll?.strategyWeights || {};
     if (data.strategyStats?.length) {
       stratBody.innerHTML = data.strategyStats.map(s => {
         const pnlColor = s.totalPnl > 0 ? 'var(--accent)' : s.totalPnl < 0 ? 'var(--accent3)' : 'var(--fg2)';
-        return `<tr>
-          <td style="font-weight:600;font-size:0.85rem;">${s.strategy}</td>
+        const isQuarantined = tllWeights[s.strategy] === 0;
+        const quarantineBadge = isQuarantined
+          ? `<span style="color:var(--accent3);font-weight:700;font-size:0.7rem;margin-left:6px;" title="Quarantined by TLL">🔒</span>`
+          : '';
+        const rowBg = isQuarantined ? ' style="opacity:0.6;"' : '';
+        return `<tr${rowBg}>
+          <td style="font-weight:600;font-size:0.85rem;">${s.strategy}${quarantineBadge}</td>
           <td>${s.trades}</td>
           <td style="color:var(--accent);">${s.wins}</td>
           <td style="color:var(--accent3);">${s.losses}</td>
