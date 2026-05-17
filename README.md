@@ -226,7 +226,7 @@ Vercel is **not recommended** for this project. The VPS handles everything: API,
 | `brain_learning_reports` | **Trading Central Brain** — learning cycle reports with strategy suggestions |
 | `brain_strategy_weights` | **Trading Central Brain** — adaptive weights per strategy/symbol/timeframe |
 
-> Run `supabase/schema.sql`, `supabase/schema_additions.sql`, `supabase/perpetual-trader-schema.sql`, and `supabase/001_trading_brain_schema.sql` in the Supabase SQL Editor to create tables, indexes, and RLS policies.
+> Run `supabase/schema.sql`, `supabase/schema_additions.sql`, `supabase/perpetual-trader-schema.sql`, `supabase/001_trading_brain_schema.sql`, and `supabase/migrations/20260517_perpetual_trader_improvements.sql` in the Supabase SQL Editor to create tables, indexes, and RLS policies.
 
 ---
 

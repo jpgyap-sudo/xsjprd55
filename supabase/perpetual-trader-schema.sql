@@ -99,6 +99,13 @@ CREATE TABLE IF NOT EXISTS perpetual_mock_trades (
   take_profit     NUMERIC,
   risk_reward     NUMERIC,
   risk_pct        NUMERIC,                -- % of equity risked
+  initial_risk_usd NUMERIC,
+  market_regime_at_entry TEXT,
+  funding_rate_at_entry NUMERIC,
+  partial_exit_price NUMERIC,
+  partial_exit_pct NUMERIC NOT NULL DEFAULT 0,
+  trailing_stop NUMERIC,
+  breakeven_moved BOOLEAN NOT NULL DEFAULT false,
   
   -- Exit
   exit_price      NUMERIC,
@@ -108,6 +115,9 @@ CREATE TABLE IF NOT EXISTS perpetual_mock_trades (
   -- PnL
   pnl_usd         NUMERIC,
   pnl_pct         NUMERIC,                -- % return on margin
+  r_multiple_at_close NUMERIC,
+  max_favorable_excursion_pct NUMERIC,
+  max_adverse_excursion_pct NUMERIC,
   funding_paid    NUMERIC DEFAULT 0,      -- simulated funding fees
   
   -- Signal source info

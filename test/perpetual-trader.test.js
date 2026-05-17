@@ -9,7 +9,9 @@ import { shouldRetrySignal } from '../workers/perpetual-trader-worker.js';
 import {
   calculatePositionSize,
   calculateStops,
+  calculateTradeR,
   checkExit,
+  getEnhancedExitDecision,
   selectLeverage,
 } from '../lib/perpetual-trader/risk.js';
 
@@ -102,6 +104,24 @@ describe('Perpetual trader risk math', () => {
     const low = selectLeverage({ confidence: 0.6, maxLeverage: 10, defaultLeverage: 3 });
     const high = selectLeverage({ confidence: 0.85, maxLeverage: 10, defaultLeverage: 3 });
     assert.ok(high >= low, 'Higher confidence should allow higher or equal leverage');
+  });
+
+  it('uses ATR for stop placement when available', () => {
+    const stops = calculateStops({ entryPrice: 100, side: 'LONG', atr: 4, volatilityPct: 2, riskRewardMin: 2 });
+    assert.equal(stops.stopLoss, 94);
+    assert.equal(stops.takeProfit, 112);
+  });
+
+  it('calculates R and breakeven actions', () => {
+    assert.equal(calculateTradeR({ side: 'LONG', entryPrice: 100, currentPrice: 103, stopLoss: 98 }), 1.5);
+    const decision = getEnhancedExitDecision({
+      side: 'LONG',
+      entryPrice: 100,
+      currentPrice: 102,
+      stopLoss: 98,
+      takeProfit: 110,
+    });
+    assert.equal(decision.action, 'move_breakeven');
   });
 
   it('caps leverage at maxLeverage', () => {

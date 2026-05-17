@@ -2,15 +2,17 @@
 // Perpetual Trader Worker — Signal-driven paper trading engine
 // Polls for new signals, opens perpetual trades, monitors SL/TP.
 // Runs every 60s on VPS via PM2.
-// Wired to Central Brain for risk gate checks.
+// Wired to Central Brain for risk gate checks and TLL for
+// regime awareness, skill-based filtering, and strategy weights.
 // ============================================================
 
 import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
-import { openPerpetualTrade, monitorPerpetualTrades, resetDailyStats } from '../lib/perpetual-trader/engine.js';
+import { openPerpetualTrade, monitorPerpetualTrades, resetDailyStats, closePerpetualTrade } from '../lib/perpetual-trader/engine.js';
 import { isMainModule } from '../lib/entrypoint.js';
 import { brainRiskCheck, logAgentEvent } from '../lib/brain-integration.js';
 import { fetchPublicPrice } from '../lib/market-price.js';
+import { getTllRegimeForMockTrading, getActiveTllSkills, checkSignalAgainstTllSkills, getTllStrategyWeights } from '../lib/learning-layer/mock-trading-bridge.js';
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -34,8 +36,11 @@ export function shouldRetrySignal(reason = '') {
 
 /**
  * Poll for new unprocessed signals and open trades
+ * @param {object} tllRegime - TLL regime data
+ * @param {Array} tllSkills - Active TLL skills
+ * @param {object} tllWeights - TLL strategy weights
  */
-async function pollAndTrade() {
+async function pollAndTrade(tllRegime = null, tllSkills = [], tllWeights = {}) {
   const results = { processed: 0, opened: 0, skipped: 0, errors: 0 };
 
   try {
@@ -108,6 +113,42 @@ async function pollAndTrade() {
           verdict: riskCheck.verdict
         });
         // ── End Brain Risk Gate ─────────────────────────────
+
+        // ── TLL Regime Check ──────────────────────────────────
+        const normalizedSide = (signal.side || '').toLowerCase();
+        if (tllRegime && tllRegime.regime === 'high_volatility') {
+          results.skipped++;
+          logger.debug(`[perp-worker] TLL blocked ${signal.symbol}: high_volatility regime`);
+          await logAgentEvent('perpetual_trader', 'tll_blocked_trade', {
+            signal_id: signal.id,
+            symbol: signal.symbol,
+            side: normalizedSide,
+            reason: 'high_volatility_regime',
+            regime: tllRegime.regime,
+          });
+          continue;
+        }
+
+        // ── TLL Skill Check ───────────────────────────────────
+        if (tllSkills.length > 0) {
+          const skillCheck = checkSignalAgainstTllSkills(
+            { side: normalizedSide, symbol: signal.symbol, strategy: signal.strategy },
+            tllSkills
+          );
+          if (skillCheck.conflictingSkills.length > 0 && skillCheck.boost < -0.05) {
+            results.skipped++;
+            logger.debug(`[perp-worker] TLL skills blocked ${signal.symbol}: ${skillCheck.conflictingSkills.join(', ')}`);
+            continue;
+          }
+        }
+
+        // ── TLL Strategy Weight Check ─────────────────────────
+        const strategyName = signal.strategy || signal.strategy_name;
+        if (strategyName && tllWeights[strategyName] === 0) {
+          results.skipped++;
+          logger.debug(`[perp-worker] TLL blocked ${signal.symbol}: strategy "${strategyName}" is quarantined`);
+          continue;
+        }
 
         const result = await openPerpetualTrade(signal);
         if (result.ok) {
@@ -190,6 +231,15 @@ async function closeStaleTrades() {
         // Fetch current price to close at market
         const { price } = await fetchPublicPrice(trade.symbol);
         const exitPrice = price || trade.entry_price;
+        await closePerpetualTrade(
+          trade,
+          exitPrice,
+          'expired',
+          `Force-closed after ${maxAgeHours}h (created ${trade.created_at})`
+        );
+        closed++;
+        logger.info(`[perp-worker] Force-closed stale trade ${trade.id} (${trade.symbol})`);
+        continue;
 
         // Calculate PnL
         const isLong = (trade.side || '').toLowerCase() === 'long';
@@ -253,13 +303,33 @@ export async function runPerpetualTraderCycle() {
   }
   logger.info('[perp-worker] Starting cycle...');
 
+  // ── Cache TLL data once per tick ──────────────────────────
+  let tllRegime = null;
+  let tllSkills = [];
+  let tllWeights = {};
+  try {
+    const [regime, skills, weights] = await Promise.all([
+      getTllRegimeForMockTrading(),
+      getActiveTllSkills(0.6),
+      getTllStrategyWeights(),
+    ]);
+    tllRegime = regime;
+    tllSkills = skills;
+    tllWeights = weights;
+    if (regime.regime !== 'unknown') {
+      logger.debug(`[perp-worker] TLL regime: ${regime.regime} (${regime.tllRegime})`);
+    }
+  } catch (e) {
+    logger.debug('[perp-worker] TLL cache failed:', e.message);
+  }
+
   await checkDailyReset();
 
   // Close stale trades first (trades open >72h)
   const staleClosed = await closeStaleTrades();
 
   const monitorResult = await monitorTrades();
-  const tradeResult = await pollAndTrade();
+  const tradeResult = await pollAndTrade(tllRegime, tllSkills, tllWeights);
 
   // Prune processed set to prevent memory leak
   if (PROCESSED_SIGNALS.size > 5000) {

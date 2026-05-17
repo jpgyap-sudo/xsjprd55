@@ -95,6 +95,11 @@ Cause: Missing or placeholder Supabase env values put `lib/supabase.js` into no-
 Fix: `/api/perpetual-trader` now returns explicit diagnostics and 503 responses for no-op Supabase or blocked schema state, the dashboard displays the blocker, and `npm run verify:perpetual` performs a read-only Supabase/schema/signal/trade check.
 Prevention: Run `npm run verify:perpetual` after changing Supabase env, applying migrations, or restarting PM2 workers. Keep `supabase/perpetual-trader-schema.sql` applied alongside the core schema.
 
+### 2026-05-17 — Perpetual stale-close rows used the wrong schema columns
+Cause: The stale-trade cleanup path wrote legacy-style fields such as `pnl`, `closed_at`, and `close_reason`, while perpetual trades use `pnl_usd`, `exit_at`, and `exit_reason`.
+Fix: Stale cleanup now delegates to the normal `closePerpetualTrade()` path so balance updates, history logging, and learning stay consistent with ordinary exits.
+Prevention: Use the shared close path for every forced exit and keep `supabase/migrations/20260517_perpetual_trader_improvements.sql` applied with code changes.
+
 ### Signal sent without stop-loss
 Cause: Risk filter bypassed or validation missing.
 Fix: Enforce stop-loss field in signal schema validation before broadcast.

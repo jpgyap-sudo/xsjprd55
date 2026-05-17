@@ -1,11 +1,12 @@
 // ============================================================
 // API: Perpetual Signal Trader Dashboard
 // Returns account stats, open/closed trades, strategy perf,
-// trade logs, and signal memory for the UI.
+// trade logs, signal memory, and TLL insights for the UI.
 // ============================================================
 
 import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
 import { getPerpetualTraderDiagnostics } from '../lib/perpetual-trader/diagnostics.js';
+import { getAllScorecards } from '../lib/mock-trading/strategy-scorecard.js';
 
 function addApiError(errors, scope, error) {
   if (!error) return;
@@ -174,7 +175,25 @@ export default async function handler(req, res) {
       addApiError(errors, 'signal_memory', memErr);
     }
 
+    // ── TLL Insights ──────────────────────────────────────
+    let tll = null;
+    try {
+      const { getTllMockTradingSnapshot } = await import('../lib/learning-layer/mock-trading-bridge.js');
+      const tllSnapshot = await getTllMockTradingSnapshot();
+      tll = {
+        regime: tllSnapshot.regime,
+        activeSkills: tllSnapshot.activeSkills,
+        topSkills: tllSnapshot.topSkills,
+        strategyWeights: tllSnapshot.strategyWeights,
+        recentHealing: tllSnapshot.recentHealing,
+        topPatterns: tllSnapshot.topPatterns,
+      };
+    } catch (tllErr) {
+      console.error('[perpetual-trader] TLL snapshot error:', tllErr.message);
+    }
+
     const closed = closedTrades || [];
+    const scorecards = await getAllScorecards();
     const totalTrades = closed.length;
     const totalWins = closed.filter(t => (t.pnl_usd || 0) > 0).length;
     const totalPnl = closed.reduce((s, t) => s + (t.pnl_usd || 0), 0);
@@ -195,6 +214,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       ok: true,
+      tll,
       account: {
         name: account?.name || 'Perpetual Signal Trader',
         startBalance,
@@ -251,6 +271,7 @@ export default async function handler(req, res) {
       })),
       strategyStats,
       pairStats,
+      scorecards,
       logs: (logs || []).map(l => ({
         level: l.level, category: l.category,
         message: l.message, details: l.details,

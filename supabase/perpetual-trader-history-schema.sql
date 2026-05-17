@@ -34,10 +34,16 @@ CREATE TABLE IF NOT EXISTS perp_trade_history (
   stop_loss       NUMERIC,
   take_profit     NUMERIC,
   risk_reward     NUMERIC,
+  initial_risk_usd NUMERIC,
+  market_regime_at_entry TEXT,
+  funding_rate_at_entry NUMERIC,
+  partial_exit_price NUMERIC,
+  partial_exit_pct NUMERIC,
   
   -- P&L
   pnl_usd         NUMERIC,
   pnl_pct         NUMERIC,
+  r_multiple_at_close NUMERIC,
   
   -- Signal source
   confidence      NUMERIC,

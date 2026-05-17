@@ -1372,10 +1372,48 @@
       <a href="/perpetual-trader-history.html#panel-what-failed" target="_blank" class="btn" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--fg);font-size:0.85rem;cursor:pointer;text-decoration:none;">
         ❌ What Failed Analysis
       </a>
+      <a href="/tll-dashboard.html" target="_blank" class="btn" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--accent);font-size:0.85rem;cursor:pointer;text-decoration:none;">
+        🧠 TLL Dashboard
+      </a>
     </div>
 
     <!-- Trading Status Banner -->
     <div id="pt-status-banner" style="margin-bottom:20px;padding:12px 16px;border-radius:8px;font-size:0.9rem;font-weight:600;display:none;"></div>
+
+    <!-- TLL Regime Banner -->
+    <div class="card" style="margin-bottom:16px;display:none;" id="pt-tll-banner">
+      <div class="card-body" style="padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div style="font-size:1.5rem;" id="pt-tll-regime-icon">📊</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:0.85rem;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span>Market Regime: <span id="pt-tll-regime-name" style="text-transform:capitalize;">—</span></span>
+            <span style="font-size:0.75rem;color:var(--fg2);" id="pt-tll-regime-details"></span>
+          </div>
+          <div style="font-size:0.7rem;color:var(--fg2);margin-top:2px;" id="pt-tll-regime-meta"></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="font-size:0.75rem;color:var(--accent);font-weight:600;" id="pt-tll-skills-count">0 active skills</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- TLL Skills & Healing Insights -->
+    <div class="card" style="margin-bottom:16px;display:none;" id="pt-tll-insights">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🧠 TLL Insights</span>
+        <span style="font-size:0.75rem;color:var(--fg2);" id="pt-tll-insights-subtitle"></span>
+      </div>
+      <div class="card-body" style="padding:12px 16px;">
+        <div id="pt-tll-skills-container" style="display:none;">
+          <div style="font-size:0.75rem;font-weight:600;color:var(--fg2);margin-bottom:8px;">🎯 Active Skills</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;" id="pt-tll-skills-grid"></div>
+        </div>
+        <div id="pt-tll-healing-container" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+          <div style="font-size:0.75rem;font-weight:600;color:var(--fg2);margin-bottom:8px;">🩺 Healing Alerts</div>
+          <div style="display:flex;flex-direction:column;gap:6px;" id="pt-tll-healing-list"></div>
+        </div>
+      </div>
+    </div>
 
     <div class="grid grid-2">
       <!-- Open Positions -->
@@ -5227,6 +5265,7 @@ async function loadPerpetualTrader() {
 
     const a = data.account;
     const s = data.summary;
+    const tll = data.tll;
 
     // Stats
     document.getElementById('pt-equity').textContent = '$' + Number(a.equity).toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -5271,7 +5310,92 @@ async function loadPerpetualTrader() {
       banner.style.background = 'rgba(16,185,129,0.15)';
       banner.style.color = 'var(--accent)';
       banner.style.border = '1px solid rgba(16,185,129,0.3)';
-      banner.textContent = `✅ Trading Active · Min Confidence: ${a.minConfidence.toFixed(0)}% · Max Leverage: ${a.maxLeverage}x · Risk/Trade: ${a.maxRiskPerTrade.toFixed(1)}%`;
+      const regimeText = tll?.regime?.regime ? ` · 📊 Regime: ${tll.regime.regime}` : '';
+      banner.textContent = `✅ Trading Active · Min Confidence: ${a.minConfidence.toFixed(0)}% · Max Leverage: ${a.maxLeverage}x · Risk/Trade: ${a.maxRiskPerTrade.toFixed(1)}%${regimeText}`;
+    }
+
+    // ── TLL Insights ──────────────────────────────────
+    const tllBanner = document.getElementById('pt-tll-banner');
+    const tllInsights = document.getElementById('pt-tll-insights');
+    if (tll && tll.regime) {
+      const regimeIcons = { trending: '📈', choppy: '🌊', ranging: '↔️', quiet: '💤', mixed: '🔀' };
+      const regimeIcon = regimeIcons[tll.regime.regime] || '📊';
+      document.getElementById('pt-tll-regime-icon').textContent = regimeIcon;
+      document.getElementById('pt-tll-regime-name').textContent = tll.regime.regime || '—';
+      document.getElementById('pt-tll-regime-name').style.color =
+        tll.regime.regime === 'trending' ? 'var(--accent)' :
+        tll.regime.regime === 'choppy' ? 'var(--accent3)' :
+        tll.regime.regime === 'ranging' ? 'var(--accent2)' :
+        'var(--fg2)';
+      const details = tll.regime.details || {};
+      document.getElementById('pt-tll-regime-details').textContent =
+        details.adx != null ? `ADX: ${details.adx.toFixed(1)}` :
+        details.adxPct != null ? `ADX: ${(details.adxPct * 100).toFixed(1)}%` : '';
+      const metaEl = document.getElementById('pt-tll-regime-meta');
+      const metaParts = [];
+      if (details.atrPct != null) metaParts.push(`ATR: ${(details.atrPct * 100).toFixed(2)}%`);
+      if (details.volatility) metaParts.push(`Vol: ${details.volatility}`);
+      if (details.newsRiskScore != null) metaParts.push(`News Risk: ${(details.newsRiskScore * 100).toFixed(0)}%`);
+      metaEl.innerHTML = metaParts.length ? metaParts.join(' · ') : '';
+      const skillCount = tll.activeSkills?.length || tll.topSkills?.length || 0;
+      document.getElementById('pt-tll-skills-count').textContent = `${skillCount} active skill${skillCount !== 1 ? 's' : ''}`;
+      tllBanner.style.display = 'block';
+
+      // Skills grid
+      const skillsGrid = document.getElementById('pt-tll-skills-grid');
+      const skillsContainer = document.getElementById('pt-tll-skills-container');
+      const skills = tll.topSkills || tll.activeSkills || [];
+      if (skills.length) {
+        skillsGrid.innerHTML = skills.slice(0, 6).map(s => {
+          const conf = s.confidence || s.winRate || 0;
+          const confColor = conf >= 0.7 ? 'var(--accent)' : conf >= 0.5 ? 'var(--accent2)' : 'var(--fg2)';
+          const wr = s.winRate || s.confidence || 0;
+          return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
+            <div style="font-size:0.8rem;font-weight:700;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${s.name || s.skill_name || 'Skill'}">${s.name || s.skill_name || 'Skill'}</div>
+            <div style="display:flex;gap:8px;font-size:0.7rem;color:var(--fg2);">
+              <span>Conf: <strong style="color:${confColor};">${(conf * 100).toFixed(0)}%</strong></span>
+              ${s.sampleSize ? `<span>N: ${s.sampleSize}</span>` : ''}
+              ${s.regime ? `<span>📊 ${s.regime}</span>` : ''}
+            </div>
+            ${s.description ? `<div style="font-size:0.7rem;color:var(--fg2);margin-top:4px;line-height:1.3;">${s.description}</div>` : ''}
+          </div>`;
+        }).join('');
+        skillsContainer.style.display = 'block';
+      } else {
+        skillsContainer.style.display = 'none';
+      }
+
+      // Healing alerts
+      const healingList = document.getElementById('pt-tll-healing-list');
+      const healingContainer = document.getElementById('pt-tll-healing-container');
+      const healing = tll.recentHealing || [];
+      if (healing.length) {
+        healingList.innerHTML = healing.slice(0, 4).map(h => {
+          const action = h.action || h.type || 'review';
+          const actionIcon = action === 'quarantine' ? '🔒' : action === 'review' ? '🔍' : '🩺';
+          const wr = h.winRate != null ? h.winRate : (h.win_rate != null ? h.win_rate : null);
+          const wrPct = wr != null ? (wr * 100).toFixed(1) + '%' : '';
+          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg3);border-radius:6px;font-size:0.75rem;">
+            <span>${actionIcon}</span>
+            <div style="flex:1;">
+              <strong>${h.strategy || h.strategy_name || 'Strategy'}</strong>
+              ${wrPct ? ` — WR: ${wrPct}` : ''}
+              ${h.reason ? `<span style="color:var(--fg2);"> — ${h.reason}</span>` : ''}
+            </div>
+            ${h.suggestion ? `<span style="color:var(--accent2);font-size:0.7rem;">💡 ${h.suggestion}</span>` : ''}
+          </div>`;
+        }).join('');
+        healingContainer.style.display = 'block';
+      } else {
+        healingContainer.style.display = 'none';
+      }
+
+      document.getElementById('pt-tll-insights-subtitle').textContent =
+        `${skillCount} skills · ${healing.length} healing events`;
+      tllInsights.style.display = 'block';
+    } else {
+      tllBanner.style.display = 'none';
+      tllInsights.style.display = 'none';
     }
 
     // Open positions
@@ -5328,11 +5452,17 @@ async function loadPerpetualTrader() {
     // Strategy stats
     const stratBody = document.getElementById('pt-strat-body');
     const stratContent = document.getElementById('pt-strat-content');
+    const tllWeights = tll?.strategyWeights || {};
     if (data.strategyStats?.length) {
       stratBody.innerHTML = data.strategyStats.map(st => {
         const pnlColor = st.totalPnl >= 0 ? 'var(--accent)' : 'var(--accent3)';
-        return `<tr>
-          <td style="font-weight:600;font-size:0.85rem;">${st.name}</td>
+        const isQuarantined = tllWeights[st.name] === 0;
+        const quarantineBadge = isQuarantined
+          ? `<span style="color:var(--accent3);font-weight:700;font-size:0.7rem;margin-left:6px;" title="Quarantined by TLL">🔒</span>`
+          : '';
+        const rowBg = isQuarantined ? ' style="opacity:0.6;"' : '';
+        return `<tr${rowBg}>
+          <td style="font-weight:600;font-size:0.85rem;">${st.name}${quarantineBadge}</td>
           <td>${st.trades}</td>
           <td style="color:var(--accent);">${st.wins}</td>
           <td style="color:var(--accent3);">${st.losses}</td>
