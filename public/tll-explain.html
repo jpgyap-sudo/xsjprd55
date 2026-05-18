@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TLL Explainability Dashboard</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --fg: #e6edf3;
+    --fg2: #8b949e;
+    --border: #30363d;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d29922;
+    --purple: #bc8cff;
+    --orange: #d4760a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    padding: 20px;
+    line-height: 1.5;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .header h1 {
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header .subtitle {
+    color: var(--fg2);
+    font-size: 0.85rem;
+  }
+  .last-updated {
+    color: var(--fg2);
+    font-size: 0.8rem;
+  }
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card h3 {
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    color: var(--fg2);
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 768px) {
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .stat-item {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-item .value {
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  .stat-item .label {
+    font-size: 0.75rem;
+    color: var(--fg2);
+    margin-top: 4px;
+  }
+  .stat-item .value.green { color: var(--green); }
+  .stat-item .value.red { color: var(--red); }
+  .stat-item .value.yellow { color: var(--yellow); }
+  .stat-item .value.purple { color: var(--purple); }
+  .stat-item .value.orange { color: var(--orange); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  th, td {
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    color: var(--fg2);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  tr:hover { background: var(--bg3); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .badge.win { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge.loss { background: rgba(248,81,73,0.15); color: var(--red); }
+  .badge.active { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .badge.quarantine { background: rgba(210,153,34,0.15); color: var(--yellow); }
+  .explanation-box {
+    background: var(--bg3);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    border-radius: 0 8px 8px 0;
+    margin: 8px 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  .explanation-box.regime { border-left-color: var(--purple); }
+  .explanation-box.pattern { border-left-color: var(--green); }
+  .explanation-box.skill { border-left-color: var(--yellow); }
+  .explanation-box.healing { border-left-color: var(--red); }
+  .explanation-box.weight { border-left-color: var(--orange); }
+  .explanation-box.tournament { border-left-color: var(--accent); }
+  .explanation-box .title {
+    font-weight: 700;
+    margin-bottom: 4px;
+    font-size: 0.85rem;
+  }
+  .explanation-box .reason {
+    color: var(--fg2);
+    font-size: 0.85rem;
+  }
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--fg2);
+  }
+  .error-msg {
+    color: var(--red);
+    padding: 20px;
+    text-align: center;
+  }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--fg2);
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { background: var(--bg2); color: var(--fg); }
+  .tab-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .metric-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 0;
+  }
+  .metric-bar .bar {
+    flex: 1;
+    height: 8px;
+    background: var(--bg3);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .metric-bar .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s;
+  }
+  .metric-bar .bar-fill.green { background: var(--green); }
+  .metric-bar .bar-fill.red { background: var(--red); }
+  .metric-bar .bar-fill.yellow { background: var(--yellow); }
+  .metric-bar .bar-fill.accent { background: var(--accent); }
+  .metric-bar .bar-fill.purple { background: var(--purple); }
+  .metric-bar .label { font-size: 0.8rem; min-width: 120px; }
+  .metric-bar .value { font-size: 0.8rem; min-width: 50px; text-align: right; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🧠 TLL Explainability Dashboard</h1>
+    <div class="subtitle">Understand every decision the Trading Learning Layer makes — why patterns were found, skills generated, strategies healed, and weights tuned.</div>
+  </div>
+  <div class="last-updated" id="lastUpdated">Loading...</div>
+</div>
+
+<div class="stat-grid" id="overviewStats">
+  <div class="stat-item"><div class="value purple" id="statPatterns">—</div><div class="label">Patterns</div></div>
+  <div class="stat-item"><div class="value yellow" id="statSkills">—</div><div class="label">Active Skills</div></div>
+  <div class="stat-item"><div class="value orange" id="statWeights">—</div><div class="label">Weights Tuned</div></div>
+  <div class="stat-item"><div class="value red" id="statHealed">—</div><div class="label">Healing Events</div></div>
+  <div class="stat-item"><div class="value green" id="statWinRate">—</div><div class="label">Win Rate</div></div>
+  <div class="stat-item"><div class="value accent" id="statTournament">—</div><div class="label">Tournament Matches</div></div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('pipeline')">🔄 Pipeline</button>
+  <button class="tab-btn" onclick="switchTab('patterns')">🔍 Patterns</button>
+  <button class="tab-btn" onclick="switchTab('skills')">🎯 Skills</button>
+  <button class="tab-btn" onclick="switchTab('weights')">⚖️ Weights</button>
+  <button class="tab-btn" onclick="switchTab('healing')">🔒 Healing</button>
+  <button class="tab-btn" onclick="switchTab('tournament')">🏆 Tournament</button>
+  <button class="tab-btn" onclick="switchTab('regime')">🌊 Regime</button>
+</div>
+
+<!-- Pipeline Tab -->
+<div class="tab-content active" id="tab-pipeline">
+  <div class="card">
+    <h2>🔄 TLL Pipeline Flow</h2>
+    <p style="color:var(--fg2);margin-bottom:16px;">The TLL runs in 8 sequential steps. Each step feeds into the next. Below is the explanation of the latest cycle.</p>
+    <div id="pipelineExplanations">
+      <div class="loading">Loading pipeline explanations...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Patterns Tab -->
+<div class="tab-content" id="tab-patterns">
+  <div class="card">
+    <h2>🔍 Pattern Discovery — Why These Patterns?</h2>
+    <p style="color:var(--fg2);margin-bottom:16px;">Patterns are discovered by analyzing feature buckets (RSI, timeframe, side, volatility, etc.) across resolved signals. Each pattern shows the conditions where a strategy performs well or poorly.</p>
+    <div id="patternsExplanations">
+      <div class="loading">Loading pattern explanations...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Skills Tab -->
+<div class="tab-content" id="tab-skills">
+  <div class="card">
+    <h2>🎯 Skill Generation — From Patterns to Skills</h2>
+    <p style="color:var(--fg2);margin-bottom:16px;">Skills are generated from high-confidence patterns (win rate >= 0.6). Each skill is a reusable trading rule that can be applied to future signals.</p>
+    <div id="skillsExplanations">
+      <div class="loading">Loading skill explanations...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Weights Tab -->
+<div class="tab-content" id="tab-weights">
+  <div class="card">
+    <h2>⚖️ Weight Tuning — How Strategies Are Scored</h2>
+    <p style="color:var(--fg2);margin-bottom:16px;">Strategy weights are calculated using a 3-factor blend: 50% regime affinity, 30% risk-adjusted score (Sharpe, Sortino, max drawdown), 20% historical performance.</p>
+    <div id="weightsExplanations">
+      <div class="loading">Loading weight explanations...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Healing Tab -->
+<div class="tab-content" id="tab-healing">
+  <div class="card">
+    <h2>🔒 Strategy Healing — Why Strategies Are Quarantined</h2>
+    <p style="color:var(--fg2);margin-bottom:16px;">Strategies with win rate < 25% are automatically quarantined. The healing system also uses Ollama to generate richer suggestions for improvement.</p>
+    <div id="healingExplanations">
+      <div class="loading">Loading healing explanations...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Tournament Tab -->
+<div class="tab-content" id="tab-tournament">
+  <div class="card">
+    <h2>🏆 Strategy Tournament — Head-to-Head Rankings</h2>
+    <p style="color:var(--fg2);margin-bottom:16px;">Every TLL cycle runs a round-robin tournament comparing all strategies head-to-head. Rankings use Elo scoring with 40% win rate, 30% avg PnL, 30% risk-adjusted score.</p>
+    <div id="tournamentExplanations">
+      <div class="loading">Loading tournament explanations...</div>
+    </div>
+  </div>
+</div>
+
+<!-- Regime Tab -->
+<div class="tab-content" id="tab-regime">
+  <div class="card">
+    <h2>🌊 Market Regime Detection — Current Market State</h2>
+    <p style="color:var(--fg2);margin-bottom:16px;">The regime detector classifies the market into 5 states (trending, choppy, ranging, quiet, mixed) based on volatility and recent win rates. This directly affects strategy weights.</p>
+    <div id="regimeExplanations">
+      <div class="loading">Loading regime explanations...</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Tab switching ──────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector(`.tab-btn[onclick*="${name}"]`).classList.add('active');
+  document.getElementById(`tab-${name}`).classList.add('active');
+}
+
+// ── Format helpers ─────────────────────────────────────────
+function fmtPct(v) {
+  if (v == null) return '—';
+  return (v * 100).toFixed(1) + '%';
+}
+
+function fmtNum(v) {
+  if (v == null) return '—';
+  return Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
+function regimeIcon(regime) {
+  const icons = { trending: '📈', choppy: '🌊', ranging: '↔️', quiet: '💤', mixed: '🔀' };
+  return icons[regime] || '🧠';
+}
+
+function getBarColor(val, isInverse = false) {
+  if (isInverse) val = 1 - val;
+  if (val >= 0.7) return 'green';
+  if (val >= 0.4) return 'yellow';
+  return 'red';
+}
+
+// ── Build explanation boxes ────────────────────────────────
+function buildPipelineExplanations(data) {
+  const container = document.getElementById('pipelineExplanations');
+  if (!data) {
+    container.innerHTML = '<div class="error-msg">No pipeline data available</div>';
+    return;
+  }
+
+  const steps = [
+    {
+      icon: '🌉', title: 'Step 0: Bridge Ingestion',
+      cls: 'weight',
+      explain: `Ingested data from all 4 sources: ${data.perpetualIngested || 0} perpetual trades, ${data.backtestIngested || 0} backtests, ${data.proposalsIngested || 0} proposals, ${data.signalMemoryIngested || 0} signal memories, ${data.signalPatternsIngested || 0} signal patterns. ${data.feedbackSynced || 0} feedback records synced to healing.`,
+    },
+    {
+      icon: '📝', title: 'Step 1: Outcome Recording',
+      cls: 'pattern',
+      explain: `Recorded ${data.outcomesRecorded || 0} pending signal outcomes. Each expired signal is resolved against current price to determine win/loss.`,
+    },
+    {
+      icon: '🔍', title: 'Step 2: Pattern Discovery',
+      cls: 'pattern',
+      explain: `Discovered ${data.patternsDiscovered || 0} patterns from ${data.totalResolved || 0} resolved signals. Patterns are grouped by feature buckets (RSI, timeframe, side, volatility, news, hour). Top patterns are saved to tll_patterns.`,
+    },
+    {
+      icon: '🏆', title: 'Step 2b: Strategy Tournament',
+      cls: 'tournament',
+      explain: `Ran ${data.tournamentMatches || 0} head-to-head matches across ${data.tournamentRankings?.length || 0} strategies. Top ranked: ${data.tournamentRankings?.[0]?.name || 'N/A'} (Elo: ${data.tournamentRankings?.[0]?.elo_score || '—'}).`,
+    },
+    {
+      icon: '🌊', title: 'Step 3: Regime Detection',
+      cls: 'regime',
+      explain: `Detected market regime: ${regimeIcon(data.regime)} ${data.regime || 'unknown'}. ${data.regime === 'trending' ? 'Trend-following strategies boosted.' : data.regime === 'choppy' ? 'Mean-reversion strategies boosted.' : data.regime === 'ranging' ? 'Grid and scalping strategies boosted.' : 'All strategies treated equally.'}`,
+    },
+    {
+      icon: '⚖️', title: 'Step 4: Weight Tuning',
+      cls: 'weight',
+      explain: `Tuned ${data.weightsTuned || 0} strategy weights using 50% regime affinity + 30% risk-adjusted score (Sharpe, Sortino, max drawdown) + 20% historical performance.`,
+    },
+    {
+      icon: '🎯', title: 'Step 5: Skill Generation',
+      cls: 'skill',
+      explain: `Generated ${data.skillsGenerated || 0} new trading skills from high-confidence patterns. Skills with confidence >= 0.7 trigger Telegram notifications.`,
+    },
+    {
+      icon: '🔒', title: 'Step 6: Strategy Healing',
+      cls: 'healing',
+      explain: `Healed ${data.strategiesHealed || 0} underperforming strategies. Strategies with win rate < 25% are quarantined. Ollama generates improvement suggestions.`,
+    },
+  ];
+
+  container.innerHTML = steps.map(s => `
+    <div class="explanation-box ${s.cls}" style="margin-bottom:12px;">
+      <div class="title">${s.icon} ${s.title}</div>
+      <div class="reason">${s.explain}</div>
+    </div>
+  `).join('');
+}
+
+function buildPatternExplanations(patterns) {
+  const container = document.getElementById('patternsExplanations');
+  if (!patterns?.length) {
+    container.innerHTML = '<div class="error-msg">No patterns discovered yet. Patterns appear after the TLL cycle runs with resolved signals.</div>';
+    return;
+  }
+
+  container.innerHTML = patterns.map(p => {
+    const wr = p.win_rate || 0;
+    const color = wr >= 0.6 ? 'green' : wr >= 0.4 ? 'yellow' : 'red';
+    return `
+    <div class="explanation-box pattern" style="margin-bottom:12px;">
+      <div class="title">${p.feature || 'Pattern'}</div>
+      <div class="reason">
+        <strong>Why this pattern exists:</strong> When ${p.feature || 'this condition'} occurs, the strategy has a ${fmtPct(wr)} win rate across ${p.sample_count || 0} samples.
+        ${wr >= 0.7 ? 'This is a strong signal — the pattern is highly reliable.' : wr >= 0.5 ? 'This pattern shows moderate predictive power.' : 'This pattern may be noise — more data needed.'}
+      </div>
+      <div class="metric-bar" style="margin-top:8px;">
+        <span class="label">Win Rate</span>
+        <div class="bar"><div class="bar-fill ${color}" style="width:${(wr * 100).toFixed(0)}%"></div></div>
+        <span class="value">${fmtPct(wr)}</span>
+      </div>
+      ${p.confidence ? `<div class="metric-bar"><span class="label">Confidence</span><div class="bar"><div class="bar-fill accent" style="width:${(p.confidence * 100).toFixed(0)}%"></div></div><span class="value">${fmtPct(p.confidence)}</span></div>` : ''}
+      <div style="margin-top:8px;font-size:0.8rem;color:var(--fg2);">
+        Samples: ${p.sample_count || 0} | Bucket: ${p.feature_bucket || 'single'} | Generated: ${p.generated_at ? new Date(p.generated_at).toLocaleString() : '—'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildSkillExplanations(skills) {
+  const container = document.getElementById('skillsExplanations');
+  if (!skills?.length) {
+    container.innerHTML = '<div class="error-msg">No skills generated yet. Skills are created from high-confidence patterns after the TLL cycle runs.</div>';
+    return;
+  }
+
+  container.innerHTML = skills.map(s => {
+    const conf = s.confidence || 0;
+    const wr = s.win_rate || 0;
+    return `
+    <div class="explanation-box skill" style="margin-bottom:12px;">
+      <div class="title">${s.name || s.feature || 'Trading Skill'}</div>
+      <div class="reason">
+        <strong>Why this skill was created:</strong> ${s.description || s.value || 'Based on discovered pattern with high confidence.'}
+        ${conf >= 0.8 ? 'This skill is highly reliable and will be used to boost matching signals.' : conf >= 0.6 ? 'This skill is moderately reliable.' : 'This skill needs more data to confirm.'}
+      </div>
+      <div class="metric-bar" style="margin-top:8px;">
+        <span class="label">Confidence</span>
+        <div class="bar"><div class="bar-fill ${getBarColor(conf)}" style="width:${(conf * 100).toFixed(0)}%"></div></div>
+        <span class="value">${fmtPct(conf)}</span>
+      </div>
+      <div class="metric-bar">
+        <span class="label">Win Rate</span>
+        <div class="bar"><div class="bar-fill ${getBarColor(wr)}" style="width:${(wr * 100).toFixed(0)}%"></div></div>
+        <span class="value">${fmtPct(wr)}</span>
+      </div>
+      <div style="margin-top:8px;font-size:0.8rem;color:var(--fg2);">
+        Active: ${s.active ? '✅ Yes' : '❌ No'} | Generated: ${s.generated_at ? new Date(s.generated_at).toLocaleString() : '—'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildWeightExplanations(weights) {
+  const container = document.getElementById('weightsExplanations');
+  if (!weights?.length) {
+    container.innerHTML = '<div class="error-msg">No strategy weights available. Weights are tuned after regime detection in the TLL cycle.</div>';
+    return;
+  }
+
+  container.innerHTML = weights.map(w => {
+    const meta = w.metadata || {};
+    const risk = meta.risk_metrics || {};
+    const weight = w.weight || 0.5;
+    const regimeAff = meta.regime_affinity || 0.5;
+    const riskScore = risk.composite_risk_score || 0.5;
+    return `
+    <div class="explanation-box weight" style="margin-bottom:12px;">
+      <div class="title">${w.strategy || 'Strategy'} — Weight: ${(weight * 100).toFixed(1)}%</div>
+      <div class="reason">
+        <strong>How this weight was calculated:</strong>
+        <br>• Regime Affinity (50%): ${(regimeAff * 100).toFixed(0)}% — ${meta.last_regime ? `Based on ${meta.last_regime} market regime` : 'Default'}
+        <br>• Risk-Adjusted Score (30%): ${(riskScore * 100).toFixed(0)}% — Sharpe: ${fmtNum(risk.sharpe)}, Sortino: ${fmtNum(risk.sortino)}, Max DD: ${fmtNum(risk.max_drawdown)}
+        <br>• Historical Performance (20%): Previous weight carried forward
+      </div>
+      <div class="metric-bar" style="margin-top:8px;">
+        <span class="label">Final Weight</span>
+        <div class="bar"><div class="bar-fill ${getBarColor(weight)}" style="width:${(weight * 100).toFixed(0)}%"></div></div>
+        <span class="value">${(weight * 100).toFixed(1)}%</span>
+      </div>
+      <div style="margin-top:8px;font-size:0.8rem;color:var(--fg2);">
+        Symbol: ${w.symbol || 'ALL'} | Timeframe: ${w.timeframe || 'ALL'} | Updated: ${w.updated_at ? new Date(w.updated_at).toLocaleString() : '—'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildHealingExplanations(healing) {
+  const container = document.getElementById('healingExplanations');
+  if (!healing?.length) {
+    container.innerHTML = '<div class="error-msg">No healing events recorded. Strategies are performing within acceptable ranges.</div>';
+    return;
+  }
+
+  container.innerHTML = healing.map(h => {
+    const meta = h.metadata || {};
+    const wr = h.win_rate || 0;
+    const isQuarantined = wr < 0.25 || meta.action === 'quarantine';
+    return `
+    <div class="explanation-box healing" style="margin-bottom:12px;">
+      <div class="title">${isQuarantined ? '🔒' : '⚠️'} ${h.strategy || meta.strategy || 'Strategy'} — WR: ${fmtPct(wr)}</div>
+      <div class="reason">
+        <strong>Why this action was taken:</strong>
+        ${isQuarantined
+          ? `Win rate ${fmtPct(wr)} is below the 25% quarantine threshold. The strategy has been disabled to prevent further losses.`
+          : `Win rate ${fmtPct(wr)} is below target. Improvement suggestions have been generated.`}
+        ${h.reason ? `<br><br><em>Reason: ${h.reason}</em>` : ''}
+        ${meta.ollama_suggestion ? `<br><br><em>Ollama suggestion: ${meta.ollama_suggestion}</em>` : ''}
+      </div>
+      <div class="metric-bar" style="margin-top:8px;">
+        <span class="label">Win Rate</span>
+        <div class="bar"><div class="bar-fill ${getBarColor(wr)}" style="width:${(wr * 100).toFixed(0)}%"></div></div>
+        <span class="value">${fmtPct(wr)}</span>
+      </div>
+      <div style="margin-top:8px;font-size:0.8rem;color:var(--fg2);">
+        Action: ${h.action || meta.action || 'heal'} | Signals: ${h.total_signals || meta.total_signals || '—'} | Healed: ${h.healed_at ? new Date(h.healed_at).toLocaleString() : '—'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildTournamentExplanations(tournament) {
+  const container = document.getElementById('tournamentExplanations');
+  if (!tournament?.rankings?.length) {
+    container.innerHTML = '<div class="error-msg">No tournament data available. The tournament runs during each TLL cycle.</div>';
+    return;
+  }
+
+  const rankings = tournament.rankings || [];
+  const matches = tournament.matches || [];
+
+  let html = '<h3 style="margin-bottom:12px;">🏆 Rankings (Elo)</h3>';
+  html += '<table><thead><tr><th>Rank</th><th>Strategy</th><th>Elo Score</th><th>Win Rate</th><th>Total PnL</th><th>Signals</th></tr></thead><tbody>';
+  rankings.forEach(r => {
+    html += `<tr>
+      <td>#${r.rank}</td>
+      <td><strong>${r.name}</strong></td>
+      <td>${r.elo_score}</td>
+      <td><span class="badge ${r.win_rate >= 0.5 ? 'win' : 'loss'}">${fmtPct(r.win_rate)}</span></td>
+      <td>${fmtNum(r.total_pnl)}</td>
+      <td>${r.signals}</td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+
+  if (matches.length) {
+    html += '<h3 style="margin:16px 0 12px;">⚔️ Recent Matches</h3>';
+    html += '<table><thead><tr><th>Contender 1</th><th>Score</th><th>Contender 2</th><th>Score</th><th>Winner</th><th>Decisive</th></tr></thead><tbody>';
+    matches.slice(0, 20).forEach(m => {
+      html += `<tr>
+        <td>${m.contender1}</td>
+        <td>${(m.score1 * 100).toFixed(1)}%</td>
+        <td>${m.contender2}</td>
+        <td>${(m.score2 * 100).toFixed(1)}%</td>
+        <td><strong>${m.winner}</strong></td>
+        <td>${m.decisive ? '✅ Yes' : '❌ No'}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+  }
+
+  container.innerHTML = html;
+}
+
+function buildRegimeExplanations(regime) {
+  const container = document.getElementById('regimeExplanations');
+  if (!regime) {
+    container.innerHTML = '<div class="error-msg">No regime data available. Regime is detected during each TLL cycle.</div>';
+    return;
+  }
+
+  const regimeDescriptions = {
+    trending: 'Market is moving strongly in one direction. Trend-following, momentum, and breakout strategies perform best.',
+    choppy: 'Market is moving sideways with frequent reversals. Mean-reversion and scalping strategies perform best.',
+    ranging: 'Market is in a defined range. Grid trading, mean-reversion, and support/resistance strategies perform best.',
+    quiet: 'Low volatility environment. Scalping and grid strategies work well. Trend strategies may generate false signals.',
+    mixed: 'No clear regime detected. All strategies are treated equally with neutral weights.',
+  };
+
+  const desc = regimeDescriptions[regime.regime] || 'Unknown market state.';
+
+  container.innerHTML = `
+    <div class="explanation-box regime" style="margin-bottom:12px;">
+      <div class="title">${regimeIcon(regime.regime)} Current Regime: ${regime.regime}</div>
+      <div class="reason">
+        <strong>What this means:</strong> ${desc}
+        <br><br>
+        <strong>How it affects strategies:</strong>
+        <br>• ADX: ${(regime.adx || 0).toFixed(1)} — ${(regime.adx || 0) > 25 ? 'Strong trend' : (regime.adx || 0) > 20 ? 'Trend developing' : 'Weak/no trend'}
+        <br>• ATR: ${(regime.atr_pct || 0).toFixed(2)}% — ${(regime.atr_pct || 0) > 2 ? 'High volatility' : (regime.atr_pct || 0) > 1 ? 'Moderate volatility' : 'Low volatility'}
+        <br>• Volatility Label: ${regime.volatility_label || '—'}
+        <br>• Strategy weights have been adjusted to favor strategies that match this regime.
+      </div>
+      <div style="margin-top:12px;font-size:0.8rem;color:var(--fg2);">
+        Detected: ${regime.detected_at ? new Date(regime.detected_at).toLocaleString() : '—'}
+      </div>
+    </div>
+  `;
+}
+
+// ── Main data fetch ────────────────────────────────────────
+async function loadAll() {
+  try {
+    // Fetch all data in parallel
+    const [patternsRes, skillsRes, weightsRes, healingRes, regimeRes, tournamentRes, brainRes] = await Promise.all([
+      fetch('/api/learning-layer?view=patterns').then(r => r.json()),
+      fetch('/api/learning-layer?view=skills').then(r => r.json()),
+      fetch('/api/learning-layer?view=weights').then(r => r.json()),
+      fetch('/api/learning-layer?view=healing').then(r => r.json()),
+      fetch('/api/learning-layer?view=regime').then(r => r.json()),
+      fetch('/api/learning-layer?view=tournament').then(r => r.json().catch(() => null)),
+      fetch('/api/learning-layer').then(r => r.json()),
+    ]);
+
+    const now = new Date().toLocaleString();
+    document.getElementById('lastUpdated').textContent = `Last updated: ${now}`;
+
+    // Overview stats
+    const patterns = Array.isArray(patternsRes) ? patternsRes : patternsRes?.patterns || [];
+    const skills = Array.isArray(skillsRes) ? skillsRes : skillsRes?.skills || [];
+    const weights = Array.isArray(weightsRes) ? weightsRes : weightsRes?.weights || [];
+    const healing = Array.isArray(healingRes) ? healingRes : healingRes?.healing || [];
+    const regime = Array.isArray(regimeRes) ? regimeRes[0] : regimeRes?.regime || regimeRes;
+    const tournament = tournamentRes || { rankings: [], matches: [] };
+    const brain = brainRes || {};
+
+    document.getElementById('statPatterns').textContent = patterns.length;
+    document.getElementById('statSkills').textContent = skills.filter(s => s.active !== false).length;
+    document.getElementById('statWeights').textContent = weights.length;
+    document.getElementById('statHealed').textContent = healing.length;
+    document.getElementById('statTournament').textContent = tournament.rankings?.length || 0;
+
+    // Win rate from brain data
+    const totalResolved = brain.totalResolved || 0;
+    const wins = brain.wins || 0;
+    document.getElementById('statWinRate').textContent = totalResolved > 0 ? fmtPct(wins / totalResolved) : '—';

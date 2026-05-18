@@ -101,6 +101,24 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── GET: Tournament ───────────────────────────────────────
+  if (method === 'GET' && query.view === 'tournament') {
+    try {
+      const { runStrategyTournament } = await import('../lib/learning-layer/strategy-tournament.js');
+      const tournament = await runStrategyTournament();
+      return res.status(200).json({
+        ok: true,
+        rankings: tournament.rankings || [],
+        matches: tournament.matches || [],
+        strategyStats: tournament.strategyStats || {},
+        status: tournament.status || 'completed',
+      });
+    } catch (e) {
+      logger.error('[API_TLL] GET /tournament failed:', e.message);
+      return res.status(200).json({ ok: true, rankings: [], matches: [], strategyStats: {}, status: 'error' });
+    }
+  }
+
   // ── GET: Unified Learning Ecosystem ──────────────────────
   if (method === 'GET' && query.view === 'ecosystem') {
     try {
