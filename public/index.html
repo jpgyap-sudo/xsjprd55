@@ -6419,12 +6419,27 @@ async function loadBrain() {
     document.getElementById('brain-health-content').innerHTML = `<span style="color:var(--accent3);">Error: ${e.message}</span>`;
   }
 
-  // Learning Layer status
+  // Learning Layer status + Ecosystem
   try {
-    const tllRes = await fetch('/api/learning-layer');
+    const [tllRes, ecoRes] = await Promise.all([
+      fetch('/api/learning-layer'),
+      fetch('/api/learning-layer?view=ecosystem'),
+    ]);
     const tll = await tllRes.json();
+    const eco = await ecoRes.json();
     if (tll.ok && tll.status) {
       const s = tll.status;
+      const bridges = eco.ok ? (eco.ecosystem?.bridges || {}) : {};
+      const bridgeHtml = eco.ok ? `
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+          <div style="font-size:0.8rem;font-weight:600;margin-bottom:6px;">🌐 Bridge Ingestion</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.75rem;">
+            <div>💰 Mock Trading: <strong>${bridges.mockTrading?.ingestedIntoBrainMemory || 0}</strong></div>
+            <div>📈 Perpetual: <strong>${bridges.perpetualTrader?.ingestedIntoBrainMemory || 0}</strong></div>
+            <div>🔬 Research: <strong>${bridges.researchAgent?.ingestedIntoBrainMemory || 0}</strong></div>
+            <div>📡 Signal: <strong>${bridges.signalAgent?.ingestedIntoBrainMemory || 0}</strong></div>
+          </div>
+        </div>` : '';
       document.getElementById('brain-tll-content').innerHTML = `
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px 0;">
           <div><strong>Patterns Discovered:</strong> ${s.patterns_discovered}</div>
@@ -6434,7 +6449,8 @@ async function loadBrain() {
           <div><strong>TLL Enabled:</strong> <span style="color:${s.tll_enabled ? 'var(--accent)' : 'var(--accent3)'}">${s.tll_enabled}</span></div>
           <div><strong>Interval:</strong> ${(s.tll_interval_ms / 1000)}s</div>
         </div>
-        ${s.current_regime ? `<div style="margin-top:8px;padding:8px;background:var(--bg3);border-radius:6px;"><strong>Current Regime:</strong> ${s.current_regime.regime || 'unknown'} — ${s.current_regime.description || ''} (${new Date(s.current_regime.detected_at).toLocaleString()})</div>` : ''}`;
+        ${s.current_regime ? `<div style="margin-top:8px;padding:8px;background:var(--bg3);border-radius:6px;"><strong>Current Regime:</strong> ${s.current_regime.regime || 'unknown'} — ${s.current_regime.description || ''} (${new Date(s.current_regime.detected_at).toLocaleString()})</div>` : ''}
+        ${bridgeHtml}`;
     } else {
       document.getElementById('brain-tll-content').innerHTML = `<span style="color:var(--fg2);">Learning layer not available</span>`;
     }

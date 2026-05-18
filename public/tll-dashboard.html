@@ -334,6 +334,93 @@
       margin-top: 4px;
     }
 
+    /* Ecosystem Bridge Cards */
+    .bridge-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .bridge-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      transition: border-color 0.2s;
+    }
+    .bridge-card:hover { border-color: var(--accent); }
+    .bridge-card .bridge-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .bridge-card .bridge-icon {
+      font-size: 28px;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(88,166,255,0.1);
+      border-radius: 10px;
+    }
+    .bridge-card .bridge-name {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .bridge-card .bridge-source {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .bridge-card .bridge-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .bridge-card .bridge-stat {
+      font-size: 13px;
+    }
+    .bridge-card .bridge-stat .bs-label {
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .bridge-card .bridge-stat .bs-value {
+      font-weight: 600;
+      font-size: 16px;
+      margin-top: 2px;
+    }
+    .bridge-card .bridge-status {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .bridge-card .bridge-status .ok { color: var(--green); }
+    .bridge-card .bridge-status .error { color: var(--red); }
+    .ecosystem-summary {
+      background: rgba(88,166,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .ecosystem-summary .es-item {
+      font-size: 13px;
+    }
+    .ecosystem-summary .es-item strong {
+      font-size: 18px;
+      display: block;
+    }
+
     /* Toast notification */
     .toast {
       position: fixed;
@@ -387,13 +474,26 @@
 
   <!-- Tabs -->
   <div class="tabs">
-    <div class="tab active" data-tab="patterns" onclick="switchTab('patterns')">📊 Patterns</div>
+    <div class="tab active" data-tab="ecosystem" onclick="switchTab('ecosystem')">🌐 Ecosystem</div>
+    <div class="tab" data-tab="patterns" onclick="switchTab('patterns')">📊 Patterns</div>
     <div class="tab" data-tab="skills" onclick="switchTab('skills')">🎯 Skills</div>
     <div class="tab" data-tab="healing" onclick="switchTab('healing')">🩺 Healing</div>
     <div class="tab" data-tab="regime" onclick="switchTab('regime')">📈 Regime History</div>
   </div>
 
-  <div class="tab-content active" id="tab-patterns">
+  <div class="tab-content active" id="tab-ecosystem">
+    <div class="section">
+      <h3>🌐 Learning Ecosystem — Bridge Status</h3>
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px;">
+        All 4 data sources feed into the TLL for unified pattern discovery, skill generation, and strategy healing.
+      </p>
+      <div id="ecosystemContent">
+        <p style="color:var(--text-muted)">Loading ecosystem data...</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-patterns">
     <div class="section">
       <h3>Discovered Patterns <span class="count" id="patternCount"></span></h3>
       <div id="patternsContent"><p style="color:var(--text-muted)">No patterns discovered yet. Run a TLL cycle to discover patterns.</p></div>
@@ -652,6 +752,76 @@
       el.innerHTML = html;
     }
 
+    // ── Render Ecosystem ──────────────────────────────────────
+    function renderEcosystem(ecosystem) {
+      const el = document.getElementById('ecosystemContent');
+      if (!ecosystem) {
+        el.innerHTML = '<p style="color:var(--text-muted)">Ecosystem data not available.</p>';
+        return;
+      }
+
+      const bridges = ecosystem.bridges || {};
+      const brainMemory = ecosystem.brainMemory || {};
+      const tll = ecosystem.tll || {};
+
+      // Summary bar
+      const totalIngested = brainMemory.totalIngestedFromBridges || 0;
+      const totalRecords = brainMemory.totalRecords || 0;
+      let summaryHtml = `<div class="ecosystem-summary">
+        <div class="es-item"><strong style="color:var(--accent)">${totalRecords}</strong> Total Brain Memory Records</div>
+        <div class="es-item"><strong style="color:var(--green)">${totalIngested}</strong> Ingested via Bridges</div>
+        <div class="es-item"><strong style="color:var(--purple)">${tll.patternsDiscovered || 0}</strong> Patterns Discovered</div>
+        <div class="es-item"><strong style="color:var(--yellow)">${tll.activeSkills || 0}</strong> Active Skills</div>
+        <div class="es-item"><strong style="color:var(--orange)">${tll.healingEvents || 0}</strong> Healing Events</div>
+        <div class="es-item" style="font-size:11px;color:var(--text-muted);margin-left:auto;">Last sync: ${timeAgo(ecosystem.lastSync)}</div>
+      </div>`;
+
+      // Bridge cards
+      const bridgeConfigs = [
+        { key: 'mockTrading', icon: '💰', name: 'Mock Trading', source: 'mock_trades → brain_signal_memory', data: bridges.mockTrading },
+        { key: 'perpetualTrader', icon: '📈', name: 'Perpetual Trader', source: 'perpetual_mock_trades → brain_signal_memory', data: bridges.perpetualTrader },
+        { key: 'researchAgent', icon: '🔬', name: 'Research Agent', source: 'backtest_results + strategy_proposals → brain_signal_memory', data: bridges.researchAgent },
+        { key: 'signalAgent', icon: '📡', name: 'Signal Agent', source: 'signal_memory + signal_patterns → brain_signal_memory', data: bridges.signalAgent },
+      ];
+
+      let cardsHtml = '<div class="bridge-grid">';
+      for (const cfg of bridgeConfigs) {
+        const d = cfg.data || {};
+        const hasError = !!d.error;
+        const ingested = d.ingestedIntoBrainMemory || 0;
+        const totalClosed = d.totalClosedTrades || d.totalBacktests || d.totalProposals || d.totalSignals || 0;
+        const stratPerf = d.strategyPerformance || [];
+        const topStrats = stratPerf.slice(0, 3).map(s => `${s.name}: ${(s.winRate * 100).toFixed(0)}%`).join(', ') || '—';
+
+        cardsHtml += `<div class="bridge-card">
+          <div class="bridge-header">
+            <div class="bridge-icon">${cfg.icon}</div>
+            <div>
+              <div class="bridge-name">${cfg.name}</div>
+              <div class="bridge-source">${cfg.source}</div>
+            </div>
+          </div>
+          <div class="bridge-stats">
+            <div class="bridge-stat">
+              <div class="bs-label">Ingested</div>
+              <div class="bs-value" style="color:var(--green)">${ingested}</div>
+            </div>
+            <div class="bridge-stat">
+              <div class="bs-label">Total Available</div>
+              <div class="bs-value">${totalClosed}</div>
+            </div>
+          </div>
+          <div class="bridge-status">
+            ${hasError ? `<span class="error">⚠ ${d.error}</span>` : `<span class="ok">✓ Active</span>`}
+            ${topStrats !== '—' ? `&middot; Top: ${topStrats}` : ''}
+          </div>
+        </div>`;
+      }
+      cardsHtml += '</div>';
+
+      el.innerHTML = summaryHtml + cardsHtml;
+    }
+
     // ── Fetch & Refresh ──────────────────────────────────────
     async function fetchJSON(url) {
       const res = await fetch(url);
@@ -669,12 +839,13 @@
 
       try {
         // Fetch all data in parallel
-        const [statusRes, patternsRes, skillsRes, regimeRes, healingRes] = await Promise.all([
+        const [statusRes, patternsRes, skillsRes, regimeRes, healingRes, ecosystemRes] = await Promise.all([
           fetchJSON(BASE),
           fetchJSON(`${BASE}?view=patterns`),
           fetchJSON(`${BASE}?view=skills`),
           fetchJSON(`${BASE}?view=regime`),
           fetchJSON(`${BASE}?view=healing`),
+          fetchJSON(`${BASE}?view=ecosystem`),
         ]);
 
         if (statusRes.ok) {
@@ -686,6 +857,7 @@
         if (skillsRes.ok) renderSkills(skillsRes.skills || []);
         if (regimeRes.ok) renderRegimeHistory(regimeRes.regimes || []);
         if (healingRes.ok) renderHealing(healingRes.healing || []);
+        if (ecosystemRes.ok) renderEcosystem(ecosystemRes.ecosystem);
 
         document.getElementById('lastUpdated').textContent = `Last updated: ${new Date().toLocaleString()}`;
       } catch (e) {
