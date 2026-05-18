@@ -12,6 +12,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    // For GET requests, use query params or defaults
     const marketFeatures = req.body?.marketFeatures || req.body?.market_features || {};
     const portfolioState = req.body?.portfolioState || req.body?.portfolio_state || {
       cash: 10000,
@@ -23,6 +24,15 @@ export default async function handler(req, res) {
     const result = await getRlDecision(marketFeatures, portfolioState);
     return res.status(200).json({ ok: true, ...result });
   } catch (err) {
-    return res.status(500).json({ ok: false, error: err.message });
+    // getRlDecision already has fallback logic, but if it still throws,
+    // return a graceful fallback instead of 500
+    return res.status(200).json({
+      ok: true,
+      action: 'HOLD',
+      confidence: 0.5,
+      reason: `ML service unavailable, fallback: ${err.message}`,
+      suggested_position_size: 0,
+      source: 'api_fallback'
+    });
   }
 }

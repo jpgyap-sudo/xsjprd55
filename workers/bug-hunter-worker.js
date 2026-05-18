@@ -2,6 +2,7 @@
 // Bug Hunter Agent — Production-grade 24/7 bug detection
 // Scans repo + crawls live site + monitors APIs + creates BugReports
 // Safety: READ-ONLY — never edits code, never deploys
+// v2: Ollama integration for initial bug triage & root cause analysis
 // ============================================================
 
 import '../lib/env.js';
@@ -13,6 +14,7 @@ import { assignBug, createFixTask } from '../lib/debug/bug-assignment.js';
 import { submitFindingsToLocalDb } from '../lib/debug/bug-submitter.js';
 import { supabase } from '../lib/supabase.js';
 import { logger } from '../lib/logger.js';
+import { config } from '../lib/config.js';
 import { isMainModule } from '../lib/entrypoint.js';
 
 // Configuration
@@ -34,6 +36,121 @@ const persistentBugTracker = new Map(); // Track bugs across cycles
 
 function log(...args) {
   console.log(`[BUG-HUNTER] ${new Date().toISOString()}`, ...args);
+}
+
+// ============================================================
+// Ollama Bug Triage
+// ============================================================
+
+/**
+ * Use Ollama to triage a bug report — analyze symptoms, suggest root cause,
+ * and recommend priority. Runs locally before cloud analysis.
+ */
+async function triageWithOllama(bugReport) {
+  const baseUrl = config.OLLAMA_BASE_URL || 'http://localhost:11434';
+  const model = config.OLLAMA_MODEL || 'phi3:mini';
+
+  try {
+    const response = await fetch(`${baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are a bug triage AI. Analyze the bug report and return a JSON object:
+{
+  "rootCause": "<likely root cause, 1 sentence>",
+  "severity": "critical" | "high" | "medium" | "low",
+  "confidence": <0-1>,
+  "recommendedAction": "<what to do first>",
+  "affectedArea": "<which subsystem>",
+  "isDuplicate": <true|false>
+}
+Do NOT include any other text.`
+          },
+          {
+            role: 'user',
+            content: JSON.stringify({
+              title: bugReport.title,
+              description: bugReport.description?.slice(0, 500),
+              symptoms: bugReport.symptoms,
+              route: bugReport.route,
+              httpStatus: bugReport.evidence?.http_status,
+              responseMs: bugReport.evidence?.response_ms
+            })
+          }
+        ],
+        options: { temperature: 0.1, max_tokens: 256 }
+      }),
+      signal: AbortSignal.timeout(8000)
+    });
+
+    if (!response.ok) throw new Error(`Ollama returned ${response.status}`);
+    const data = await response.json();
+    const content = data.message?.content || '';
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in response');
+
+    return JSON.parse(jsonMatch[0]);
+  } catch (err) {
+    logger.debug(`[BUG-HUNTER] Ollama triage unavailable: ${err.message}`);
+    return null;
+  }
+}
+
+/**
+ * Generate a human-readable bug summary using Ollama.
+ */
+async function summarizeBugWithOllama(bugReport) {
+  const baseUrl = config.OLLAMA_BASE_URL || 'http://localhost:11434';
+  const model = config.OLLAMA_MODEL || 'phi3:mini';
+
+  try {
+    const response = await fetch(`${baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages: [
+          {
+            role: 'system',
+            content: `You are a bug report summarizer. Given a bug report, generate a concise summary. Return ONLY a JSON object:
+{
+  "summary": "<1-2 sentence summary>",
+  "impact": "<what users/features are affected>",
+  "fixDifficulty": "easy" | "medium" | "hard",
+  "suggestedFiles": ["<file1>", "<file2>"]
+}
+Do NOT include any other text.`
+          },
+          {
+            role: 'user',
+            content: JSON.stringify({
+              title: bugReport.title,
+              description: bugReport.description?.slice(0, 500),
+              symptoms: bugReport.symptoms,
+              route: bugReport.route
+            })
+          }
+        ],
+        options: { temperature: 0.1, max_tokens: 256 }
+      }),
+      signal: AbortSignal.timeout(8000)
+    });
+
+    if (!response.ok) throw new Error(`Ollama returned ${response.status}`);
+    const data = await response.json();
+    const content = data.message?.content || '';
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No JSON in response');
+
+    return JSON.parse(jsonMatch[0]);
+  } catch (err) {
+    logger.debug(`[BUG-HUNTER] Ollama summary unavailable: ${err.message}`);
+    return null;
+  }
 }
 
 // ============================================================
@@ -479,6 +596,20 @@ async function isDuplicateOrRateLimited(bugReport) {
 
 async function submitBugReport(bugReport) {
   try {
+    // Try Ollama triage before submission (non-blocking enhancement)
+    try {
+      const ollamaTriage = await triageWithOllama(bugReport);
+      if (ollamaTriage) {
+        bugReport.ollama_triage = ollamaTriage;
+        // Override root cause with Ollama's analysis if confident
+        if (ollamaTriage.confidence >= 0.7 && ollamaTriage.rootCause) {
+          bugReport.suspected_root_cause = ollamaTriage.rootCause;
+        }
+      }
+    } catch (e) {
+      // Non-critical — proceed without Ollama triage
+    }
+
     // Submit to Supabase
     const { data, error } = await supabase
       .from('bugs')
@@ -532,6 +663,21 @@ async function notifyTelegram(bug) {
   if (!token || !chatId) return;
   
   const emoji = getSeverityEmoji(bug.severity);
+  
+  // Try to get Ollama summary for richer notification
+  let ollamaSummary = '';
+  try {
+    const summary = await summarizeBugWithOllama(bug);
+    if (summary && summary.summary) {
+      ollamaSummary = `\n\n*AI Analysis:* ${summary.summary}`;
+      if (summary.fixDifficulty) {
+        ollamaSummary += `\nFix difficulty: ${summary.fixDifficulty.toUpperCase()}`;
+      }
+    }
+  } catch (e) {
+    // Non-critical
+  }
+  
   const message = `${emoji} *Bug Hunter Alert*
 
 *${bug.title}*
@@ -539,7 +685,7 @@ Severity: ${bug.severity.toUpperCase()}
 Route: \`${bug.route}\`
 Owner: ${bug.recommended_owner}
 
-${bug.description.slice(0, 300)}...
+${bug.description.slice(0, 300)}...${ollamaSummary}
 
 ID: \`${bug.bug_id}\``;
   
@@ -575,7 +721,8 @@ async function runBugHunterCycle() {
     issuesFound: 0,
     bugsSubmitted: 0,
     duplicatesSkipped: 0,
-    rateLimited: 0
+    rateLimited: 0,
+    ollamaTriaged: 0
   };
   
   log('='.repeat(60));
@@ -632,6 +779,7 @@ async function runBugHunterCycle() {
       const submitResult = await submitBugReport(bugReport);
       if (submitResult.success) {
         stats.bugsSubmitted++;
+        if (bugReport.ollama_triage) stats.ollamaTriaged++;
       }
     }
     
@@ -671,6 +819,7 @@ async function runBugHunterCycle() {
       if (submitResult.success) {
         log(`Submitted bug: ${bugReport.title} (${bugReport.severity})`);
         stats.bugsSubmitted++;
+        if (bugReport.ollama_triage) stats.ollamaTriaged++;
       }
     }
     
@@ -699,6 +848,7 @@ async function runBugHunterCycle() {
   log(`Bugs submitted: ${stats.bugsSubmitted}`);
   log(`Duplicates skipped: ${stats.duplicatesSkipped}`);
   log(`Rate limited: ${stats.rateLimited}`);
+  log(`Ollama triaged: ${stats.ollamaTriaged}`);
   log(`Duration: ${duration}ms`);
   log('='.repeat(60));
   
@@ -719,13 +869,14 @@ async function main() {
   const once = process.argv.includes('--once');
   
   log('='.repeat(60));
-  log('BUG HUNTER AGENT v1.0');
+  log('BUG HUNTER AGENT v2.0 (Ollama-powered)');
   log('='.repeat(60));
   log(`Base URL: ${CONFIG.BASE_URL}`);
   log(`Interval: ${CONFIG.INTERVAL_SECONDS}s (${(CONFIG.INTERVAL_SECONDS / 60).toFixed(1)} min)`);
   log(`Mode: ${once ? 'single run' : 'continuous'}`);
   log(`Telegram notifications: ${CONFIG.NOTIFY_TELEGRAM ? 'enabled' : 'disabled'}`);
   log(`Auto-assign critical: ${CONFIG.ASSIGN_CRITICAL ? 'enabled' : 'disabled'}`);
+  log(`Ollama triage: enabled (${config.OLLAMA_BASE_URL || 'http://localhost:11434'})`);
   log('='.repeat(60));
   
   if (once) {

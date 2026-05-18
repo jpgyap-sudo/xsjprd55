@@ -1,0 +1,162 @@
+=== FRONTEND PAGES ===
+  ERR 4270ms  /  [0 chars]
+  ERR 96ms  /pm2-dashboard.html  [0 chars]
+  ERR 73ms  /tll-dashboard.html  [0 chars]
+  ERR 81ms  /research-agent-dashboard.html  [0 chars]
+  ERR 80ms  /social-intelligence-dashboard.html  [0 chars]
+  ERR 78ms  /api-debugger-dashboard.html  [0 chars]
+  ERR 157ms  /perpetual-trader-history.html  [0 chars]
+  ERR 72ms  /perpetual-trader-trade-detail.html  [0 chars]
+  200 74ms  /manifest.json  [200 chars]
+  ERR 235ms  /sw.js  [0 chars]
+  ERR 77ms  /icon-192.svg  [0 chars]
+  ERR 80ms  /icon-512.svg  [0 chars]
+
+=== API ENDPOINTS ===
+  200 63ms  /api
+       {"ok":true,"routes":["/api/advisor","/api/agent-improvement","/api/analyze","/api/api-debugger","/api/app-development-pr
+  200 9714ms  /api/health
+       {"ok":true,"checks":{"env":{"ai_provider":"kimi","trading_mode":"paper","deployment_target":"vps"},"services":{"supabase
+  200 470ms  /api/version
+       {"ok":true,"app":"xsjprd55","version":"1.0.0","commit":"37bc4f7c3ba40d1da5a7e1726851c63cc019fee7","commitDate":"2026-05-
+  200 81ms  /api/config
+       {"deployment_target":"vps","trading_mode":"paper","node_env":"production","default_pairs":["BTC/USDT","ETH/USDT","SOL/US
+  200 289ms  /api/brain
+       {"ok":true,"brain":"active","supabase":"connected","supabase_error":null,"mode":"paper","scan_interval_ms":300000,"symbo
+  200 190ms  /api/brain/health
+       {"ok":true,"brain":"active","supabase":"connected","supabase_error":null,"mode":"paper","scan_interval_ms":300000,"symbo
+  200 304ms  /api/learning-layer
+       {"ok":true,"status":{"patterns_discovered":10,"active_skills":19,"healing_events":52,"resolved_signals":3500,"current_re
+  401 61ms  /api/signals
+       {"ok":false,"error":"Unauthorized"}
+  200 269ms  /api/signal
+       {"ok":true,"signals":[{"id":"ebe558cf-799a-410f-8627-3bd8ae61d054","symbol":"SOLUSDT","side":"LONG","entry_price":85.33,
+  401 69ms  /api/market
+       {"error":"Unauthorized cron request"}
+  200 3587ms  /api/liquidation
+       {"ok":true,"generatedAt":"2026-05-18T01:45:28.112Z","latencyMs":3453,"summary":{"sources":["okx","hyperliquid","bybit","
+  200 1531ms  /api/news-feed
+       {"ok":true,"overallScore":0.0926031329325278,"itemCount":20,"items":[{"source":"UToday","title":"'Robbing Your Followers
+  401 79ms  /api/news-signal
+       {"error":"Unauthorized cron request"}
+  401 69ms  /api/news-ingest
+       {"ok":false,"error":"Unauthorized"}
+  500 82ms  /api/social-intel
+       {"error":"Internal server error","message":"Cannot find package 'playwright' imported from /root/xsjprd55/lib/social-cra
+  404 79ms  /api/social-sentiment
+       {"success":false,"error":"Not found"}
+  200 1703ms  /api/mock-trading-dashboard
+       {"ok":true,"account":{"id":"7625f48f-cf42-4516-83eb-9e04772024fc","name":"Execution Optimizer v3","balance":-84.57999999
+  200 249ms  /api/system-health
+       {"summary":{"total_sources":0,"online":0,"api_errors":0,"crawler_fallback":0,"unread_critical":0,"unread_warning":0},"so
+  200 101ms  /api/dashboard-health
+       {"ok":true,"status":"healthy","uptime":34191.499185322,"uptimeFormatted":"9h 29m 51s","nodeVersion":"v22.22.2","memory":
+  200 12504ms  /api/pm2-status
+       {"ok":true,"pm2":{"version":"5.4.3","daemonAlive":true,"daemonResponse":">>>> In-memory PM2 is out-of-date, do:\n>>>> $ 
+  200 654ms  /api/deploy-status
+       {"ok":true,"deploys":[{"id":"3e6c4494-cafe-422d-9edb-2d665ac5354b","github_commit":"37bc4f7c3ba40d1da5a7e1726851c63cc019
+  200 77ms  /api/research-agent
+       {"promotedStrategies":[{"name":"extracted_btc_dominance_score","score":0.9188,"trades":75,"winRate":0.973,"totalPnl":226
+  200 728ms  /api/research-agent-dashboard
+       {"ok":true,"recentSources":[{"id":"81b35572-fffa-44ae-998c-cdba5b91cfd0","createdAt":"2026-05-18T01:36:10.452945+00:00",
+  200 254ms  /api/bugs
+       {"ok":true,"bugs":[{"id":"e88564e4-456c-4201-9369-f57364982f77","source_agent":"signal_analyst","title":"No active signa
+  200 579ms  /api/bug-fix-pipeline
+       {"ok":true,"stats":{"criticalPending":6,"highPending":2,"queued":0,"fixed":2,"activeTasks":0,"completedTasks":0}}
+  500 373ms  /api/backtest
+       {"error":"binance {\"code\":-2008,\"msg\":\"Invalid Api-Key ID.\"}"}
+  200 211ms  /api/ml-health
+       {"ok":true,"mlService":{"ok":false,"error":"fetch failed"},"pipeline":{"sqlite":{"ok":false,"tables":[],"error":"Cannot 
+  400 85ms  /api/ml-predict
+       {"error":"Provide features or ohlcv in body"}
+  500 60ms  /api/ml-rl
+       {"ok":false,"error":"fetch failed"}
+  200 513ms  /api/analyze
+       {"symbol":"BTCUSDT","bias":"NEUTRAL","rawConfidence":50.7,"adjustedConfidence":30.42,"dataReliabilityScore":60,"recommen
+  405 88ms  /api/advisor
+       {"error":"POST only"}
+  405 68ms  /api/agent-improvement
+       {"success":false,"error":"Method not allowed"}
+  200 95ms  /api/app-development-proposals
+       {"ok":true,"proposals":[],"stats":{"total":0,"pending":0,"approved":0,"rejected":0,"implemented":0},"taskStats":{"total"
+  200 249ms  /api/product-features
+       {"ok":true,"features":[{"id":"55e57ba6-eebe-4a77-b9ad-b5e6ac9c4bec","featureId":"FEAT-021","name":"Product Updates Log",
+  200 101ms  /api/product-updates
+       {"ok":true,"updates":[],"total":0,"offset":0,"limit":50}
+  405 78ms  /api/support-assistant
+       {"ok":false,"error":"Method not allowed"}
+  200 59ms  /api/openclaw
+       {"ok":true,"description":"OpenClaw Analysis Agent — READ-ONLY code analysis","endpoints":{"GET /api/openclaw":"List avai
+  200 105ms  /api/openclaw-telegram
+       {"ok":true,"description":"OpenClaw Telegram Bridge — Smart trading Q&A for Telegram","endpoints":{"POST /api/openclaw-te
+  200 114ms  /api/strategy-labs
+       {"mock":{"balance":1000000,"peak":1000000,"drawdownPct":0,"openTrades":[],"closedStats":[],"summary":{"totalTrades":0,"w
+  200 62ms  /api/catalyst
+       {"ok":true,"updated_at":"2026-05-17T16:16:53.862Z","high":[{"id":"fed-macro","emoji":"🇺🇸","title":"US Macro Data & Fed
+  ERR 15008ms  /api/data-health
+       The operation was aborted due to timeout
+  200 1062ms  /api/diagnostics
+       {"ok":true,"news":{"ok":true,"lastIngestAt":"2026-05-02T08:04:24.459+00:00","lastIngestAgo":"22662m ago","totalArticles"
+  200 996ms  /api/deployment-dashboard
+       {"ok":true,"timestamp":"2026-05-18T01:46:06.262Z","overview":{"deploymentStatus":"unknown","lastDeployTime":null,"isDepl
+  200 14673ms  /api/debug
+       {"ok":true,"supabase":"loaded","supabase_query":"query ok","exchange":"loaded","exchange_markets":"ok","telegram":"loade
+  401 346ms  /api/debug-crawler
+       {"ok":false,"error":"Unauthorized. Missing or invalid CRON_SECRET."}
+  200 2174ms  /api/perpetual-trader
+       {"ok":true,"tll":{"regime":{"regime":"unknown","adjustment":null,"details":null},"activeSkills":19,"topSkills":[{"id":1,
+  200 648ms  /api/wallet-tracker
+       {"wallets":[],"signals":[],"snapshots":[],"generated_at":"2026-05-18T01:46:24.108Z"}
+  401 109ms  /api/weekly-analysis
+       {"error":"Unauthorized cron request"}
+  200 294ms  /api/learning
+       {"ok":true,"pending_suggestions_count":9,"pending_suggestions":[{"id":"0db547dd-569b-42fd-a398-1f9655fbe8bc","category":
+  405 60ms  /api/ask
+       {"error":"Method not allowed"}
+  200 243ms  /api/bot
+       {"ok":true,"suggestions":[{"id":"0db547dd-569b-42fd-a398-1f9655fbe8bc","category":"strategy_tweak","title":"EMA_Cross un
+  ERR 111ms  /api/telegram
+       Body is unusable: Body has already been read
+  200 482ms  /api/binance-ticker
+       {"ok":true,"count":70,"totalPairs":619,"data":[{"symbol":"CREAMUSDT","price":2.1,"changePct":65.354,"volume":184081.172,
+  500 591ms  /api/lunarcrush
+       {"error":"LunarCrush 404: {\"error\":\"endpoint not found\"}","generated_at":"2026-05-18T01:46:25.998Z"}
+  200 137ms  /api/mock-feedback
+       {"feedback":[{"strategy_name":"extracted_btc_dominance_score","trades":75,"wins":73,"losses":2,"total_pnl_usd":2267.161,
+  401 102ms  /api/mock-inject
+       {"ok":false,"error":"Unauthorized"}
+
+=== SUMMARY ===
+  Total: 68 | OK: 38 | HTTP Errors: 17 | Connection Errors: 13
+
+=== GAPS & ISSUES ===
+  ❌ CONNECTION FAILED: / — Body is unusable: Body has already been read
+  ❌ CONNECTION FAILED: /pm2-dashboard.html — Body is unusable: Body has already been read
+  ❌ CONNECTION FAILED: /tll-dashboard.html — Body is unusable: Body has already been read
+  ❌ CONNECTION FAILED: /research-agent-dashboard.html — Body is unusable: Body has already been read
+  ❌ CONNECTION FAILED: /social-intelligence-dashboard.html — Body is unusable: Body has already been read
+  ❌ CONNECTION FAILED: /api-debugger-dashboard.html — Body is unusable: Body has already been read
+  ❌ CONNECTION FAILED: /perpetual-trader-history.html — Body is unusable: Body has already been read
+  ❌ CONNECTION FAILED: /perpetual-trader-trade-detail.html — Body is unusable: Body has already been read
+  ❌ CONNECTION FAILED: /sw.js — Body is unusable: Body has already been read
+  ❌ CONNECTION FAILED: /icon-192.svg — Body is unusable: Body has already been read
+  ❌ CONNECTION FAILED: /icon-512.svg — Body is unusable: Body has already been read
+  🔒 AUTH REQUIRED: /api/signals — 401 (needs secret)
+  🔒 AUTH REQUIRED: /api/market — 401 (needs secret)
+  🔒 AUTH REQUIRED: /api/news-signal — 401 (needs secret)
+  🔒 AUTH REQUIRED: /api/news-ingest — 401 (needs secret)
+  💥 SERVER ERROR: /api/social-intel — 500
+  ❌ NOT FOUND: /api/social-sentiment — 404
+  💥 SERVER ERROR: /api/backtest — 500
+  ⚠️  400: /api/ml-predict
+  💥 SERVER ERROR: /api/ml-rl — 500
+  ⚠️  405: /api/advisor
+  ⚠️  405: /api/agent-improvement
+  ⚠️  405: /api/support-assistant
+  ❌ CONNECTION FAILED: /api/data-health — The operation was aborted due to timeout
+  🔒 AUTH REQUIRED: /api/debug-crawler — 401 (needs secret)
+  🔒 AUTH REQUIRED: /api/weekly-analysis — 401 (needs secret)
+  ⚠️  405: /api/ask
+  ❌ CONNECTION FAILED: /api/telegram — Body is unusable: Body has already been read
+  💥 SERVER ERROR: /api/lunarcrush — 500
+  🔒 AUTH REQUIRED: /api/mock-inject — 401 (needs secret)

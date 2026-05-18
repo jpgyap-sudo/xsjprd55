@@ -758,6 +758,56 @@
 </head>
 <body>
 
+<!-- ════════════════════════════════════════════════════════
+     AUTH GATE — Password-protected dashboard
+     ════════════════════════════════════════════════════════ -->
+<div id="auth-gate" style="position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:99999;flex-direction:column;gap:20px;">
+  <div style="text-align:center;">
+    <div style="font-size:3rem;margin-bottom:8px;">📈</div>
+    <h1 style="margin:0;font-size:1.5rem;">xsjprd55</h1>
+    <p style="color:var(--fg2);margin:4px 0 20px;font-size:0.9rem;">Crypto Trading Signal Dashboard</p>
+  </div>
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px;width:320px;max-width:90%;">
+    <div style="margin-bottom:16px;">
+      <label style="display:block;font-size:0.85rem;color:var(--fg2);margin-bottom:6px;">Password</label>
+      <input type="password" id="auth-password-input"
+        style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--fg);font-size:1rem;outline:none;box-sizing:border-box;"
+        placeholder="Enter dashboard password"
+        onkeydown="if(event.key==='Enter')authLogin()">
+    </div>
+    <button onclick="authLogin()"
+      style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;font-size:1rem;cursor:pointer;font-weight:600;">
+      🔓 Unlock Dashboard
+    </button>
+    <div id="auth-error" style="color:#ff6b6b;font-size:0.85rem;margin-top:10px;text-align:center;display:none;"></div>
+  </div>
+</div>
+
+<script>
+// ── Auth Gate ──────────────────────────────────────────
+function authLogin() {
+  const input = document.getElementById('auth-password-input');
+  const error = document.getElementById('auth-error');
+  // Password is injected by server via window.__DASHBOARD_PASSWORD__ or defaults
+  const password = window.__DASHBOARD_PASSWORD__ || 'admin123';
+  if (input.value === password) {
+    sessionStorage.setItem('xsjprd55_auth', '1');
+    document.getElementById('auth-gate').style.display = 'none';
+    if (typeof connectWebSocket === 'function') connectWebSocket();
+  } else {
+    error.textContent = 'Incorrect password';
+    error.style.display = 'block';
+    input.value = '';
+    input.focus();
+  }
+}
+
+// Check if already authenticated in this session
+if (sessionStorage.getItem('xsjprd55_auth') === '1') {
+  document.getElementById('auth-gate').style.display = 'none';
+}
+</script>
+
 <!-- Header -->
 <header>
   <div class="header-brand">
@@ -800,6 +850,9 @@
       <!-- System Tabs -->
       <button class="tab-btn" data-tab="diagnostics" data-category="system">🩺 Diagnostics</button>
       <button class="tab-btn" data-tab="api-status" data-category="system">📡 API Status</button>
+      <button class="tab-btn tab-overflow" data-tab="brain" data-category="system">🧠 Brain</button>
+      <button class="tab-btn tab-overflow" data-tab="system-health" data-category="system">💚 System Health</button>
+      <button class="tab-btn tab-overflow" data-tab="ml-status" data-category="system">🤖 ML Status</button>
       
       <!-- Development Tabs (Moved to overflow) -->
       <button class="tab-btn tab-overflow" data-tab="bugs" data-category="development">🐞 Bugs</button>
@@ -809,6 +862,9 @@
       <button class="tab-btn tab-overflow" data-tab="updates" data-category="development">📝 Product Updates</button>
       <button class="tab-btn tab-overflow" data-tab="deploy-status" data-category="development">🚀 Deploy Status</button>
       <button class="tab-btn tab-overflow" data-tab="autonomous" data-category="development">🤖 Autonomous</button>
+      <button class="tab-btn tab-overflow" data-tab="social-intel" data-category="development">📊 Social Intel</button>
+      <button class="tab-btn tab-overflow" data-tab="strategy-labs" data-category="development">🧪 Strategy Labs</button>
+      <button class="tab-btn tab-overflow" data-tab="wallet-tracker" data-category="development">👛 Wallet Tracker</button>
     </nav>
     
     <!-- Right Scroll Arrow -->
@@ -838,6 +894,9 @@
         <div class="tab-more-category">System</div>
         <div class="tab-more-item" onclick="switchTab('diagnostics')">🩺 Diagnostics</div>
         <div class="tab-more-item" onclick="switchTab('api-status')">📡 API Status</div>
+        <div class="tab-more-item" onclick="switchTab('brain')">🧠 Brain</div>
+        <div class="tab-more-item" onclick="switchTab('system-health')">💚 System Health</div>
+        <div class="tab-more-item" onclick="switchTab('ml-status')">🤖 ML Status</div>
         
         <div class="tab-more-category">Development</div>
         <div class="tab-more-item" onclick="switchTab('bugs')">🐞 Bugs</div>
@@ -847,6 +906,9 @@
         <div class="tab-more-item" onclick="switchTab('updates')">📝 Product Updates</div>
         <div class="tab-more-item" onclick="switchTab('deploy-status')">🚀 Deploy Status</div>
         <div class="tab-more-item" onclick="switchTab('autonomous')">🤖 Autonomous</div>
+        <div class="tab-more-item" onclick="switchTab('social-intel')">📊 Social Intel</div>
+        <div class="tab-more-item" onclick="switchTab('strategy-labs')">🧪 Strategy Labs</div>
+        <div class="tab-more-item" onclick="switchTab('wallet-tracker')">👛 Wallet Tracker</div>
       </div>
     </div>
   </div>
@@ -2295,6 +2357,291 @@
     </div>
   </div>
 
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- BRAIN TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-brain">
+    <div class="stat-grid" style="margin-bottom:20px;" id="brain-stats">
+      <div class="stat-item"><div class="stat-label">Brain Status</div><div class="stat-value" id="brain-stat-status" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Mode</div><div class="stat-value" id="brain-stat-mode">—</div></div>
+      <div class="stat-item"><div class="stat-label">Symbols</div><div class="stat-value" id="brain-stat-symbols">—</div></div>
+      <div class="stat-item"><div class="stat-label">Timeframes</div><div class="stat-value" id="brain-stat-timeframes">—</div></div>
+      <div class="stat-item"><div class="stat-label">Scan Interval</div><div class="stat-value" id="brain-stat-interval">—</div></div>
+    </div>
+    <div class="grid grid-2">
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">🧠 Brain Health</div>
+        <div class="card-body" id="brain-health-content" style="font-size:0.85rem;color:var(--fg2);">Loading brain health…</div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">📚 Learning Layer Status</div>
+        <div class="card-body" id="brain-tll-content" style="font-size:0.85rem;color:var(--fg2);">Loading learning layer…</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🧠 Run Brain Signal</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="brain-symbol-select" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;">
+            <option value="BTCUSDT">BTCUSDT</option>
+            <option value="ETHUSDT">ETHUSDT</option>
+            <option value="SOLUSDT">SOLUSDT</option>
+          </select>
+          <select id="brain-tf-select" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;">
+            <option value="15m">15m</option>
+            <option value="1h">1h</option>
+            <option value="4h">4h</option>
+          </select>
+          <button class="btn btn-sm" onclick="runBrainSignal()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 14px;cursor:pointer;font-size:0.8rem;">Run Signal</button>
+          <button class="btn btn-sm" onclick="runBrainLearn()" style="background:var(--accent2);color:#fff;border:none;border-radius:6px;padding:4px 14px;cursor:pointer;font-size:0.8rem;">Run Learning</button>
+        </div>
+      </div>
+      <div class="card-body" id="brain-signal-result" style="font-size:0.85rem;color:var(--fg2);min-height:40px;">Click "Run Signal" to execute the brain pipeline for the selected symbol.</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- SYSTEM HEALTH TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-system-health">
+    <div class="stat-grid" style="margin-bottom:20px;" id="sh-stats">
+      <div class="stat-item"><div class="stat-label">Total Sources</div><div class="stat-value" id="sh-stat-total">—</div></div>
+      <div class="stat-item"><div class="stat-label">Online</div><div class="stat-value" id="sh-stat-online" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">API Errors</div><div class="stat-value" id="sh-stat-errors" style="color:#ff6b6b">—</div></div>
+      <div class="stat-item"><div class="stat-label">Unread Critical</div><div class="stat-value" id="sh-stat-critical" style="color:#ff4444">—</div></div>
+      <div class="stat-item"><div class="stat-label">Unread Warnings</div><div class="stat-value" id="sh-stat-warnings" style="color:#ffa726">—</div></div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">📡 Data Source Health</div>
+      <div class="card-body" style="padding:0;">
+        <div id="sh-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading system health…</div>
+        <div id="sh-content" style="display:none;">
+          <table class="signal-table">
+            <thead>
+              <tr><th>Source</th><th>Type</th><th>API Status</th><th>Crawler</th><th>Fallback</th><th>Last Success</th><th>Accuracy Impact</th><th>Recommended Fix</th></tr>
+            </thead>
+            <tbody id="sh-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">🔔 Recent Notifications</div>
+      <div class="card-body" style="padding:0;">
+        <div id="sh-notif-content" style="display:none;">
+          <table class="signal-table">
+            <thead>
+              <tr><th>Level</th><th>Message</th><th>Time</th></tr>
+            </thead>
+            <tbody id="sh-notif-tbody"></tbody>
+          </table>
+        </div>
+        <div id="sh-notif-empty" style="text-align:center;padding:20px;color:var(--fg2);display:none;">No notifications</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- ML STATUS TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-ml-status">
+    <div class="stat-grid" style="margin-bottom:20px;" id="mls-stats">
+      <div class="stat-item"><div class="stat-label">ML Service</div><div class="stat-value" id="mls-stat-service" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">SQLite DB</div><div class="stat-value" id="mls-stat-db">—</div></div>
+      <div class="stat-item"><div class="stat-label">Model Trained</div><div class="stat-value" id="mls-stat-model">—</div></div>
+      <div class="stat-item"><div class="stat-label">Recent Backtests</div><div class="stat-value" id="mls-stat-backtests">—</div></div>
+    </div>
+    <div class="grid grid-2">
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">🤖 ML Service Health</div>
+        <div class="card-body" id="mls-service-content" style="font-size:0.85rem;color:var(--fg2);">Loading ML service health…</div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">🗄️ SQLite Pipeline</div>
+        <div class="card-body" id="mls-pipeline-content" style="font-size:0.85rem;color:var(--fg2);">Loading pipeline…</div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🔮 ML Prediction</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="mls-symbol-select" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;">
+            <option value="BTCUSDT">BTCUSDT</option>
+            <option value="ETHUSDT">ETHUSDT</option>
+            <option value="SOLUSDT">SOLUSDT</option>
+          </select>
+          <button class="btn btn-sm" onclick="runMlPredict()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 14px;cursor:pointer;font-size:0.8rem;">Predict</button>
+        </div>
+      </div>
+      <div class="card-body" id="mls-predict-result" style="font-size:0.85rem;color:var(--fg2);min-height:40px;">Click "Predict" to run ML prediction for the selected symbol.</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- SOCIAL INTEL TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-social-intel">
+    <div class="stat-grid" style="margin-bottom:20px;" id="si-stats">
+      <div class="stat-item"><div class="stat-label">Sources Crawled</div><div class="stat-value" id="si-stat-sources">—</div></div>
+      <div class="stat-item"><div class="stat-label">Posts Collected</div><div class="stat-value" id="si-stat-posts">—</div></div>
+      <div class="stat-item"><div class="stat-label">Avg Sentiment</div><div class="stat-value" id="si-stat-sentiment">—</div></div>
+      <div class="stat-item"><div class="stat-label">Errors</div><div class="stat-value" id="si-stat-errors" style="color:#ff6b6b">—</div></div>
+    </div>
+    <div class="grid grid-2">
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">📊 Social Intel Feed</div>
+        <div class="card-body" style="padding:0;">
+          <div id="si-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading social intel…</div>
+          <div id="si-content" style="display:none;">
+            <table class="signal-table">
+              <thead>
+                <tr><th>Source</th><th>Symbol</th><th>Text</th><th>Sentiment</th><th>Time</th></tr>
+              </thead>
+              <tbody id="si-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">📈 Social Sentiment</div>
+        <div class="card-body" style="padding:0;">
+          <div id="ss-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading sentiment…</div>
+          <div id="ss-content" style="display:none;">
+            <table class="signal-table">
+              <thead>
+                <tr><th>Symbol</th><th>Sentiment</th><th>Score</th><th>Mentions</th><th>Change</th></tr>
+              </thead>
+              <tbody id="ss-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">🔍 LunarCrush Top Coins</div>
+      <div class="card-body" style="padding:0;">
+        <div id="lc-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading LunarCrush data…</div>
+        <div id="lc-content" style="display:none;">
+          <table class="signal-table">
+            <thead>
+              <tr><th>#</th><th>Symbol</th><th>Name</th><th>Price</th><th>Social Score</th><th>Galaxy Score</th><th>24h Change</th></tr>
+            </thead>
+            <tbody id="lc-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- STRATEGY LABS TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-strategy-labs">
+    <div class="stat-grid" style="margin-bottom:20px;" id="sl-stats">
+      <div class="stat-item"><div class="stat-label">Strategies</div><div class="stat-value" id="sl-stat-strategies">—</div></div>
+      <div class="stat-item"><div class="stat-label">Mock Trades</div><div class="stat-value" id="sl-stat-trades">—</div></div>
+      <div class="stat-item"><div class="stat-label">Promoted</div><div class="stat-value" id="sl-stat-promoted" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">ML Model</div><div class="stat-value" id="sl-stat-ml">—</div></div>
+    </div>
+    <div class="grid grid-2">
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">🏆 Strategy Rankings</div>
+        <div class="card-body" style="padding:0;">
+          <div id="sl-rank-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading rankings…</div>
+          <div id="sl-rank-content" style="display:none;">
+            <table class="signal-table">
+              <thead>
+                <tr><th>Rank</th><th>Strategy</th><th>Score</th><th>Win Rate</th><th>Trades</th><th>Status</th></tr>
+              </thead>
+              <tbody id="sl-rank-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">🚀 Promoted Strategies</div>
+        <div class="card-body" style="padding:0;">
+          <div id="sl-promoted-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading promoted…</div>
+          <div id="sl-promoted-content" style="display:none;">
+            <table class="signal-table">
+              <thead>
+                <tr><th>Name</th><th>Win Rate</th><th>Total PnL</th><th>Promoted At</th></tr>
+              </thead>
+              <tbody id="sl-promoted-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🧪 Run Backtest</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="sl-symbol-select" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;">
+            <option value="BTCUSDT">BTCUSDT</option>
+            <option value="ETHUSDT">ETHUSDT</option>
+            <option value="SOLUSDT">SOLUSDT</option>
+          </select>
+          <button class="btn btn-sm" onclick="runStrategyBacktest()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 14px;cursor:pointer;font-size:0.8rem;">Run Backtest</button>
+        </div>
+      </div>
+      <div class="card-body" id="sl-backtest-result" style="font-size:0.85rem;color:var(--fg2);min-height:40px;">Click "Run Backtest" to test all strategies for the selected symbol.</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- WALLET TRACKER TAB -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-wallet-tracker">
+    <div class="stat-grid" style="margin-bottom:20px;" id="wt-stats">
+      <div class="stat-item"><div class="stat-label">Tracked Wallets</div><div class="stat-value" id="wt-stat-wallets">—</div></div>
+      <div class="stat-item"><div class="stat-label">Active</div><div class="stat-value" id="wt-stat-active" style="color:var(--accent)">—</div></div>
+      <div class="stat-item"><div class="stat-label">Signals (24h)</div><div class="stat-value" id="wt-stat-signals">—</div></div>
+      <div class="stat-item"><div class="stat-label">Snapshots</div><div class="stat-value" id="wt-stat-snapshots">—</div></div>
+    </div>
+    <div class="grid grid-2">
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">👛 Tracked Wallets</div>
+        <div class="card-body" style="padding:0;">
+          <div id="wt-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading wallets…</div>
+          <div id="wt-content" style="display:none;">
+            <table class="signal-table">
+              <thead>
+                <tr><th>Address</th><th>Label</th><th>Account Value</th><th>Quality Score</th><th>Active</th><th>Updated</th></tr>
+              </thead>
+              <tbody id="wt-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header">📡 Wallet Signals (24h)</div>
+        <div class="card-body" style="padding:0;">
+          <div id="wt-signals-loading" style="text-align:center;padding:30px;color:var(--fg2);">Loading signals…</div>
+          <div id="wt-signals-content" style="display:none;">
+            <table class="signal-table">
+              <thead>
+                <tr><th>Symbol</th><th>Side</th><th>Entry</th><th>Confidence</th><th>Generated</th></tr>
+              </thead>
+              <tbody id="wt-signals-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>➕ Add Wallet to Track</span>
+        <div style="display:flex;gap:8px;align-items:center;flex:1;max-width:600px;margin-left:16px;">
+          <input type="text" id="wt-address-input" placeholder="Enter wallet address..." style="flex:1;background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:0.85rem;outline:none;">
+          <input type="text" id="wt-label-input" placeholder="Label (optional)" style="width:150px;background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:0.85rem;outline:none;">
+          <button class="btn btn-sm" onclick="addWallet()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:0.85rem;white-space:nowrap;">Add Wallet</button>
+        </div>
+      </div>
+      <div class="card-body" id="wt-add-result" style="font-size:0.85rem;color:var(--fg2);min-height:30px;">Enter a wallet address and click "Add Wallet" to start tracking.</div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ════════════════════════════════════════════════════ -->
@@ -2547,7 +2894,13 @@ function switchTab(tab) {
     'news': () => { loadNews(); },
     'catalyst': () => { loadCatalysts(); },
     'perpetual-trader': () => { loadPerpetualTrader(); },
-    'autonomous': () => { loadAutonomousReport(); }
+    'autonomous': () => { loadAutonomousReport(); },
+    'brain': () => { loadBrain(); },
+    'system-health': () => { loadSystemHealth(); },
+    'ml-status': () => { loadMlStatus(); },
+    'social-intel': () => { loadSocialIntel(); },
+    'strategy-labs': () => { loadStrategyLabs(); },
+    'wallet-tracker': () => { loadWalletTracker(); }
   };
   
   if (loaders[tab]) loaders[tab]();
@@ -5651,6 +6004,462 @@ tabBtns.forEach(btn => {
   });
 });
 
+// ════════════════════════════════════════════════════════
+// BRAIN TAB LOADER
+// ════════════════════════════════════════════════════════
+async function loadBrain() {
+  // Brain health
+  try {
+    const healthRes = await fetch('/api/brain/health');
+    const health = await healthRes.json();
+    if (health.ok) {
+      document.getElementById('brain-stat-status').textContent = health.brain || 'unknown';
+      document.getElementById('brain-stat-mode').textContent = health.mode || 'paper';
+      document.getElementById('brain-stat-symbols').textContent = (health.symbols || []).join(', ');
+      document.getElementById('brain-stat-timeframes').textContent = (health.timeframes || []).join(', ');
+      document.getElementById('brain-stat-interval').textContent = (health.scan_interval_ms / 1000) + 's';
+      document.getElementById('brain-health-content').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px 0;">
+          <div><strong>Supabase:</strong> <span style="color:${health.supabase === 'connected' ? 'var(--accent)' : 'var(--accent3)'}">${health.supabase}</span></div>
+          <div><strong>Mode:</strong> ${health.mode}</div>
+          <div><strong>Scan Interval:</strong> ${(health.scan_interval_ms / 1000)}s</div>
+          <div><strong>Symbols:</strong> ${(health.symbols || []).join(', ')}</div>
+          <div><strong>Timeframes:</strong> ${(health.timeframes || []).join(', ')}</div>
+          <div><strong>Timestamp:</strong> ${new Date(health.timestamp).toLocaleString()}</div>
+        </div>`;
+    } else {
+      document.getElementById('brain-health-content').innerHTML = `<span style="color:var(--accent3);">Brain health check failed</span>`;
+    }
+  } catch (e) {
+    document.getElementById('brain-health-content').innerHTML = `<span style="color:var(--accent3);">Error: ${e.message}</span>`;
+  }
+
+  // Learning Layer status
+  try {
+    const tllRes = await fetch('/api/learning-layer');
+    const tll = await tllRes.json();
+    if (tll.ok && tll.status) {
+      const s = tll.status;
+      document.getElementById('brain-tll-content').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px 0;">
+          <div><strong>Patterns Discovered:</strong> ${s.patterns_discovered}</div>
+          <div><strong>Active Skills:</strong> ${s.active_skills}</div>
+          <div><strong>Healing Events:</strong> ${s.healing_events}</div>
+          <div><strong>Resolved Signals:</strong> ${s.resolved_signals}</div>
+          <div><strong>TLL Enabled:</strong> <span style="color:${s.tll_enabled ? 'var(--accent)' : 'var(--accent3)'}">${s.tll_enabled}</span></div>
+          <div><strong>Interval:</strong> ${(s.tll_interval_ms / 1000)}s</div>
+        </div>
+        ${s.current_regime ? `<div style="margin-top:8px;padding:8px;background:var(--bg3);border-radius:6px;"><strong>Current Regime:</strong> ${s.current_regime.regime || 'unknown'} — ${s.current_regime.description || ''} (${new Date(s.current_regime.detected_at).toLocaleString()})</div>` : ''}`;
+    } else {
+      document.getElementById('brain-tll-content').innerHTML = `<span style="color:var(--fg2);">Learning layer not available</span>`;
+    }
+  } catch (e) {
+    document.getElementById('brain-tll-content').innerHTML = `<span style="color:var(--fg2);">Learning layer unavailable: ${e.message}</span>`;
+  }
+}
+
+async function runBrainSignal() {
+  const symbol = document.getElementById('brain-symbol-select').value;
+  const tf = document.getElementById('brain-tf-select').value;
+  const resultEl = document.getElementById('brain-signal-result');
+  resultEl.innerHTML = 'Running brain signal...';
+  try {
+    const res = await fetch('/api/brain/signal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbol, timeframe: tf })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      const d = data.decision || {};
+      resultEl.innerHTML = `<pre style="background:var(--bg3);padding:12px;border-radius:8px;overflow:auto;max-height:400px;font-size:0.8rem;line-height:1.5;">${JSON.stringify(d, null, 2)}</pre>`;
+    } else {
+      resultEl.innerHTML = `<span style="color:var(--accent3);">Error: ${data.error}</span>`;
+    }
+  } catch (e) {
+    resultEl.innerHTML = `<span style="color:var(--accent3);">Request failed: ${e.message}</span>`;
+  }
+}
+
+async function runBrainLearn() {
+  const resultEl = document.getElementById('brain-signal-result');
+  resultEl.innerHTML = 'Running learning cycle...';
+  try {
+    const res = await fetch('/api/brain/learn', { method: 'POST' });
+    const data = await res.json();
+    resultEl.innerHTML = `<pre style="background:var(--bg3);padding:12px;border-radius:8px;overflow:auto;max-height:400px;font-size:0.8rem;line-height:1.5;">${JSON.stringify(data, null, 2)}</pre>`;
+  } catch (e) {
+    resultEl.innerHTML = `<span style="color:var(--accent3);">Request failed: ${e.message}</span>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// SYSTEM HEALTH TAB LOADER
+// ════════════════════════════════════════════════════════
+async function loadSystemHealth() {
+  const loading = document.getElementById('sh-loading');
+  const content = document.getElementById('sh-content');
+  const notifContent = document.getElementById('sh-notif-content');
+  const notifEmpty = document.getElementById('sh-notif-empty');
+  try {
+    const res = await fetch('/api/system-health');
+    const data = await res.json();
+    if (!data.summary) throw new Error('Invalid response');
+
+    document.getElementById('sh-stat-total').textContent = data.summary.total_sources;
+    document.getElementById('sh-stat-online').textContent = data.summary.online;
+    document.getElementById('sh-stat-errors').textContent = data.summary.api_errors;
+    document.getElementById('sh-stat-critical').textContent = data.summary.unread_critical;
+    document.getElementById('sh-stat-warnings').textContent = data.summary.unread_warning;
+
+    loading.style.display = 'none';
+    content.style.display = 'block';
+
+    const tbody = document.getElementById('sh-tbody');
+    const sources = data.sources || [];
+    if (!sources.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--fg2);">No sources found</td></tr>';
+    } else {
+      tbody.innerHTML = sources.map(s => {
+        const apiColor = s.api_status === 'online' ? 'var(--accent)' : s.api_status === 'error' ? 'var(--accent3)' : 'var(--accent2)';
+        const crawlerColor = s.crawler_status === 'online' ? 'var(--accent)' : 'var(--fg2)';
+        return `<tr>
+          <td style="font-weight:600;">${s.source}</td>
+          <td>${s.type || s.data_type || '—'}</td>
+          <td><span style="color:${apiColor};">${s.api_status}</span></td>
+          <td><span style="color:${crawlerColor};">${s.crawler_status || '—'}</span></td>
+          <td>${s.fallback_used ? '⚠️ Yes' : '—'}</td>
+          <td style="font-size:0.75rem;">${s.last_success ? new Date(s.last_success).toLocaleString() : '—'}</td>
+          <td style="font-size:0.75rem;">${s.accuracy_impact || '—'}</td>
+          <td style="font-size:0.75rem;color:var(--accent2);">${s.recommended_fix || '—'}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // Notifications
+    const notifs = data.notifications || [];
+    if (notifs.length) {
+      notifContent.style.display = 'block';
+      notifEmpty.style.display = 'none';
+      document.getElementById('sh-notif-tbody').innerHTML = notifs.map(n => {
+        const levelColor = n.level === 'critical' ? 'var(--accent3)' : n.level === 'warning' ? 'var(--accent2)' : 'var(--fg2)';
+        return `<tr>
+          <td><span style="color:${levelColor};font-weight:600;">${n.level}</span></td>
+          <td>${n.message || n.title || ''}</td>
+          <td style="font-size:0.75rem;">${n.created_at ? new Date(n.created_at).toLocaleString() : '—'}</td>
+        </tr>`;
+      }).join('');
+    } else {
+      notifContent.style.display = 'none';
+      notifEmpty.style.display = 'block';
+    }
+  } catch (e) {
+    loading.innerHTML = `<span style="color:var(--accent3);">Failed to load: ${e.message}</span>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// ML STATUS TAB LOADER
+// ════════════════════════════════════════════════════════
+async function loadMlStatus() {
+  try {
+    const res = await fetch('/api/ml-health');
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    const svc = data.mlService || {};
+    const pipe = data.pipeline || {};
+
+    document.getElementById('mls-stat-service').textContent = svc.status || svc.ok ? 'online' : 'offline';
+    document.getElementById('mls-stat-db').textContent = pipe.sqlite?.ok ? '✅ Connected' : '❌ Error';
+    document.getElementById('mls-stat-model').textContent = pipe.model?.trained ? '✅ Trained' : '❌ Not trained';
+    document.getElementById('mls-stat-backtests').textContent = pipe.recentBacktests || 0;
+
+    document.getElementById('mls-service-content').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 0;font-size:0.85rem;">
+        <div><strong>Status:</strong> ${svc.status || 'unknown'}</div>
+        <div><strong>Uptime:</strong> ${svc.uptime ? Math.floor(svc.uptime) + 's' : '—'}</div>
+        <div><strong>Version:</strong> ${svc.version || '—'}</div>
+        <div><strong>Timestamp:</strong> ${data.timestamp ? new Date(data.timestamp).toLocaleString() : '—'}</div>
+      </div>`;
+
+    document.getElementById('mls-pipeline-content').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 0;font-size:0.85rem;">
+        <div><strong>SQLite:</strong> ${pipe.sqlite?.ok ? '✅ OK' : '❌ ' + (pipe.sqlite?.error || 'Failed')}</div>
+        <div><strong>Tables:</strong> ${(pipe.sqlite?.tables || []).join(', ') || 'none'}</div>
+        <div><strong>Model Trained:</strong> ${pipe.model?.trained ? '✅ Yes' : '❌ No'}</div>
+        <div><strong>Features:</strong> ${(pipe.model?.features || []).join(', ') || '—'}</div>
+        <div><strong>Recent Backtests:</strong> ${pipe.recentBacktests || 0}</div>
+      </div>`;
+  } catch (e) {
+    document.getElementById('mls-service-content').innerHTML = `<span style="color:var(--accent3);">Failed: ${e.message}</span>`;
+    document.getElementById('mls-pipeline-content').innerHTML = `<span style="color:var(--accent3);">Failed: ${e.message}</span>`;
+  }
+}
+
+async function runMlPredict() {
+  const symbol = document.getElementById('mls-symbol-select').value;
+  const resultEl = document.getElementById('mls-predict-result');
+  resultEl.innerHTML = 'Running ML prediction...';
+  try {
+    const res = await fetch(`/api/ml-predict?symbol=${symbol}`);
+    const data = await res.json();
+    resultEl.innerHTML = `<pre style="background:var(--bg3);padding:12px;border-radius:8px;overflow:auto;max-height:400px;font-size:0.8rem;line-height:1.5;">${JSON.stringify(data, null, 2)}</pre>`;
+  } catch (e) {
+    resultEl.innerHTML = `<span style="color:var(--accent3);">Request failed: ${e.message}</span>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// SOCIAL INTEL TAB LOADER
+// ════════════════════════════════════════════════════════
+async function loadSocialIntel() {
+  // Social intel feed
+  try {
+    const res = await fetch('/api/social-intel?type=latest');
+    const data = await res.json();
+    document.getElementById('si-loading').style.display = 'none';
+    const content = document.getElementById('si-content');
+    const tbody = document.getElementById('si-tbody');
+    const posts = data.posts || data.data || [];
+    document.getElementById('si-stat-sources').textContent = data.sourceCount || data.sources_crawled || '—';
+    document.getElementById('si-stat-posts').textContent = posts.length;
+    document.getElementById('si-stat-sentiment').textContent = data.avgSentiment !== undefined ? data.avgSentiment.toFixed(2) : '—';
+    document.getElementById('si-stat-errors').textContent = data.errorCount || data.errors || 0;
+
+    if (posts.length) {
+      content.style.display = 'block';
+      tbody.innerHTML = posts.slice(0, 50).map(p => `
+        <tr>
+          <td style="font-size:0.75rem;">${p.source || p.source_name || '—'}</td>
+          <td style="font-size:0.75rem;">${(p.symbols || []).join(', ') || (p.asset || '—')}</td>
+          <td style="font-size:0.8rem;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escapeHtml(p.text || p.title || '')}">${escapeHtml((p.text || p.title || '').slice(0, 100))}</td>
+          <td style="font-size:0.75rem;color:${(p.sentiment || 0) > 0 ? 'var(--accent)' : (p.sentiment || 0) < 0 ? 'var(--accent3)' : 'var(--fg2)'};">${p.sentiment !== undefined ? p.sentiment.toFixed(2) : '—'}</td>
+          <td style="font-size:0.7rem;">${p.created_at || p.timestamp ? new Date(p.created_at || p.timestamp).toLocaleString() : '—'}</td>
+        </tr>
+      `).join('');
+    } else {
+      content.style.display = 'none';
+      document.getElementById('si-loading').innerHTML = '<span style="color:var(--fg2);">No social intel data available</span>';
+    }
+  } catch (e) {
+    document.getElementById('si-loading').innerHTML = `<span style="color:var(--accent3);">Failed: ${e.message}</span>`;
+  }
+
+  // Social sentiment
+  try {
+    const ssRes = await fetch('/api/social-sentiment');
+    const ssData = await ssRes.json();
+    document.getElementById('ss-loading').style.display = 'none';
+    const ssContent = document.getElementById('ss-content');
+    const items = ssData.data || ssData.sentiment || ssData.results || [];
+    if (Array.isArray(items) && items.length) {
+      ssContent.style.display = 'block';
+      document.getElementById('ss-tbody').innerHTML = items.slice(0, 30).map(s => `
+        <tr>
+          <td style="font-weight:600;">${s.symbol || s.asset || '—'}</td>
+          <td style="color:${(s.sentiment || 0) > 0 ? 'var(--accent)' : (s.sentiment || 0) < 0 ? 'var(--accent3)' : 'var(--fg2)'};">${s.sentiment_label || ((s.sentiment || 0) > 0 ? 'Bullish' : (s.sentiment || 0) < 0 ? 'Bearish' : 'Neutral')}</td>
+          <td>${s.sentiment !== undefined ? s.sentiment.toFixed(2) : '—'}</td>
+          <td>${s.mentions || s.mention_count || s.count || 0}</td>
+          <td style="font-size:0.75rem;">${s.change_24h !== undefined ? (s.change_24h > 0 ? '+' : '') + s.change_24h.toFixed(1) + '%' : '—'}</td>
+        </tr>
+      `).join('');
+    } else {
+      document.getElementById('ss-loading').innerHTML = '<span style="color:var(--fg2);">No sentiment data</span>';
+    }
+  } catch (e) {
+    document.getElementById('ss-loading').innerHTML = `<span style="color:var(--fg2);">Sentiment unavailable: ${e.message}</span>`;
+  }
+
+  // LunarCrush top coins
+  try {
+    const lcRes = await fetch('/api/lunarcrush?type=top');
+    const lcData = await lcRes.json();
+    document.getElementById('lc-loading').style.display = 'none';
+    const lcContent = document.getElementById('lc-content');
+    const coins = lcData.data || lcData.coins || [];
+    if (Array.isArray(coins) && coins.length) {
+      lcContent.style.display = 'block';
+      document.getElementById('lc-tbody').innerHTML = coins.slice(0, 20).map((c, i) => `
+        <tr>
+          <td style="font-size:0.75rem;color:var(--fg2);">${i + 1}</td>
+          <td style="font-weight:600;">${c.symbol || '—'}</td>
+          <td>${c.name || '—'}</td>
+          <td>$${c.price ? Number(c.price).toLocaleString() : '—'}</td>
+          <td>${c.social_score || c.galaxy_score || '—'}</td>
+          <td>${c.galaxy_score || c.alt_rank || '—'}</td>
+          <td style="color:${(c.price_change_24h || 0) >= 0 ? 'var(--accent)' : 'var(--accent3)'};">${c.price_change_24h !== undefined ? (c.price_change_24h > 0 ? '+' : '') + Number(c.price_change_24h).toFixed(2) + '%' : '—'}</td>
+        </tr>
+      `).join('');
+    } else {
+      document.getElementById('lc-loading').innerHTML = '<span style="color:var(--fg2);">No LunarCrush data</span>';
+    }
+  } catch (e) {
+    document.getElementById('lc-loading').innerHTML = `<span style="color:var(--fg2);">LunarCrush unavailable: ${e.message}</span>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// STRATEGY LABS TAB LOADER
+// ════════════════════════════════════════════════════════
+async function loadStrategyLabs() {
+  try {
+    const res = await fetch('/api/strategy-labs');
+    const data = await res.json();
+    if (!data.strategies && !data.mock) throw new Error('Invalid response');
+
+    document.getElementById('sl-stat-strategies').textContent = (data.strategies || []).length;
+    document.getElementById('sl-stat-trades').textContent = data.mock?.openTrades?.length || data.mock?.totalTrades || '—';
+    document.getElementById('sl-stat-promoted').textContent = (data.promotedStrategies || []).length;
+    document.getElementById('sl-stat-ml').textContent = data.mlModel?.name || 'No model';
+
+    // Rankings
+    const rankContent = document.getElementById('sl-rank-content');
+    const rankLoading = document.getElementById('sl-rank-loading');
+    const ranked = data.rankedStrategies || [];
+    if (ranked.length) {
+      rankLoading.style.display = 'none';
+      rankContent.style.display = 'block';
+      document.getElementById('sl-rank-tbody').innerHTML = ranked.map((r, i) => `
+        <tr>
+          <td style="font-size:0.75rem;color:var(--fg2);">${i + 1}</td>
+          <td style="font-weight:600;">${r.name || r.strategy || '—'}</td>
+          <td>${r.score !== undefined ? r.score.toFixed(2) : '—'}</td>
+          <td style="color:${(r.winRate || 0) >= 0.5 ? 'var(--accent)' : 'var(--accent3)'};">${r.winRate !== undefined ? (r.winRate * 100).toFixed(1) + '%' : '—'}</td>
+          <td>${r.trades || r.totalTrades || 0}</td>
+          <td>${r.status || r.active ? '✅ Active' : '⏸️ Inactive'}</td>
+        </tr>
+      `).join('');
+    } else {
+      rankLoading.innerHTML = '<span style="color:var(--fg2);">No rankings available</span>';
+    }
+
+    // Promoted strategies
+    const promContent = document.getElementById('sl-promoted-content');
+    const promLoading = document.getElementById('sl-promoted-loading');
+    const promoted = data.promotedStrategies || [];
+    if (promoted.length) {
+      promLoading.style.display = 'none';
+      promContent.style.display = 'block';
+      document.getElementById('sl-promoted-tbody').innerHTML = promoted.map(p => `
+        <tr>
+          <td style="font-weight:600;">${p.name || p.strategy || '—'}</td>
+          <td style="color:${(p.winRate || 0) >= 0.5 ? 'var(--accent)' : 'var(--accent3)'};">${p.winRate !== undefined ? (p.winRate * 100).toFixed(1) + '%' : '—'}</td>
+          <td>${p.totalPnl !== undefined ? '$' + Number(p.totalPnl).toLocaleString() : '—'}</td>
+          <td style="font-size:0.75rem;">${p.promotedAt || p.promoted_at ? new Date(p.promotedAt || p.promoted_at).toLocaleString() : '—'}</td>
+        </tr>
+      `).join('');
+    } else {
+      promLoading.innerHTML = '<span style="color:var(--fg2);">No promoted strategies</span>';
+    }
+  } catch (e) {
+    document.getElementById('sl-rank-loading').innerHTML = `<span style="color:var(--accent3);">Failed: ${e.message}</span>`;
+  }
+}
+
+async function runStrategyBacktest() {
+  const symbol = document.getElementById('sl-symbol-select').value;
+  const resultEl = document.getElementById('sl-backtest-result');
+  resultEl.innerHTML = 'Running backtest...';
+  try {
+    const res = await fetch(`/api/backtest?symbol=${symbol}`);
+    const data = await res.json();
+    resultEl.innerHTML = `<pre style="background:var(--bg3);padding:12px;border-radius:8px;overflow:auto;max-height:400px;font-size:0.8rem;line-height:1.5;">${JSON.stringify(data, null, 2)}</pre>`;
+  } catch (e) {
+    resultEl.innerHTML = `<span style="color:var(--accent3);">Request failed: ${e.message}</span>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// WALLET TRACKER TAB LOADER
+// ════════════════════════════════════════════════════════
+async function loadWalletTracker() {
+  try {
+    const res = await fetch('/api/wallet-tracker');
+    const data = await res.json();
+    if (!data.wallets && !data.signals) throw new Error('Invalid response');
+
+    const wallets = data.wallets || [];
+    const signals = data.signals || [];
+    const snapshots = data.snapshots || [];
+
+    document.getElementById('wt-stat-wallets').textContent = wallets.length;
+    document.getElementById('wt-stat-active').textContent = wallets.filter(w => w.is_active !== false).length;
+    document.getElementById('wt-stat-signals').textContent = signals.length;
+    document.getElementById('wt-stat-snapshots').textContent = snapshots.length;
+
+    // Wallets table
+    document.getElementById('wt-loading').style.display = 'none';
+    const wtContent = document.getElementById('wt-content');
+    if (wallets.length) {
+      wtContent.style.display = 'block';
+      document.getElementById('wt-tbody').innerHTML = wallets.map(w => `
+        <tr>
+          <td style="font-size:0.75rem;font-family:monospace;">${w.address ? w.address.slice(0, 12) + '...' : '—'}</td>
+          <td>${w.label || '—'}</td>
+          <td>$${w.account_value ? Number(w.account_value).toLocaleString() : '—'}</td>
+          <td>${w.quality_score !== undefined ? w.quality_score.toFixed(1) : '—'}</td>
+          <td><span style="color:${w.is_active !== false ? 'var(--accent)' : 'var(--fg2)'};">${w.is_active !== false ? '✅' : '❌'}</span></td>
+          <td style="font-size:0.75rem;">${w.updated_at ? new Date(w.updated_at).toLocaleString() : '—'}</td>
+        </tr>
+      `).join('');
+    } else {
+      wtContent.style.display = 'none';
+      document.getElementById('wt-loading').innerHTML = '<span style="color:var(--fg2);">No wallets tracked yet</span>';
+    }
+
+    // Signals table
+    document.getElementById('wt-signals-loading').style.display = 'none';
+    const sigContent = document.getElementById('wt-signals-content');
+    if (signals.length) {
+      sigContent.style.display = 'block';
+      document.getElementById('wt-signals-tbody').innerHTML = signals.slice(0, 30).map(s => `
+        <tr>
+          <td style="font-weight:600;">${s.symbol || '—'}</td>
+          <td style="color:${s.side === 'LONG' ? 'var(--accent)' : s.side === 'SHORT' ? 'var(--accent3)' : 'var(--fg2)'};">${s.side || '—'}</td>
+          <td>${s.entry_price ? '$' + Number(s.entry_price).toLocaleString() : '—'}</td>
+          <td>${s.confidence ? (s.confidence * 100).toFixed(0) + '%' : '—'}</td>
+          <td style="font-size:0.75rem;">${s.generated_at ? new Date(s.generated_at).toLocaleString() : '—'}</td>
+        </tr>
+      `).join('');
+    } else {
+      sigContent.style.display = 'none';
+      document.getElementById('wt-signals-loading').innerHTML = '<span style="color:var(--fg2);">No wallet signals in last 24h</span>';
+    }
+  } catch (e) {
+    document.getElementById('wt-loading').innerHTML = `<span style="color:var(--accent3);">Failed: ${e.message}</span>`;
+  }
+}
+
+async function addWallet() {
+  const address = document.getElementById('wt-address-input').value.trim();
+  const label = document.getElementById('wt-label-input').value.trim();
+  const resultEl = document.getElementById('wt-add-result');
+  if (!address) {
+    resultEl.innerHTML = '<span style="color:var(--accent3);">Please enter a wallet address</span>';
+    return;
+  }
+  resultEl.innerHTML = 'Adding wallet...';
+  try {
+    const res = await fetch('/api/wallet-tracker', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address, label })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      resultEl.innerHTML = `<span style="color:var(--accent);">✅ Wallet added! Account value: $${Number(data.accountValue || 0).toLocaleString()}</span>`;
+      document.getElementById('wt-address-input').value = '';
+      document.getElementById('wt-label-input').value = '';
+      loadWalletTracker(); // Refresh
+    } else {
+      resultEl.innerHTML = `<span style="color:var(--accent3);">Error: ${data.error}</span>`;
+    }
+  } catch (e) {
+    resultEl.innerHTML = `<span style="color:var(--accent3);">Request failed: ${e.message}</span>`;
+  }
+}
+
 // ── Product Updates ──────────────────────────────────
 let puAllUpdates = [];
 let puPage = 0;
@@ -5815,6 +6624,153 @@ async function submitNewUpdate() {
     error.textContent = 'Failed to log update: ' + e.message;
     error.style.display = 'block';
   }
+}
+
+// ════════════════════════════════════════════════════════
+// WebSocket Client — Real-time dashboard updates
+// ════════════════════════════════════════════════════════
+let ws = null;
+let wsReconnectTimer = null;
+let wsLastHealth = null;
+
+function connectWebSocket() {
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+  try {
+    ws = new WebSocket(wsUrl);
+  } catch (e) {
+    console.warn('[ws] Failed to create WebSocket:', e.message);
+    scheduleWsReconnect();
+    return;
+  }
+
+  ws.onopen = () => {
+    console.log('[ws] Connected to', wsUrl);
+    // Show connection indicator
+    const indicator = document.getElementById('ws-indicator');
+    if (indicator) {
+      indicator.innerHTML = '🟢 Live';
+      indicator.style.color = 'var(--accent)';
+    }
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      handleWsMessage(msg);
+    } catch (e) {
+      // Ignore parse errors
+    }
+  };
+
+  ws.onclose = () => {
+    console.log('[ws] Disconnected');
+    const indicator = document.getElementById('ws-indicator');
+    if (indicator) {
+      indicator.innerHTML = '🔴 Offline';
+      indicator.style.color = 'var(--fg2)';
+    }
+    ws = null;
+    scheduleWsReconnect();
+  };
+
+  ws.onerror = (err) => {
+    console.warn('[ws] Error:', err.message || 'unknown');
+  };
+}
+
+function scheduleWsReconnect() {
+  if (wsReconnectTimer) return;
+  wsReconnectTimer = setTimeout(() => {
+    wsReconnectTimer = null;
+    connectWebSocket();
+  }, 5000); // Retry every 5 seconds
+}
+
+function handleWsMessage(msg) {
+  switch (msg.type) {
+    case 'connected':
+      console.log('[ws] Server confirmed connection, clients:', msg.clients);
+      break;
+
+    case 'heartbeat':
+      // Keep-alive, no action needed
+      break;
+
+    case 'health':
+      // Update header status with live health data
+      wsLastHealth = msg.data;
+      updateWsHealthIndicator(msg.data);
+      break;
+
+    case 'signal':
+      // New signal alert — show notification
+      if (msg.data && msg.data.symbol) {
+        showWsNotification('🚨 New Signal', `${msg.data.side || ''} ${msg.data.symbol} @ $${msg.data.entry_price || '?'}`);
+      }
+      break;
+
+    case 'alert':
+      // System alert
+      if (msg.data && msg.data.message) {
+        showWsNotification('⚠️ Alert', msg.data.message);
+      }
+      break;
+
+    case 'deploy':
+      // Deployment status update
+      if (msg.data && msg.data.status) {
+        showWsNotification('🚀 Deploy', `${msg.data.status}: ${msg.data.commit || ''}`);
+      }
+      break;
+
+    default:
+      // Unknown type — log if debug mode
+      if (msg.type) console.log('[ws] Unknown message type:', msg.type);
+  }
+}
+
+function updateWsHealthIndicator(data) {
+  const indicator = document.getElementById('ws-indicator');
+  if (!indicator) return;
+  if (data && data.status) {
+    const statusColor = data.status === 'healthy' ? 'var(--accent)' : data.status === 'degraded' ? 'var(--accent2)' : 'var(--accent3)';
+    indicator.innerHTML = `🟢 Live <span style="font-size:0.65rem;color:${statusColor};">${data.status}</span>`;
+    indicator.style.color = 'var(--accent)';
+  }
+}
+
+function showWsNotification(title, message) {
+  // Use the browser Notification API if available
+  if ('Notification' in window && Notification.permission === 'granted') {
+    new Notification(title, { body: message, icon: '/favicon.ico' });
+  }
+  // Also show an in-page toast
+  const toast = document.createElement('div');
+  toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;z-index:9999;max-width:350px;box-shadow:0 4px 20px rgba(0,0,0,0.4);animation:slideIn 0.3s ease;';
+  toast.innerHTML = `
+    <div style="font-weight:600;font-size:0.85rem;margin-bottom:4px;">${title}</div>
+    <div style="font-size:0.8rem;color:var(--fg2);">${message}</div>
+  `;
+  document.body.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.5s';
+    setTimeout(() => toast.remove(), 500);
+  }, 5000);
+}
+
+// Connect WebSocket on page load
+document.addEventListener('DOMContentLoaded', () => {
+  connectWebSocket();
+});
+
+// Also connect immediately if DOM is already loaded
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  connectWebSocket();
 }
 
 function escapeHtml(text) {

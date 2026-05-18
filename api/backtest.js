@@ -36,7 +36,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    const ex = createExchange('binance');
+    // Use skipCredentials=true for backtesting — only need public OHLCV data
+    const ex = createExchange('binance', { skipCredentials: true });
     const since = ex.milliseconds() - days * 24 * 60 * 60 * 1000;
     const ohlcv = await ex.fetchOHLCV(symbol, timeframe, since);
 

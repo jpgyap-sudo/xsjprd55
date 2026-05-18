@@ -2,6 +2,7 @@
 // VPS Server Entry Point — xsjprd55
 // Express server for Digital Ocean VPS deployment.
 // Serves public/ static files and routes /api/* to handlers.
+// Includes WebSocket support for real-time dashboard updates.
 // ============================================================
 
 import 'dotenv/config';
@@ -9,6 +10,8 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import fs from 'fs';
+import { createServer } from 'http';
+import { WebSocketServer } from 'ws';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -124,7 +127,10 @@ function requireSecret(req, res, next) {
 
 app.use('/api', requireSecret);
 
-// ── Static files (dashboard) ───────────────────────────────
+// ── Dashboard password from env ────────────────────────────
+const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || '';
+
+// ── Static files (dashboard) ──────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── API routing ────────────────────────────────────────────
@@ -180,13 +186,107 @@ app.get('/api', (req, res) => {
   res.json({ ok: true, routes: apiRoutes.map((r) => r.route) });
 });
 
-// Fallback to index.html for SPA behavior
+// Inject dashboard password into index.html
+function injectPassword(data) {
+  return data.replace(
+    '</head>',
+    `<script>window.__DASHBOARD_PASSWORD__ = ${JSON.stringify(DASHBOARD_PASSWORD)};</script></head>`
+  );
+}
+
+// Fallback to index.html for SPA behavior (with password injection)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const indexPath = path.join(__dirname, 'public', 'index.html');
+  fs.readFile(indexPath, 'utf8', (err, data) => {
+    if (err) return res.sendFile(indexPath);
+    res.setHeader('Content-Type', 'text/html');
+    res.send(injectPassword(data));
+  });
 });
 
+// ════════════════════════════════════════════════════════════
+// WebSocket Server — Real-time dashboard updates
+// ════════════════════════════════════════════════════════════
+const server = createServer(app);
+const wss = new WebSocketServer({ server, path: '/ws' });
+
+/** Active WebSocket clients */
+const wsClients = new Set();
+
+wss.on('connection', (ws, req) => {
+  wsClients.add(ws);
+  const clientIp = req.socket?.remoteAddress || 'unknown';
+  console.log(`[ws] Client connected (${clientIp}) — ${wsClients.size} total`);
+
+  // Send initial connection confirmation
+  ws.send(JSON.stringify({ type: 'connected', timestamp: new Date().toISOString(), clients: wsClients.size }));
+
+  ws.on('close', () => {
+    wsClients.delete(ws);
+    console.log(`[ws] Client disconnected — ${wsClients.size} remaining`);
+  });
+
+  ws.on('error', (err) => {
+    console.error(`[ws] Client error:`, err.message);
+    wsClients.delete(ws);
+  });
+
+  // Heartbeat to keep connection alive
+  const heartbeat = setInterval(() => {
+    if (ws.readyState === ws.OPEN) {
+      ws.send(JSON.stringify({ type: 'heartbeat', timestamp: new Date().toISOString() }));
+    } else {
+      clearInterval(heartbeat);
+    }
+  }, 30000);
+
+  ws.on('close', () => clearInterval(heartbeat));
+});
+
+/**
+ * Broadcast a message to all connected WebSocket clients.
+ * @param {string} type — event type (e.g. 'signal', 'alert', 'health', 'deploy')
+ * @param {object} data — payload data
+ */
+export function broadcastWs(type, data = {}) {
+  const message = JSON.stringify({ type, data, timestamp: new Date().toISOString() });
+  let sent = 0;
+  for (const ws of wsClients) {
+    if (ws.readyState === ws.OPEN) {
+      try {
+        ws.send(message);
+        sent++;
+      } catch (e) {
+        console.error(`[ws] Broadcast send error:`, e.message);
+      }
+    }
+  }
+  if (sent > 0) {
+    console.log(`[ws] Broadcast "${type}" to ${sent} client(s)`);
+  }
+}
+
+// ── Periodic health broadcast ──────────────────────────────
+setInterval(async () => {
+  if (wsClients.size === 0) return;
+  try {
+    const { default: healthHandler } = await import(pathToFileURL(path.join(apiDir, 'dashboard-health.js')).href);
+    // Simulate a request to get health data
+    const mockRes = {
+      json: (data) => {
+        broadcastWs('health', data);
+      },
+      status: () => ({ json: () => {} }),
+    };
+    await healthHandler({ method: 'GET', url: '/api/dashboard-health', headers: {} }, mockRes);
+  } catch (e) {
+    // Silently ignore — health endpoint may fail
+  }
+}, 15000); // Every 15 seconds
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`[server] xsjprd55 running on port ${PORT}`);
   console.log(`[server] API routes:`, apiRoutes.map((r) => r.route));
+  console.log(`[server] WebSocket available at ws://0.0.0.0:${PORT}/ws`);
 });

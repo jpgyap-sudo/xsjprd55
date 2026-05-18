@@ -7,10 +7,11 @@
 import { supabase } from '../lib/supabase.js';
 
 export default async function handler(req, res) {
-  const { pathname } = req;
+  // Express uses req.path, not req.pathname
+  const path = req.path || req.url?.split('?')[0] || '';
 
   try {
-    if (pathname === '/api/social-sentiment' && req.method === 'GET') {
+    if ((path === '/api/social-sentiment' || path === '/api/social-sentiment/') && req.method === 'GET') {
       const { data, error } = await supabase
         .from('social_sentiment')
         .select('*')
@@ -21,7 +22,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, count: data.length, data });
     }
 
-    if (pathname === '/api/social-sentiment/trends' && req.method === 'GET') {
+    if (path === '/api/social-sentiment/trends' && req.method === 'GET') {
       const { data, error } = await supabase
         .from('market_trends')
         .select('*')

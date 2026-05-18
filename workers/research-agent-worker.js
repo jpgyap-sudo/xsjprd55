@@ -3,6 +3,7 @@
 // Crawls sources → extracts strategies → backtests → promotes/rejects
 // Runs every 10 minutes on VPS.
 // v2: Uses Promotion Gate for all promotion decisions.
+// v3: Ollama integration for local analysis of research findings
 // ============================================================
 
 import { initMlDb } from '../lib/ml/db.js';
@@ -39,6 +40,77 @@ async function checkSupabaseTables() {
     logger.warn(`[RESEARCH-WORKER] Supabase tables not available, using SQLite fallback: ${e.message}`);
     return false;
   }
+}
+
+/**
+ * Analyze research findings using Ollama for local LLM-powered insights.
+ * Provides cheap, local analysis before cloud AI extraction.
+ */
+async function analyzeWithOllama(researchSources) {
+  const baseUrl = config.OLLAMA_BASE_URL || 'http://localhost:11434';
+  const model = config.OLLAMA_MODEL || 'phi3:mini';
+
+  if (!researchSources?.length) return [];
+
+  const results = [];
+
+  for (const source of researchSources.slice(0, 5)) { // Limit to 5 per cycle
+    try {
+      const response = await fetch(`${baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: 'system',
+              content: `You are a crypto research analyst. Analyze the given research source and extract trading strategy ideas. Return ONLY a JSON object:
+{
+  "strategies": [
+    {
+      "name": "<strategy name>",
+      "description": "<brief description>",
+      "confidence": <0-1>,
+      "conditions": ["<entry condition>"],
+      "symbols": ["<affected symbols>"],
+      "timeframe": "<suggested timeframe>"
+    }
+  ],
+  "keyInsight": "<one-line key insight>"
+}
+Max 3 strategies. Do NOT include any other text.`
+            },
+            {
+              role: 'user',
+              content: `Source: ${source.sourceName}\nContent: ${(source.content || '').slice(0, 1500)}`
+            }
+          ],
+          options: { temperature: 0.1, max_tokens: 512 }
+        }),
+        signal: AbortSignal.timeout(10000)
+      });
+
+      if (!response.ok) throw new Error(`Ollama returned ${response.status}`);
+      const data = await response.json();
+      const content = data.message?.content || '';
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('No JSON in response');
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (Array.isArray(parsed.strategies)) {
+        results.push({
+          sourceName: source.sourceName,
+          strategies: parsed.strategies,
+          keyInsight: parsed.keyInsight || '',
+          analyzedAt: new Date().toISOString()
+        });
+      }
+    } catch (err) {
+      logger.debug(`[RESEARCH-WORKER] Ollama analysis failed for ${source.sourceName}: ${err.message}`);
+    }
+  }
+
+  return results;
 }
 
 async function seedDemoData() {
@@ -162,6 +234,30 @@ export async function runResearchAgentWorker() {
       logger.info(`[RESEARCH-WORKER] TV crawler scanned=${tvResult.scanned}, stored=${tvResult.stored}`);
     } catch (e) {
       logger.warn(`[RESEARCH-WORKER] TV crawl failed: ${e.message}`);
+    }
+
+    // 2d. Ollama-powered local analysis of research sources (cheap, local)
+    try {
+      const { db } = await import('../lib/ml/db.js');
+      const unusedSources = db.prepare(
+        'SELECT sourceName, content FROM research_sources WHERE used = 0 ORDER BY RANDOM() LIMIT 5'
+      ).all();
+
+      if (unusedSources.length > 0) {
+        const ollamaAnalysis = await analyzeWithOllama(unusedSources);
+        if (ollamaAnalysis.length > 0) {
+          logger.info(`[RESEARCH-WORKER] Ollama analyzed ${ollamaAnalysis.length} sources locally`);
+
+          // Log Ollama-discovered strategies
+          for (const analysis of ollamaAnalysis) {
+            if (analysis.strategies?.length > 0) {
+              logger.info(`[RESEARCH-WORKER]   ${analysis.sourceName}: ${analysis.strategies.length} strategies (${analysis.keyInsight})`);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      logger.debug(`[RESEARCH-WORKER] Ollama analysis skipped: ${e.message}`);
     }
 
     // 3. Extract strategies from new research (keyword-based)

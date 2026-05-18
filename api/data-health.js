@@ -19,11 +19,19 @@ const MAX_AGE_MINUTES = {
 
 async function checkExchange(name) {
   const start = Date.now();
+  const TIMEOUT_MS = 8000; // 8s per exchange max
   try {
     const ex = createExchange(name);
-    await ex.loadMarkets();
+    // Use Promise.race to enforce timeout
+    await Promise.race([
+      ex.loadMarkets(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), TIMEOUT_MS))
+    ]);
     // Try a lightweight ticker fetch
-    const ticker = await ex.fetchTicker('BTC/USDT');
+    const ticker = await Promise.race([
+      ex.fetchTicker('BTC/USDT'),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), TIMEOUT_MS))
+    ]);
     return {
       name,
       status: 'online',
