@@ -188,7 +188,9 @@ Vercel is **not recommended** for this project. The VPS handles everything: API,
 | `GET /api/weekly-analysis` | Cron Sunday 4am UTC | `x-cron-secret` | Weekly PnL & performance report |
 | `GET /api/health` | Any | None | Connectivity health check |
 | `GET /api/data-health` | Any | None | **Data quality dashboard** |
-| `GET /api/perpetual-trader` | Dashboard/admin | `x-cron-secret` | Perpetual paper trader account, trades, logs, and diagnostics |
+| `GET /api/perpetual-trader` | Dashboard/admin | `x-cron-secret` | Perpetual paper trader account, live open-position marks, signal flow, logs, freshness, and diagnostics |
+| `GET /api/worker-health` | Dashboard/admin | None | Shared worker heartbeat status and stale-worker detection |
+| `GET /api/vps-health` | Dashboard/admin | None | Consolidated VPS runtime snapshot: host, PM2, worker heartbeat, deploy, disk, and swap |
 | `GET /api/bot?type=suggestions` | Dashboard / Telegram | None | List and vote on improvement ideas |
 | `GET /api/bot?type=sources` | Dashboard / Telegram | None | View connected data sources |
 | `GET /api/bot?type=patterns` | Dashboard / Telegram | None | Signal pattern stats |
@@ -226,7 +228,7 @@ Vercel is **not recommended** for this project. The VPS handles everything: API,
 | `brain_learning_reports` | **Trading Central Brain** — learning cycle reports with strategy suggestions |
 | `brain_strategy_weights` | **Trading Central Brain** — adaptive weights per strategy/symbol/timeframe |
 
-> Run `supabase/schema.sql`, `supabase/schema_additions.sql`, `supabase/perpetual-trader-schema.sql`, `supabase/001_trading_brain_schema.sql`, and `supabase/migrations/20260517_perpetual_trader_improvements.sql` in the Supabase SQL Editor to create tables, indexes, and RLS policies.
+> Run `supabase/schema.sql`, `supabase/schema_additions.sql`, `supabase/perpetual-trader-schema.sql`, `supabase/001_trading_brain_schema.sql`, `supabase/migrations/20260517_perpetual_trader_improvements.sql`, and `supabase/migrations/20260518_worker_heartbeats.sql` in the Supabase SQL Editor to create tables, indexes, and RLS policies.
 
 ---
 
@@ -338,6 +340,10 @@ npm run verify:perpetual
 
 # Perpetual trader API diagnostics
 curl -H "x-cron-secret: YOUR_SECRET" "http://localhost:3000/api/perpetual-trader?detail=diagnostics"
+
+Perpetual trader diagnostics distinguish schema health from runtime health. They flag stale worker heartbeats, open trades older than `PERPETUAL_MAX_TRADE_AGE_HOURS`, and positions that have already crossed stored stop-loss or take-profit levels while still marked open. The dashboard surfaces the same freshness signals plus live mark price and unrealized PnL per open position.
+
+The VPS runtime model is PM2-first. Use Tailscale/private SSH for operations, keep one deployment path authoritative, and use `/api/vps-health` plus `/api/worker-health` for consolidated status instead of stitching together many partial checks by hand.
 
 # Telegram webhook status
 curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getWebhookInfo"

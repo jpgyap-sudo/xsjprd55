@@ -11,6 +11,7 @@ import { createExchange } from '../lib/trading.js';
 import { updateSourceHealth } from '../lib/data-health.js';
 import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
 import { isMainModule } from '../lib/entrypoint.js';
+import { recordWorkerHeartbeat } from '../lib/worker-health.js';
 
 const SOURCES = [
   { name: 'Binance', type: 'exchange' },
@@ -32,8 +33,14 @@ async function pingExchange(name) {
 }
 
 export async function runDataHealthWorker() {
+  const started = Date.now();
   if (!config.ENABLE_HEALTH_WORKER) {
     logger.debug('[HEALTH-WORKER] Disabled by config');
+    await recordWorkerHeartbeat('data-health-worker', {
+      status: 'warning',
+      durationMs: Date.now() - started,
+      details: { disabled: true },
+    });
     return;
   }
 
@@ -81,6 +88,15 @@ export async function runDataHealthWorker() {
       status: 'New',
     });
   }
+
+  await recordWorkerHeartbeat('data-health-worker', {
+    durationMs: Date.now() - started,
+    details: {
+      totalSources: results.length,
+      failingSources: failing.map((f) => f.name),
+    },
+    status: failing.length ? 'warning' : 'ok',
+  });
 }
 
 if (isMainModule(import.meta.url)) {

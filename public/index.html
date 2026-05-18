@@ -865,6 +865,11 @@ if (sessionStorage.getItem('xsjprd55_auth') === '1') {
       <button class="tab-btn tab-overflow" data-tab="social-intel" data-category="development">📊 Social Intel</button>
       <button class="tab-btn tab-overflow" data-tab="strategy-labs" data-category="development">🧪 Strategy Labs</button>
       <button class="tab-btn tab-overflow" data-tab="wallet-tracker" data-category="development">👛 Wallet Tracker</button>
+      <!-- Codex Tabs (New) -->
+      <button class="tab-btn tab-overflow" data-tab="operations" data-category="system">⚙️ Operations</button>
+      <button class="tab-btn tab-overflow" data-tab="analytics" data-category="intelligence">📈 Analytics</button>
+      <button class="tab-btn tab-overflow" data-tab="ai-lab" data-category="intelligence">🧪 AI Lab</button>
+      <button class="tab-btn tab-overflow" data-tab="bot-control" data-category="system">🤖 Bot Control</button>
     </nav>
     
     <!-- Right Scroll Arrow -->
@@ -909,6 +914,11 @@ if (sessionStorage.getItem('xsjprd55_auth') === '1') {
         <div class="tab-more-item" onclick="switchTab('social-intel')">📊 Social Intel</div>
         <div class="tab-more-item" onclick="switchTab('strategy-labs')">🧪 Strategy Labs</div>
         <div class="tab-more-item" onclick="switchTab('wallet-tracker')">👛 Wallet Tracker</div>
+        <div class="tab-more-category">Codex</div>
+        <div class="tab-more-item" onclick="switchTab('operations')">⚙️ Operations</div>
+        <div class="tab-more-item" onclick="switchTab('analytics')">📈 Analytics</div>
+        <div class="tab-more-item" onclick="switchTab('ai-lab')">🧪 AI Lab</div>
+        <div class="tab-more-item" onclick="switchTab('bot-control')">🤖 Bot Control</div>
       </div>
     </div>
   </div>
@@ -1442,6 +1452,12 @@ if (sessionStorage.getItem('xsjprd55_auth') === '1') {
     <!-- Trading Status Banner -->
     <div id="pt-status-banner" style="margin-bottom:20px;padding:12px 16px;border-radius:8px;font-size:0.9rem;font-weight:600;display:none;"></div>
 
+    <!-- Data Freshness -->
+    <div class="card" style="margin-bottom:16px;" id="pt-freshness-card">
+      <div class="card-header"><span>Data Freshness</span></div>
+      <div class="card-body" id="pt-freshness-body" style="font-size:0.85rem;color:var(--fg2);">Loading...</div>
+    </div>
+
     <!-- TLL Regime Banner -->
     <div class="card" style="margin-bottom:16px;display:none;" id="pt-tll-banner">
       <div class="card-body" style="padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
@@ -1485,7 +1501,7 @@ if (sessionStorage.getItem('xsjprd55_auth') === '1') {
           <div id="pt-open-loading" style="text-align:center;padding:20px;color:var(--fg2);">Loading positions...</div>
           <div id="pt-open-content" style="display:none;">
             <table class="signal-table" style="min-width:700px;">
-              <thead><tr><th>Symbol</th><th>Side</th><th>Entry</th><th>Size</th><th>Lev</th><th>Margin</th><th>Stop</th><th>Target</th><th>R:R</th><th>Reason</th></tr></thead>
+              <thead><tr><th>Symbol</th><th>Side</th><th>Entry</th><th>Mark</th><th>UPnL</th><th>Size</th><th>Lev</th><th>Margin</th><th>Stop</th><th>Target</th><th>R:R</th><th>Reason</th></tr></thead>
               <tbody id="pt-open-body"></tbody>
             </table>
           </div>
@@ -1533,13 +1549,13 @@ if (sessionStorage.getItem('xsjprd55_auth') === '1') {
       </div>
     </div>
 
-    <!-- Signal Memory Feed -->
+    <!-- Signal Flow Feed -->
     <div class="card" style="margin-bottom:20px;">
-      <div class="card-header"><span>🧠 Signal Memory (Recent)</span></div>
+      <div class="card-header"><span>Signal Flow (Recent)</span></div>
       <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
         <div id="pt-memory-content" style="display:none;">
           <table class="signal-table" style="min-width:600px;">
-            <thead><tr><th>Symbol</th><th>Side</th><th>Strategy</th><th>Conf</th><th>Outcome</th><th>PnL</th><th>Description</th></tr></thead>
+            <thead><tr><th>Time</th><th>Symbol</th><th>Status</th><th>Strategy</th><th>Conf</th><th>Outcome</th><th>Description</th></tr></thead>
             <tbody id="pt-memory-body"></tbody>
           </table>
         </div>
@@ -2642,6 +2658,342 @@ if (sessionStorage.getItem('xsjprd55_auth') === '1') {
     </div>
   </div>
 
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- OPERATIONS TAB (config, dashboard-health, data-health, pm2-status, deployment-dashboard, learning) -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-operations">
+    <!-- Stat Cards -->
+    <div class="stat-grid" style="margin-bottom:20px;" id="ops-stats">
+      <div class="stat-item"><div class="stat-label">Config Mode</div><div class="stat-value" id="ops-stat-mode">—</div></div>
+      <div class="stat-item"><div class="stat-label">Uptime</div><div class="stat-value" id="ops-stat-uptime">—</div></div>
+      <div class="stat-item"><div class="stat-label">Node</div><div class="stat-value" id="ops-stat-node">—</div></div>
+      <div class="stat-item"><div class="stat-label">PM2 Processes</div><div class="stat-value" id="ops-stat-pm2">—</div></div>
+      <div class="stat-item"><div class="stat-label">Memory</div><div class="stat-value" id="ops-stat-memory">—</div></div>
+      <div class="stat-item"><div class="stat-label">API Count</div><div class="stat-value" id="ops-stat-apis">—</div></div>
+    </div>
+
+    <!-- Config Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">⚙️ Deployment Config</div>
+      <div class="card-body" id="ops-config-content" style="font-size:0.85rem;">Loading...</div>
+    </div>
+
+    <!-- Dashboard Health Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">💚 Dashboard Health</div>
+      <div class="card-body" id="ops-health-content" style="font-size:0.85rem;">Loading...</div>
+    </div>
+
+    <!-- PM2 Status Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">⚡ PM2 Process Status</div>
+      <div class="card-body" style="padding:0;max-height:400px;overflow:auto;">
+        <div id="ops-pm2-content" style="display:none;">
+          <table class="signal-table" style="min-width:700px;">
+            <thead><tr><th>Name</th><th>PID</th><th>Status</th><th>CPU%</th><th>Memory</th><th>Uptime</th><th>Restarts</th></tr></thead>
+            <tbody id="ops-pm2-tbody"></tbody>
+          </table>
+        </div>
+        <div id="ops-pm2-loading" style="padding:20px;text-align:center;color:var(--fg2);">Loading PM2 processes...</div>
+      </div>
+    </div>
+
+    <!-- Deployment Dashboard Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">🚀 Deployment Status</div>
+      <div class="card-body" style="padding:0;max-height:400px;overflow:auto;">
+        <div id="ops-deploy-content" style="display:none;">
+          <table class="signal-table" style="min-width:700px;">
+            <thead><tr><th>Branch</th><th>Commit</th><th>Status</th><th>Changes</th><th>Queue</th></tr></thead>
+            <tbody id="ops-deploy-tbody"></tbody>
+          </table>
+        </div>
+        <div id="ops-deploy-loading" style="padding:20px;text-align:center;color:var(--fg2);">Loading deploy status...</div>
+      </div>
+    </div>
+
+    <!-- Learning Loop Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">🧠 Learning Loop Status</div>
+      <div class="card-body" id="ops-learning-content" style="font-size:0.85rem;">Loading...</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- ANALYTICS TAB (analyze, backtest, weekly-analysis, mock-feedback, research-agent) -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-analytics">
+    <!-- Stat Cards -->
+    <div class="stat-grid" style="margin-bottom:20px;" id="an-stats">
+      <div class="stat-item"><div class="stat-label">Symbols Analyzed</div><div class="stat-value" id="an-stat-symbols">—</div></div>
+      <div class="stat-item"><div class="stat-label">Avg Confidence</div><div class="stat-value" id="an-stat-confidence">—</div></div>
+      <div class="stat-item"><div class="stat-label">Backtest Trades</div><div class="stat-value" id="an-stat-backtests">—</div></div>
+      <div class="stat-item"><div class="stat-label">Win Rate</div><div class="stat-value" id="an-stat-winrate">—</div></div>
+      <div class="stat-item"><div class="stat-label">Weekly PnL</div><div class="stat-value" id="an-stat-pnl">—</div></div>
+      <div class="stat-item"><div class="stat-label">Feedback Score</div><div class="stat-value" id="an-stat-feedback">—</div></div>
+    </div>
+
+    <!-- Analysis Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>📊 Symbol Analysis</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="an-symbol-input" placeholder="e.g. BTCUSDT" value="BTCUSDT" style="width:120px;background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;outline:none;">
+          <button class="btn btn-sm" onclick="runAnalysis()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 14px;cursor:pointer;font-size:0.8rem;">Analyze</button>
+        </div>
+      </div>
+      <div class="card-body" id="an-analysis-content" style="font-size:0.85rem;">Enter a symbol and click Analyze.</div>
+    </div>
+
+    <!-- Backtest Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🔄 Backtest</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="an-bt-symbol" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;">
+            <option value="BTCUSDT">BTCUSDT</option>
+            <option value="ETHUSDT">ETHUSDT</option>
+            <option value="SOLUSDT">SOLUSDT</option>
+          </select>
+          <select id="an-bt-tf" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;">
+            <option value="15m">15m</option>
+            <option value="1h">1h</option>
+            <option value="4h">4h</option>
+            <option value="1d">1d</option>
+          </select>
+          <button class="btn btn-sm" onclick="runBacktest()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 14px;cursor:pointer;font-size:0.8rem;">Run Backtest</button>
+        </div>
+      </div>
+      <div class="card-body" id="an-backtest-content" style="font-size:0.85rem;">Configure and run a backtest.</div>
+    </div>
+
+    <!-- Weekly Analysis Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">📅 Weekly Analysis</div>
+      <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
+        <div id="an-weekly-content" style="display:none;">
+          <table class="signal-table" style="min-width:600px;">
+            <thead><tr><th>Strategy</th><th>Trades</th><th>Wins</th><th>Losses</th><th>Win Rate</th><th>PnL</th></tr></thead>
+            <tbody id="an-weekly-tbody"></tbody>
+          </table>
+        </div>
+        <div id="an-weekly-loading" style="padding:20px;text-align:center;color:var(--fg2);">Loading weekly analysis...</div>
+      </div>
+    </div>
+
+    <!-- Mock Feedback Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">💬 Strategy Feedback</div>
+      <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
+        <div id="an-feedback-content" style="display:none;">
+          <table class="signal-table" style="min-width:600px;">
+            <thead><tr><th>Strategy</th><th>Trades</th><th>Wins</th><th>Losses</th><th>PnL</th><th>Score</th><th>Promoted</th></tr></thead>
+            <tbody id="an-feedback-tbody"></tbody>
+          </table>
+        </div>
+        <div id="an-feedback-loading" style="padding:20px;text-align:center;color:var(--fg2);">Loading feedback...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- AI LAB TAB (advisor, ask-ai, openclaw, openclaw-telegram, ml-predict) -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-ai-lab">
+    <!-- Stat Cards -->
+    <div class="stat-grid" style="margin-bottom:20px;" id="ail-stats">
+      <div class="stat-item"><div class="stat-label">Advisor</div><div class="stat-value" id="ail-stat-advisor">—</div></div>
+      <div class="stat-item"><div class="stat-label">OpenClaw</div><div class="stat-value" id="ail-stat-openclaw">—</div></div>
+      <div class="stat-item"><div class="stat-label">ML Predict</div><div class="stat-value" id="ail-stat-ml">—</div></div>
+      <div class="stat-item"><div class="stat-label">Telegram Q&A</div><div class="stat-value" id="ail-stat-telegram">—</div></div>
+    </div>
+
+    <!-- Trading Advisor Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🎯 Trading Advisor</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="ail-advisor-symbol" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;">
+            <option value="BTCUSDT">BTCUSDT</option>
+            <option value="ETHUSDT">ETHUSDT</option>
+            <option value="SOLUSDT">SOLUSDT</option>
+          </select>
+          <select id="ail-advisor-tf" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;">
+            <option value="15m">15m</option>
+            <option value="1h">1h</option>
+            <option value="4h">4h</option>
+          </select>
+          <button class="btn btn-sm" onclick="runAdvisor()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 14px;cursor:pointer;font-size:0.8rem;">Ask Advisor</button>
+        </div>
+      </div>
+      <div class="card-body" id="ail-advisor-content" style="font-size:0.85rem;">Select a symbol and timeframe, then ask the advisor.</div>
+    </div>
+
+    <!-- Ask AI Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🤖 Ask AI</span>
+        <div style="display:flex;gap:8px;align-items:center;flex:1;max-width:500px;margin-left:16px;">
+          <input type="text" id="ail-ask-input" placeholder="Ask anything about trading, signals, or the system..." style="flex:1;background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:6px 12px;font-size:0.85rem;outline:none;">
+          <button class="btn btn-sm" onclick="askAI()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:0.85rem;">Ask</button>
+        </div>
+      </div>
+      <div class="card-body" id="ail-ask-content" style="font-size:0.85rem;min-height:40px;">Type a question and click Ask.</div>
+    </div>
+
+    <!-- OpenClaw Code Analysis Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🔍 OpenClaw Code Analysis</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="ail-oc-type" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;">
+            <option value="health">Health</option>
+            <option value="analyze">Analyze</option>
+            <option value="trace">Trace</option>
+            <option value="routes">Routes</option>
+            <option value="schema">Schema</option>
+          </select>
+          <button class="btn btn-sm" onclick="runOpenClaw()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 14px;cursor:pointer;font-size:0.8rem;">Run Analysis</button>
+        </div>
+      </div>
+      <div class="card-body" id="ail-oc-content" style="font-size:0.85rem;">Select analysis type and run.</div>
+    </div>
+
+    <!-- ML Predict Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🤖 ML Prediction</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select id="ail-ml-symbol" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:0.8rem;">
+            <option value="BTCUSDT">BTCUSDT</option>
+            <option value="ETHUSDT">ETHUSDT</option>
+            <option value="SOLUSDT">SOLUSDT</option>
+          </select>
+          <button class="btn btn-sm" onclick="runMlPredict()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 14px;cursor:pointer;font-size:0.8rem;">Predict</button>
+        </div>
+      </div>
+      <div class="card-body" id="ail-ml-content" style="font-size:0.85rem;">Select a symbol and run ML prediction.</div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════ -->
+  <!-- BOT CONTROL TAB (bot suggestions/sources/patterns, agent-improvement, news-ingest, news-signal, mock-inject, signals) -->
+  <!-- ════════════════════════════════════════════════════ -->
+  <div class="tab-panel" id="tab-bot-control">
+    <!-- Stat Cards -->
+    <div class="stat-grid" style="margin-bottom:20px;" id="bc-stats">
+      <div class="stat-item"><div class="stat-label">Suggestions</div><div class="stat-value" id="bc-stat-suggestions">—</div></div>
+      <div class="stat-item"><div class="stat-label">Data Sources</div><div class="stat-value" id="bc-stat-sources">—</div></div>
+      <div class="stat-item"><div class="stat-label">Patterns</div><div class="stat-value" id="bc-stat-patterns">—</div></div>
+      <div class="stat-item"><div class="stat-label">Improvements</div><div class="stat-value" id="bc-stat-improvements">—</div></div>
+    </div>
+
+    <!-- Bot Suggestions Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>💡 Bot Suggestions</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm" onclick="loadBotSuggestions()" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:4px 12px;cursor:pointer;font-size:0.75rem;">Refresh</button>
+        </div>
+      </div>
+      <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
+        <div id="bc-suggestions-content" style="display:none;">
+          <table class="signal-table" style="min-width:600px;">
+            <thead><tr><th>Title</th><th>Category</th><th>Priority</th><th>Status</th><th>Created</th></tr></thead>
+            <tbody id="bc-suggestions-tbody"></tbody>
+          </table>
+        </div>
+        <div id="bc-suggestions-loading" style="padding:20px;text-align:center;color:var(--fg2);">Loading suggestions...</div>
+      </div>
+    </div>
+
+    <!-- Data Sources Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">📡 Data Sources</div>
+      <div class="card-body" style="padding:0;max-height:300px;overflow:auto;">
+        <div id="bc-sources-content" style="display:none;">
+          <table class="signal-table" style="min-width:500px;">
+            <thead><tr><th>Source</th><th>Type</th><th>Status</th></tr></thead>
+            <tbody id="bc-sources-tbody"></tbody>
+          </table>
+        </div>
+        <div id="bc-sources-loading" style="padding:20px;text-align:center;color:var(--fg2);">Loading sources...</div>
+      </div>
+    </div>
+
+    <!-- Pattern Stats Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">📊 Pattern Statistics</div>
+      <div class="card-body" style="padding:0;max-height:300px;overflow:auto;">
+        <div id="bc-patterns-content" style="display:none;">
+          <table class="signal-table" style="min-width:500px;">
+            <thead><tr><th>Pattern</th><th>Count</th><th>Win Rate</th></tr></thead>
+            <tbody id="bc-patterns-tbody"></tbody>
+          </table>
+        </div>
+        <div id="bc-patterns-loading" style="padding:20px;text-align:center;color:var(--fg2);">Loading patterns...</div>
+      </div>
+    </div>
+
+    <!-- Agent Improvement Card -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>🛠️ Agent Improvement Ideas</span>
+        <button class="btn btn-sm" onclick="showAddImprovement()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 14px;cursor:pointer;font-size:0.8rem;">➕ Add Idea</button>
+      </div>
+      <div class="card-body" style="padding:0;max-height:350px;overflow:auto;">
+        <div id="bc-improvements-content" style="display:none;">
+          <table class="signal-table" style="min-width:700px;">
+            <thead><tr><th>Title</th><th>Category</th><th>Priority</th><th>Status</th><th>Created</th></tr></thead>
+            <tbody id="bc-improvements-tbody"></tbody>
+          </table>
+        </div>
+        <div id="bc-improvements-loading" style="padding:20px;text-align:center;color:var(--fg2);">Loading improvement ideas...</div>
+      </div>
+    </div>
+
+    <!-- Add Improvement Form (hidden by default) -->
+    <div class="card" style="margin-bottom:20px;display:none;" id="bc-add-improvement-card">
+      <div class="card-header">✏️ New Improvement Idea</div>
+      <div class="card-body">
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <input type="text" id="bc-imp-title" placeholder="Idea title..." style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:0.85rem;outline:none;">
+          <textarea id="bc-imp-desc" rows="3" placeholder="Description..." style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:0.85rem;outline:none;resize:vertical;"></textarea>
+          <div style="display:flex;gap:10px;">
+            <select id="bc-imp-category" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:0.8rem;">
+              <option value="feature">Feature</option>
+              <option value="optimization">Optimization</option>
+              <option value="bugfix">Bug Fix</option>
+              <option value="refactor">Refactor</option>
+            </select>
+            <select id="bc-imp-priority" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:0.8rem;">
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+            <button onclick="submitImprovement()" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 16px;cursor:pointer;font-size:0.85rem;">Submit</button>
+            <button onclick="hideAddImprovement()" style="background:var(--bg3);color:var(--fg);border:1px solid var(--border);border-radius:6px;padding:6px 16px;cursor:pointer;font-size:0.85rem;">Cancel</button>
+          </div>
+          <div id="bc-imp-result" style="font-size:0.8rem;color:var(--fg2);"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Protected Cron APIs (Read-only Status) -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">🔒 Cron / Protected APIs (Read-only)</div>
+      <div class="card-body" style="padding:0;max-height:300px;overflow:auto;">
+        <div id="bc-cron-content" style="display:none;">
+          <table class="signal-table" style="min-width:600px;">
+            <thead><tr><th>Endpoint</th><th>Method</th><th>Status</th><th>Description</th></tr></thead>
+            <tbody id="bc-cron-tbody"></tbody>
+          </table>
+        </div>
+        <div id="bc-cron-loading" style="padding:20px;text-align:center;color:var(--fg2);">Loading protected API status...</div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ════════════════════════════════════════════════════ -->
@@ -2900,7 +3252,11 @@ function switchTab(tab) {
     'ml-status': () => { loadMlStatus(); },
     'social-intel': () => { loadSocialIntel(); },
     'strategy-labs': () => { loadStrategyLabs(); },
-    'wallet-tracker': () => { loadWalletTracker(); }
+    'wallet-tracker': () => { loadWalletTracker(); },
+    'operations': () => { loadOperations(); },
+    'analytics': () => { loadAnalytics(); },
+    'ai-lab': () => { loadAiLab(); },
+    'bot-control': () => { loadBotControl(); }
   };
   
   if (loaders[tab]) loaders[tab]();
@@ -5619,6 +5975,7 @@ async function loadPerpetualTrader() {
     const a = data.account;
     const s = data.summary;
     const tll = data.tll;
+    const worker = data.freshness?.worker || {};
 
     // Stats
     document.getElementById('pt-equity').textContent = '$' + Number(a.equity).toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -5636,11 +5993,32 @@ async function loadPerpetualTrader() {
     document.getElementById('pt-trades').textContent = s.totalTrades;
     document.getElementById('pt-open').textContent = s.openTradeCount;
 
+    // Freshness
+    const freshnessBody = document.getElementById('pt-freshness-body');
+    const lastCycle = worker.lastCycleAt ? new Date(worker.lastCycleAt).toLocaleString() : 'No heartbeat';
+    const lastCycleAge = worker.lastCycleAgeMinutes == null ? '—' : `${worker.lastCycleAgeMinutes} min ago`;
+    const staleCount = worker.staleTradeCount || 0;
+    const breachedCount = worker.breachedTradeCount || 0;
+    freshnessBody.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+        <div><strong>API snapshot</strong><br>${new Date(data.ts).toLocaleString()}</div>
+        <div><strong>Worker heartbeat</strong><br>${lastCycle} (${lastCycleAge})</div>
+        <div><strong>Stale open trades</strong><br><span style="color:${staleCount ? 'var(--accent3)' : 'var(--accent)'};">${staleCount}</span></div>
+        <div><strong>Breached exits</strong><br><span style="color:${breachedCount ? 'var(--accent3)' : 'var(--accent)'};">${breachedCount}</span></div>
+      </div>`;
+
     // Status banner
     const banner = document.getElementById('pt-status-banner');
     const diagIssues = data.diagnostics?.issues || [];
+    const criticalIssues = diagIssues.filter(i => i.severity === 'critical');
     const warningIssues = diagIssues.filter(i => i.severity !== 'critical');
-    if (warningIssues.length) {
+    if (criticalIssues.length) {
+      banner.style.display = 'block';
+      banner.style.background = 'rgba(239,68,68,0.15)';
+      banner.style.color = 'var(--accent3)';
+      banner.style.border = '1px solid rgba(239,68,68,0.3)';
+      banner.textContent = criticalIssues.slice(0, 2).map(i => i.message).join(' | ');
+    } else if (warningIssues.length) {
       banner.style.display = 'block';
       banner.style.background = 'rgba(245,158,11,0.15)';
       banner.style.color = 'var(--accent2)';
@@ -5762,6 +6140,11 @@ async function loadPerpetualTrader() {
           <td style="font-weight:600;">${t.symbol}</td>
           <td><span class="side-badge ${sideClass}">${t.side}</span></td>
           <td style="font-size:0.8rem;">$${Number(t.entryPrice).toFixed(2)}</td>
+          <td style="font-size:0.8rem;">${t.markPrice != null ? '$' + Number(t.markPrice).toFixed(2) : '—'}</td>
+          <td style="font-size:0.8rem;color:${(t.unrealizedPnlUsd || 0) >= 0 ? 'var(--accent)' : 'var(--accent3)'};">
+            ${t.unrealizedPnlUsd != null ? `${t.unrealizedPnlUsd >= 0 ? '+' : ''}$${Number(t.unrealizedPnlUsd).toFixed(2)} (${t.unrealizedPnlPct >= 0 ? '+' : ''}${Number(t.unrealizedPnlPct).toFixed(2)}%)` : '—'}
+            ${t.breachedExit ? `<div style="font-size:0.68rem;color:var(--accent3);font-weight:700;">BREACHED ${t.breachedExit.toUpperCase()}</div>` : ''}
+          </td>
           <td style="font-size:0.8rem;">$${Number(t.sizeUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
           <td style="font-size:0.8rem;">${t.leverage}x</td>
           <td style="font-size:0.8rem;">$${Number(t.marginUsed).toFixed(0)}</td>
@@ -5776,7 +6159,7 @@ async function loadPerpetualTrader() {
     } else {
       openLoading.style.display = 'none';
       openContent.style.display = 'block';
-      openBody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--fg2);padding:20px;">No open positions. Waiting for signals...</td></tr>';
+      openBody.innerHTML = '<tr><td colspan="12" style="text-align:center;color:var(--fg2);padding:20px;">No open positions. Waiting for signals...</td></tr>';
     }
 
     // Closed trades
@@ -5849,27 +6232,29 @@ async function loadPerpetualTrader() {
       pairBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--fg2);padding:16px;">No pair data yet.</td></tr>';
     }
 
-    // Signal memory
+    // Signal flow
     const memBody = document.getElementById('pt-memory-body');
     const memContent = document.getElementById('pt-memory-content');
+    const pipelineBySignal = new Map((data.signalPipeline || []).filter(p => p.signal_id).map(p => [p.signal_id, p]));
     if (data.signalMemory?.length) {
       memBody.innerHTML = data.signalMemory.map(m => {
         const outcomeBadge = m.outcome === 'win' ? '<span style="color:var(--accent);">✅ Win</span>' : m.outcome === 'loss' ? '<span style="color:var(--accent3);">❌ Loss</span>' : '<span style="color:var(--fg2);">⏳ Pending</span>';
-        const pnlColor = (m.outcomePnl || 0) >= 0 ? 'var(--accent)' : 'var(--accent3)';
+        const pipeline = pipelineBySignal.get(m.signalId);
+        const status = pipeline?.status || (m.outcome === 'pending' ? 'accepted_or_waiting' : 'resolved');
         return `<tr>
+          <td style="font-size:0.75rem;color:var(--fg2);">${new Date(m.generatedAt).toLocaleTimeString()}</td>
           <td style="font-weight:600;">${m.symbol}</td>
-          <td><span class="side-badge ${m.side === 'LONG' ? 'side-long' : 'side-short'}">${m.side}</span></td>
+          <td style="font-size:0.75rem;">${status.replace(/_/g, ' ')}</td>
           <td style="font-size:0.8rem;">${m.strategy}</td>
           <td style="font-size:0.8rem;">${Math.round((m.confidence || 0) * 100)}%</td>
           <td style="font-size:0.8rem;">${outcomeBadge}</td>
-          <td style="color:${pnlColor};font-weight:600;font-size:0.85rem;">${m.outcomePnl ? (m.outcomePnl >= 0 ? '+' : '') + '$' + Number(m.outcomePnl).toFixed(2) : '—'}</td>
           <td style="font-size:0.75rem;color:var(--fg2);max-width:250px;overflow:hidden;text-overflow:ellipsis;">${m.description || '—'}</td>
         </tr>`;
       }).join('');
       memContent.style.display = 'block';
     } else {
       memContent.style.display = 'block';
-      memBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg2);padding:16px;">No signal memory yet.</td></tr>';
+      memBody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--fg2);padding:16px;">No signal flow yet.</td></tr>';
     }
 
     // Logs
@@ -7147,6 +7532,530 @@ tabBtns.forEach(btn => {
     if (btn.dataset.tab === 'product-features') loadProductFeatures();
   });
 });
+
+// ════════════════════════════════════════════════════════
+// OPERATIONS TAB LOADER (config, dashboard-health, data-health, pm2-status, deployment-dashboard, learning)
+// ════════════════════════════════════════════════════════
+async function loadOperations() {
+  // Config
+  try {
+    const cfgRes = await fetch('/api/config');
+    const cfg = await cfgRes.json();
+    if (cfg.deployment_target) {
+      document.getElementById('ops-stat-mode').textContent = cfg.trading_mode || cfg.deployment_target || '—';
+      document.getElementById('ops-config-content').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px 0;">
+          <div><strong>Deployment:</strong> ${cfg.deployment_target}</div>
+          <div><strong>Trading Mode:</strong> ${cfg.trading_mode}</div>
+          <div><strong>Node Env:</strong> ${cfg.node_env}</div>
+          <div><strong>Pairs:</strong> ${(cfg.default_pairs || []).join(', ')}</div>
+          <div><strong>Timeframes:</strong> ${(cfg.timeframes || []).join(', ')}</div>
+          <div><strong>Features:</strong> ${Object.entries(cfg.features || {}).filter(([,v]) => v).map(([k]) => k).join(', ') || 'none'}</div>
+          <div><strong>Timestamp:</strong> ${new Date(cfg.timestamp).toLocaleString()}</div>
+        </div>`;
+    } else {
+      document.getElementById('ops-config-content').innerHTML = '<span style="color:var(--fg2);">Config not available</span>';
+    }
+  } catch (e) {
+    document.getElementById('ops-config-content').innerHTML = `<span style="color:var(--accent3);">Error: ${e.message}</span>`;
+  }
+
+  // Dashboard Health
+  try {
+    const hRes = await fetch('/api/dashboard-health');
+    const h = await hRes.json();
+    if (h.ok) {
+      document.getElementById('ops-stat-uptime').textContent = h.uptimeFormatted || (h.uptime ? Math.floor(h.uptime / 60) + 'm' : '—');
+      document.getElementById('ops-stat-node').textContent = h.nodeVersion || '—';
+      document.getElementById('ops-stat-memory').textContent = h.memory ? (h.memory.heapUsed ? (h.memory.heapUsed / 1024 / 1024).toFixed(0) + 'MB' : '—') : '—';
+      document.getElementById('ops-stat-apis').textContent = h.apiCount || '—';
+      document.getElementById('ops-health-content').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px 0;">
+          <div><strong>Status:</strong> <span style="color:${h.status === 'healthy' ? 'var(--accent)' : 'var(--accent3)'}">${h.status}</span></div>
+          <div><strong>Uptime:</strong> ${h.uptimeFormatted || Math.floor(h.uptime / 60) + 'm'}</div>
+          <div><strong>Node:</strong> ${h.nodeVersion}</div>
+          <div><strong>Environment:</strong> ${h.environment?.NODE_ENV || '—'}</div>
+          <div><strong>Memory RSS:</strong> ${h.memory?.rss ? (h.memory.rss / 1024 / 1024).toFixed(0) + 'MB' : '—'}</div>
+          <div><strong>API Count:</strong> ${h.apiCount}</div>
+          <div><strong>Timestamp:</strong> ${new Date(h.timestamp).toLocaleString()}</div>
+        </div>`;
+    } else {
+      document.getElementById('ops-health-content').innerHTML = '<span style="color:var(--fg2);">Health data not available</span>';
+    }
+  } catch (e) {
+    document.getElementById('ops-health-content').innerHTML = `<span style="color:var(--fg2);">Health unavailable: ${e.message}</span>`;
+  }
+
+  // PM2 Status
+  try {
+    const pm2Res = await fetch('/api/pm2-status');
+    const pm2 = await pm2Res.json();
+    if (pm2.processes) {
+      document.getElementById('ops-stat-pm2').textContent = pm2.processes.length;
+      document.getElementById('ops-pm2-loading').style.display = 'none';
+      document.getElementById('ops-pm2-content').style.display = 'block';
+      document.getElementById('ops-pm2-tbody').innerHTML = pm2.processes.slice(0, 50).map(p => `
+        <tr>
+          <td style="font-weight:600;">${p.name}</td>
+          <td style="font-size:0.75rem;font-family:monospace;">${p.pid || '—'}</td>
+          <td><span style="color:${p.status === 'online' ? 'var(--accent)' : 'var(--accent3)'};">${p.status}</span></td>
+          <td>${p.cpu !== undefined ? p.cpu.toFixed(1) + '%' : '—'}</td>
+          <td>${p.memory ? (p.memory / 1024 / 1024).toFixed(0) + 'MB' : '—'}</td>
+          <td style="font-size:0.75rem;">${p.uptime ? Math.floor(p.uptime / 60) + 'm' : '—'}</td>
+          <td>${p.restarts || 0}</td>
+        </tr>
+      `).join('');
+    } else {
+      document.getElementById('ops-pm2-loading').innerHTML = '<span style="color:var(--fg2);">PM2 not available</span>';
+    }
+  } catch (e) {
+    document.getElementById('ops-pm2-loading').innerHTML = `<span style="color:var(--fg2);">PM2 error: ${e.message}</span>`;
+  }
+
+  // Deployment Dashboard
+  try {
+    const depRes = await fetch('/api/deployment-dashboard');
+    const dep = await depRes.json();
+    if (dep.git || dep.overview) {
+      document.getElementById('ops-deploy-loading').style.display = 'none';
+      document.getElementById('ops-deploy-content').style.display = 'block';
+      const git = dep.git || {};
+      const overview = dep.overview || {};
+      document.getElementById('ops-deploy-tbody').innerHTML = `
+        <tr>
+          <td>${git.branch || overview.branch || '—'}</td>
+          <td style="font-size:0.75rem;font-family:monospace;">${git.latestCommit ? git.latestCommit.slice(0, 12) : (overview.currentCommit ? overview.currentCommit.slice(0, 12) : '—')}</td>
+          <td><span style="color:${git.status === 'clean' ? 'var(--accent)' : 'var(--accent2)'};">${git.status || overview.status || '—'}</span></td>
+          <td>${git.changes !== undefined ? git.changes : (overview.uncommittedChanges || 0)}</td>
+          <td>${dep.queue ? dep.queue.length : 0} pending</td>
+        </tr>`;
+    } else {
+      document.getElementById('ops-deploy-loading').innerHTML = '<span style="color:var(--fg2);">Deploy data not available</span>';
+    }
+  } catch (e) {
+    document.getElementById('ops-deploy-loading').innerHTML = `<span style="color:var(--fg2);">Deploy error: ${e.message}</span>`;
+  }
+
+  // Learning Loop
+  try {
+    const lRes = await fetch('/api/learning');
+    const l = await lRes.json();
+    if (l.pending_suggestions || l.last_loop) {
+      const suggestions = l.pending_suggestions || [];
+      document.getElementById('ops-learning-content').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px 0;">
+          <div><strong>Pending Suggestions:</strong> ${suggestions.length}</div>
+          <div><strong>Last Loop:</strong> ${l.last_loop ? new Date(l.last_loop).toLocaleString() : '—'}</div>
+        </div>
+        ${suggestions.length ? `<div style="margin-top:8px;padding:8px;background:var(--bg3);border-radius:6px;max-height:200px;overflow:auto;">
+          ${suggestions.slice(0, 10).map(s => `<div style="padding:4px 0;border-bottom:1px solid var(--border);font-size:0.8rem;">💡 ${s.title || s.description || JSON.stringify(s)}</div>`).join('')}
+        </div>` : ''}`;
+    } else {
+      document.getElementById('ops-learning-content').innerHTML = '<span style="color:var(--fg2);">Learning loop not available</span>';
+    }
+  } catch (e) {
+    document.getElementById('ops-learning-content').innerHTML = `<span style="color:var(--fg2);">Learning error: ${e.message}</span>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// ANALYTICS TAB LOADER (analyze, backtest, weekly-analysis, mock-feedback, research-agent)
+// ════════════════════════════════════════════════════════
+async function loadAnalytics() {
+  // Weekly Analysis
+  try {
+    const wRes = await fetch('/api/weekly-analysis');
+    const w = await wRes.json();
+    if (w.strategyStats || w.trades) {
+      const stats = w.strategyStats || [];
+      document.getElementById('an-stat-backtests').textContent = w.trades || w.closed || 0;
+      document.getElementById('an-stat-winrate').textContent = w.winRate ? (w.winRate * 100).toFixed(1) + '%' : '—';
+      document.getElementById('an-stat-pnl').textContent = w.totalPnl ? '$' + Number(w.totalPnl).toLocaleString() : '—';
+      document.getElementById('an-weekly-loading').style.display = 'none';
+      document.getElementById('an-weekly-content').style.display = 'block';
+      document.getElementById('an-weekly-tbody').innerHTML = stats.length ? stats.map(s => `
+        <tr>
+          <td style="font-weight:600;">${s.strategy || s.name || '—'}</td>
+          <td>${s.trades || 0}</td>
+          <td style="color:var(--accent);">${s.wins || 0}</td>
+          <td style="color:var(--accent3);">${s.losses || 0}</td>
+          <td>${s.winRate ? (s.winRate * 100).toFixed(1) + '%' : (s.wins && s.trades ? ((s.wins / s.trades) * 100).toFixed(1) + '%' : '—')}</td>
+          <td style="color:${(s.pnl || 0) >= 0 ? 'var(--accent)' : 'var(--accent3)'};">${s.pnl ? '$' + Number(s.pnl).toLocaleString() : '—'}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--fg2);">No weekly data</td></tr>';
+    } else {
+      document.getElementById('an-weekly-loading').innerHTML = '<span style="color:var(--fg2);">Weekly analysis not available</span>';
+    }
+  } catch (e) {
+    document.getElementById('an-weekly-loading').innerHTML = `<span style="color:var(--fg2);">Weekly error: ${e.message}</span>`;
+  }
+
+  // Mock Feedback
+  try {
+    const fRes = await fetch('/api/mock-feedback');
+    const f = await fRes.json();
+    if (f.feedback || Array.isArray(f)) {
+      const feedback = f.feedback || f || [];
+      document.getElementById('an-stat-feedback').textContent = feedback.length;
+      document.getElementById('an-feedback-loading').style.display = 'none';
+      document.getElementById('an-feedback-content').style.display = 'block';
+      document.getElementById('an-feedback-tbody').innerHTML = feedback.slice(0, 20).map(fb => `
+        <tr>
+          <td style="font-weight:600;">${fb.strategy_name || fb.strategy || '—'}</td>
+          <td>${fb.trades || 0}</td>
+          <td style="color:var(--accent);">${fb.wins || 0}</td>
+          <td style="color:var(--accent3);">${fb.losses || 0}</td>
+          <td style="color:${(fb.total_pnl_usd || 0) >= 0 ? 'var(--accent)' : 'var(--accent3)'};">${fb.total_pnl_usd ? '$' + Number(fb.total_pnl_usd).toLocaleString() : '—'}</td>
+          <td>${fb.feedback_score !== undefined ? fb.feedback_score.toFixed(2) : '—'}</td>
+          <td>${fb.promoted ? '✅' : '—'}</td>
+        </tr>
+      `).join('');
+    } else {
+      document.getElementById('an-feedback-loading').innerHTML = '<span style="color:var(--fg2);">Feedback not available</span>';
+    }
+  } catch (e) {
+    document.getElementById('an-feedback-loading').innerHTML = `<span style="color:var(--fg2);">Feedback error: ${e.message}</span>`;
+  }
+}
+
+async function runAnalysis() {
+  const symbol = document.getElementById('an-symbol-input').value.trim().toUpperCase() || 'BTCUSDT';
+  const el = document.getElementById('an-analysis-content');
+  el.innerHTML = 'Analyzing...';
+  try {
+    const res = await fetch('/api/analyze?symbol=' + encodeURIComponent(symbol));
+    const data = await res.json();
+    if (data.symbol) {
+      document.getElementById('an-stat-symbols').textContent = data.symbol;
+      document.getElementById('an-stat-confidence').textContent = data.adjustedConfidence ? (data.adjustedConfidence * 100).toFixed(0) + '%' : '—';
+      el.innerHTML = `<pre style="background:var(--bg3);padding:12px;border-radius:8px;overflow:auto;max-height:400px;font-size:0.8rem;line-height:1.5;">${JSON.stringify(data, null, 2)}</pre>`;
+    } else {
+      el.innerHTML = `<span style="color:var(--accent3);">Analysis failed: ${data.error || 'Unknown error'}</span>`;
+    }
+  } catch (e) {
+    el.innerHTML = `<span style="color:var(--accent3);">Request failed: ${e.message}</span>`;
+  }
+}
+
+async function runBacktest() {
+  const symbol = document.getElementById('an-bt-symbol').value;
+  const tf = document.getElementById('an-bt-tf').value;
+  const el = document.getElementById('an-backtest-content');
+  el.innerHTML = 'Running backtest...';
+  try {
+    const res = await fetch('/api/backtest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbol, timeframe: tf })
+    });
+    const data = await res.json();
+    el.innerHTML = `<pre style="background:var(--bg3);padding:12px;border-radius:8px;overflow:auto;max-height:400px;font-size:0.8rem;line-height:1.5;">${JSON.stringify(data, null, 2)}</pre>`;
+  } catch (e) {
+    el.innerHTML = `<span style="color:var(--accent3);">Backtest failed: ${e.message}</span>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// AI LAB TAB LOADER (advisor, ask-ai, openclaw, openclaw-telegram, ml-predict)
+// ════════════════════════════════════════════════════════
+async function loadAiLab() {
+  // OpenClaw health
+  try {
+    const ocRes = await fetch('/api/openclaw?type=health');
+    const oc = await ocRes.json();
+    if (oc.ok) {
+      document.getElementById('ail-stat-openclaw').textContent = oc.status || 'ok';
+    }
+  } catch (e) {
+    document.getElementById('ail-stat-openclaw').textContent = 'error';
+  }
+
+  // ML Predict health
+  try {
+    const mlRes = await fetch('/api/ml-predict?type=health');
+    const ml = await mlRes.json();
+    if (ml.ok || ml.status) {
+      document.getElementById('ail-stat-ml').textContent = ml.status || 'ok';
+    }
+  } catch (e) {
+    document.getElementById('ail-stat-ml').textContent = 'unavailable';
+  }
+
+  // OpenClaw Telegram health
+  try {
+    const tgRes = await fetch('/api/openclaw-telegram');
+    const tg = await tgRes.json();
+    if (tg.ok) {
+      document.getElementById('ail-stat-telegram').textContent = tg.status || 'ok';
+    }
+  } catch (e) {
+    document.getElementById('ail-stat-telegram').textContent = 'unavailable';
+  }
+}
+
+async function runAdvisor() {
+  const symbol = document.getElementById('ail-advisor-symbol').value;
+  const tf = document.getElementById('ail-advisor-tf').value;
+  const el = document.getElementById('ail-advisor-content');
+  el.innerHTML = 'Consulting advisor...';
+  try {
+    const res = await fetch('/api/advisor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbol, timeframe: tf, intent: 'analyze' })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('ail-stat-advisor').textContent = data.recommendation || data.signal || 'ok';
+      el.innerHTML = `<pre style="background:var(--bg3);padding:12px;border-radius:8px;overflow:auto;max-height:400px;font-size:0.8rem;line-height:1.5;">${JSON.stringify(data, null, 2)}</pre>`;
+    } else {
+      el.innerHTML = `<span style="color:var(--accent3);">Advisor error: ${data.error}</span>`;
+    }
+  } catch (e) {
+    el.innerHTML = `<span style="color:var(--accent3);">Request failed: ${e.message}</span>`;
+  }
+}
+
+async function askAI() {
+  const question = document.getElementById('ail-ask-input').value.trim();
+  const el = document.getElementById('ail-ask-content');
+  if (!question) {
+    el.innerHTML = '<span style="color:var(--accent3);">Please enter a question</span>';
+    return;
+  }
+  el.innerHTML = 'Thinking...';
+  try {
+    const res = await fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question })
+    });
+    const data = await res.json();
+    el.innerHTML = `<div style="background:var(--bg3);padding:12px;border-radius:8px;font-size:0.85rem;line-height:1.6;">${data.answer || data.response || JSON.stringify(data)}</div>`;
+  } catch (e) {
+    el.innerHTML = `<span style="color:var(--accent3);">Request failed: ${e.message}</span>`;
+  }
+}
+
+async function runOpenClaw() {
+  const type = document.getElementById('ail-oc-type').value;
+  const el = document.getElementById('ail-oc-content');
+  el.innerHTML = 'Running analysis...';
+  try {
+    const res = await fetch('/api/openclaw?type=' + type);
+    const data = await res.json();
+    el.innerHTML = `<pre style="background:var(--bg3);padding:12px;border-radius:8px;overflow:auto;max-height:400px;font-size:0.8rem;line-height:1.5;">${JSON.stringify(data, null, 2)}</pre>`;
+  } catch (e) {
+    el.innerHTML = `<span style="color:var(--accent3);">Analysis failed: ${e.message}</span>`;
+  }
+}
+
+async function runMlPredict() {
+  const symbol = document.getElementById('ail-ml-symbol').value;
+  const el = document.getElementById('ail-ml-content');
+  el.innerHTML = 'Running ML prediction...';
+  try {
+    const res = await fetch('/api/ml-predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symbol })
+    });
+    const data = await res.json();
+    el.innerHTML = `<pre style="background:var(--bg3);padding:12px;border-radius:8px;overflow:auto;max-height:400px;font-size:0.8rem;line-height:1.5;">${JSON.stringify(data, null, 2)}</pre>`;
+  } catch (e) {
+    el.innerHTML = `<span style="color:var(--accent3);">Prediction failed: ${e.message}</span>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// BOT CONTROL TAB LOADER (bot suggestions/sources/patterns, agent-improvement, cron APIs)
+// ════════════════════════════════════════════════════════
+async function loadBotControl() {
+  await loadBotSuggestions();
+  await loadBotSources();
+  await loadBotPatterns();
+  await loadImprovements();
+  await loadCronStatus();
+}
+
+async function loadBotSuggestions() {
+  try {
+    const res = await fetch('/api/bot?type=suggestions');
+    const data = await res.json();
+    if (data.suggestions || Array.isArray(data)) {
+      const suggestions = data.suggestions || data || [];
+      document.getElementById('bc-stat-suggestions').textContent = suggestions.length;
+      document.getElementById('bc-suggestions-loading').style.display = 'none';
+      document.getElementById('bc-suggestions-content').style.display = 'block';
+      document.getElementById('bc-suggestions-tbody').innerHTML = suggestions.slice(0, 20).map(s => `
+        <tr>
+          <td style="font-weight:600;">${s.title || s.name || '—'}</td>
+          <td>${s.category || s.type || '—'}</td>
+          <td><span style="color:${s.priority === 'high' ? 'var(--accent3)' : 'var(--fg2)'};">${s.priority || '—'}</span></td>
+          <td>${s.status || '—'}</td>
+          <td style="font-size:0.75rem;">${s.created_at ? new Date(s.created_at).toLocaleString() : '—'}</td>
+        </tr>
+      `).join('');
+    } else {
+      document.getElementById('bc-suggestions-loading').innerHTML = '<span style="color:var(--fg2);">No suggestions</span>';
+    }
+  } catch (e) {
+    document.getElementById('bc-suggestions-loading').innerHTML = `<span style="color:var(--fg2);">Error: ${e.message}</span>`;
+  }
+}
+
+async function loadBotSources() {
+  try {
+    const res = await fetch('/api/bot?type=sources');
+    const data = await res.json();
+    if (data.sources || Array.isArray(data)) {
+      const sources = data.sources || data || [];
+      document.getElementById('bc-stat-sources').textContent = sources.length;
+      document.getElementById('bc-sources-loading').style.display = 'none';
+      document.getElementById('bc-sources-content').style.display = 'block';
+      document.getElementById('bc-sources-tbody').innerHTML = sources.slice(0, 20).map(s => `
+        <tr>
+          <td style="font-weight:600;">${s.name || s.source || '—'}</td>
+          <td>${s.type || s.data_type || '—'}</td>
+          <td><span style="color:${s.status === 'active' || s.status === 'online' ? 'var(--accent)' : 'var(--fg2)'};">${s.status || '—'}</span></td>
+        </tr>
+      `).join('');
+    } else {
+      document.getElementById('bc-sources-loading').innerHTML = '<span style="color:var(--fg2);">No sources</span>';
+    }
+  } catch (e) {
+    document.getElementById('bc-sources-loading').innerHTML = `<span style="color:var(--fg2);">Error: ${e.message}</span>`;
+  }
+}
+
+async function loadBotPatterns() {
+  try {
+    const res = await fetch('/api/bot?type=patterns');
+    const data = await res.json();
+    if (data.patterns || Array.isArray(data)) {
+      const patterns = data.patterns || data || [];
+      document.getElementById('bc-stat-patterns').textContent = patterns.length;
+      document.getElementById('bc-patterns-loading').style.display = 'none';
+      document.getElementById('bc-patterns-content').style.display = 'block';
+      document.getElementById('bc-patterns-tbody').innerHTML = patterns.slice(0, 20).map(p => `
+        <tr>
+          <td style="font-weight:600;">${p.name || p.pattern || '—'}</td>
+          <td>${p.count || p.trades || 0}</td>
+          <td>${p.winRate ? (p.winRate * 100).toFixed(1) + '%' : (p.win_rate ? (p.win_rate * 100).toFixed(1) + '%' : '—')}</td>
+        </tr>
+      `).join('');
+    } else {
+      document.getElementById('bc-patterns-loading').innerHTML = '<span style="color:var(--fg2);">No patterns</span>';
+    }
+  } catch (e) {
+    document.getElementById('bc-patterns-loading').innerHTML = `<span style="color:var(--fg2);">Error: ${e.message}</span>`;
+  }
+}
+
+async function loadImprovements() {
+  try {
+    const res = await fetch('/api/agent-improvement');
+    const data = await res.json();
+    if (data.ideas || Array.isArray(data)) {
+      const ideas = data.ideas || data || [];
+      document.getElementById('bc-stat-improvements').textContent = ideas.length;
+      document.getElementById('bc-improvements-loading').style.display = 'none';
+      document.getElementById('bc-improvements-content').style.display = 'block';
+      document.getElementById('bc-improvements-tbody').innerHTML = ideas.slice(0, 20).map(idea => `
+        <tr>
+          <td style="font-weight:600;">${idea.title || idea.name || '—'}</td>
+          <td>${idea.category || idea.type || '—'}</td>
+          <td><span style="color:${idea.priority === 'high' ? 'var(--accent3)' : idea.priority === 'medium' ? 'var(--accent2)' : 'var(--fg2)'};">${idea.priority || '—'}</span></td>
+          <td>${idea.status || '—'}</td>
+          <td style="font-size:0.75rem;">${idea.created_at ? new Date(idea.created_at).toLocaleString() : '—'}</td>
+        </tr>
+      `).join('');
+    } else {
+      document.getElementById('bc-improvements-loading').innerHTML = '<span style="color:var(--fg2);">No improvement ideas</span>';
+    }
+  } catch (e) {
+    document.getElementById('bc-improvements-loading').innerHTML = `<span style="color:var(--fg2);">Error: ${e.message}</span>`;
+  }
+}
+
+function showAddImprovement() {
+  document.getElementById('bc-add-improvement-card').style.display = 'block';
+  document.getElementById('bc-imp-result').textContent = '';
+}
+
+function hideAddImprovement() {
+  document.getElementById('bc-add-improvement-card').style.display = 'none';
+}
+
+async function submitImprovement() {
+  const title = document.getElementById('bc-imp-title').value.trim();
+  const desc = document.getElementById('bc-imp-desc').value.trim();
+  const category = document.getElementById('bc-imp-category').value;
+  const priority = document.getElementById('bc-imp-priority').value;
+  const resultEl = document.getElementById('bc-imp-result');
+
+  if (!title) {
+    resultEl.innerHTML = '<span style="color:var(--accent3);">Please enter a title</span>';
+    return;
+  }
+
+  resultEl.innerHTML = 'Submitting...';
+  try {
+    const res = await fetch('/api/agent-improvement', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, description: desc, category, priority })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      resultEl.innerHTML = '<span style="color:var(--accent);">✅ Improvement idea submitted!</span>';
+      document.getElementById('bc-imp-title').value = '';
+      document.getElementById('bc-imp-desc').value = '';
+      setTimeout(() => { hideAddImprovement(); loadImprovements(); }, 1000);
+    } else {
+      resultEl.innerHTML = `<span style="color:var(--accent3);">Error: ${data.error}</span>`;
+    }
+  } catch (e) {
+    resultEl.innerHTML = `<span style="color:var(--accent3);">Request failed: ${e.message}</span>`;
+  }
+}
+
+async function loadCronStatus() {
+  const cronEndpoints = [
+    { path: '/api/news-ingest', method: 'GET', desc: 'News ingestion (cron)' },
+    { path: '/api/news-signal', method: 'GET', desc: 'News signal generation (cron)' },
+    { path: '/api/mock-inject', method: 'GET', desc: 'Mock signal injection (cron)' },
+    { path: '/api/signals', method: 'GET', desc: 'Signal generation (cron)' },
+    { path: '/api/debug-crawler', method: 'GET', desc: 'Debug crawler (cron)' },
+    { path: '/api/market', method: 'GET', desc: 'Market data feed' },
+  ];
+
+  document.getElementById('bc-cron-loading').style.display = 'none';
+  document.getElementById('bc-cron-content').style.display = 'block';
+
+  const results = await Promise.allSettled(
+    cronEndpoints.map(async ep => {
+      try {
+        const res = await fetch(ep.path + '?limit=1');
+        const status = res.ok ? '✅ ' + res.status : '❌ ' + res.status;
+        return { ...ep, status };
+      } catch (e) {
+        return { ...ep, status: '❌ error' };
+      }
+    })
+  );
+
+  document.getElementById('bc-cron-tbody').innerHTML = results.map((r, i) => {
+    const ep = cronEndpoints[i];
+    const status = r.status === 'fulfilled' ? r.value.status : '❌ unreachable';
+    return `<tr>
+      <td style="font-family:monospace;font-size:0.75rem;">${ep.path}</td>
+      <td>${ep.method}</td>
+      <td>${status}</td>
+      <td style="font-size:0.8rem;color:var(--fg2);">${ep.desc}</td>
+    </tr>`;
+  }).join('');
+}
 </script>
 
 <!-- PWA Install Banner -->

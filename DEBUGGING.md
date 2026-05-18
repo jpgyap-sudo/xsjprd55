@@ -95,6 +95,11 @@ Cause: Missing or placeholder Supabase env values put `lib/supabase.js` into no-
 Fix: `/api/perpetual-trader` now returns explicit diagnostics and 503 responses for no-op Supabase or blocked schema state, the dashboard displays the blocker, and `npm run verify:perpetual` performs a read-only Supabase/schema/signal/trade check.
 Prevention: Run `npm run verify:perpetual` after changing Supabase env, applying migrations, or restarting PM2 workers. Keep `supabase/perpetual-trader-schema.sql` applied alongside the core schema.
 
+### Perpetual trader looks healthy but shows stale trades
+Cause: Earlier diagnostics only checked schema presence, account presence, and signal availability. They did not verify worker heartbeats, stale open-trade age, or whether current market prices had already breached stored exit levels.
+Fix: Perpetual trader diagnostics now read worker-cycle heartbeats from `perpetual_trader_logs`, flag stale worker cycles, flag open trades older than `PERPETUAL_MAX_TRADE_AGE_HOURS`, and compare live public marks against stored stop-loss/take-profit levels. The dashboard now shows freshness, live mark price, and unrealized PnL per open position.
+Prevention: After deployments or worker restarts, verify both `/api/perpetual-trader?detail=diagnostics` and the dashboard freshness panel. A green schema check alone is not enough evidence that the trader is operating normally.
+
 ### 2026-05-17 — Perpetual stale-close rows used the wrong schema columns
 Cause: The stale-trade cleanup path wrote legacy-style fields such as `pnl`, `closed_at`, and `close_reason`, while perpetual trades use `pnl_usd`, `exit_at`, and `exit_reason`.
 Fix: Stale cleanup now delegates to the normal `closePerpetualTrade()` path so balance updates, history logging, and learning stay consistent with ordinary exits.

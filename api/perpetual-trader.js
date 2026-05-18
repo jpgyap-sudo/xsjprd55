@@ -7,6 +7,8 @@
 import { supabase, isSupabaseNoOp } from '../lib/supabase.js';
 import { getPerpetualTraderDiagnostics } from '../lib/perpetual-trader/diagnostics.js';
 import { getAllScorecards } from '../lib/mock-trading/strategy-scorecard.js';
+import { fetchPublicPrice } from '../lib/market-price.js';
+import { calculatePerpPnl, checkExit } from '../lib/perpetual-trader/risk.js';
 
 function addApiError(errors, scope, error) {
   if (!error) return;
@@ -17,6 +19,76 @@ function addApiError(errors, scope, error) {
     details: error.details || null,
     hint: error.hint || null,
   });
+}
+
+function summarizeClosedTrades(trades = []) {
+  const totalTrades = trades.length;
+  const totalWins = trades.filter((t) => (t.pnl_usd || 0) > 0).length;
+  const totalPnl = trades.reduce((sum, t) => sum + (t.pnl_usd || 0), 0);
+  const bestTrade = trades.length ? Math.max(...trades.map((t) => t.pnl_usd || 0)) : 0;
+  const worstTrade = trades.length ? Math.min(...trades.map((t) => t.pnl_usd || 0)) : 0;
+
+  let maxDrawdown = 0;
+  let peak = 0;
+  let running = 0;
+  for (const t of trades.slice().sort((a, b) => (a.exit_at || a.created_at).localeCompare(b.exit_at || b.created_at))) {
+    running += t.pnl_usd || 0;
+    if (running > peak) peak = running;
+    maxDrawdown = Math.max(maxDrawdown, peak - running);
+  }
+
+  return {
+    totalTrades,
+    wins: totalWins,
+    losses: totalTrades - totalWins,
+    winRate: totalTrades > 0 ? totalWins / totalTrades : 0,
+    totalPnl,
+    avgPnl: totalTrades > 0 ? totalPnl / totalTrades : 0,
+    bestTrade,
+    worstTrade,
+    maxDrawdown,
+  };
+}
+
+async function enrichOpenTrades(openTrades = []) {
+  return Promise.all(openTrades.map(async (trade) => {
+    try {
+      const mark = await fetchPublicPrice(trade.symbol);
+      const pnl = calculatePerpPnl({
+        side: trade.side,
+        entryPrice: trade.entry_price,
+        exitPrice: mark.price,
+        sizeUsd: trade.position_size_usd,
+        leverage: trade.leverage,
+      });
+      const exit = checkExit({
+        side: trade.side,
+        entryPrice: trade.entry_price,
+        currentPrice: mark.price,
+        stopLoss: trade.stop_loss,
+        takeProfit: trade.take_profit,
+      });
+      return {
+        ...trade,
+        mark_price: mark.price,
+        mark_source: mark.source,
+        unrealized_pnl_usd: pnl.pnlUsd,
+        unrealized_pnl_pct: pnl.pnlPct,
+        breached_exit: exit.shouldExit ? exit.reason : null,
+        mark_error: null,
+      };
+    } catch (error) {
+      return {
+        ...trade,
+        mark_price: null,
+        mark_source: null,
+        unrealized_pnl_usd: null,
+        unrealized_pnl_pct: null,
+        breached_exit: null,
+        mark_error: error.message,
+      };
+    }
+  }));
 }
 
 export default async function handler(req, res) {
@@ -95,6 +167,16 @@ export default async function handler(req, res) {
     }
 
     // Strategy performance
+    const { data: allClosedTrades, error: allClosedErr } = await supabase
+      .from('perpetual_mock_trades')
+      .select('id, created_at, exit_at, symbol, side, pnl_usd, status, strategy')
+      .eq('status', 'closed');
+
+    if (allClosedErr) {
+      console.error('[perpetual-trader] all closed trades error:', allClosedErr.message);
+      addApiError(errors, 'all_closed_perpetual_mock_trades', allClosedErr);
+    }
+
     const { data: stratPerf, error: stratErr } = await supabase
       .from('perpetual_mock_trades')
       .select('strategy, pnl_usd, side, status');
@@ -128,10 +210,8 @@ export default async function handler(req, res) {
     })).sort((a, b) => b.totalPnl - a.totalPnl);
 
     // Pair performance
-    const { data: pairPerf, error: pairErr } = await supabase
-      .from('perpetual_mock_trades')
-      .select('symbol, pnl_usd, status')
-      .eq('status', 'closed');
+    const pairPerf = allClosedTrades || [];
+    const pairErr = allClosedErr;
 
     if (pairErr) {
       console.error('[perpetual-trader] pair stats error:', pairErr.message);
@@ -163,10 +243,22 @@ export default async function handler(req, res) {
       addApiError(errors, 'perpetual_trader_logs', logErr);
     }
 
+    const { data: pipelineLogs, error: pipelineErr } = await supabase
+      .from('perpetual_trader_logs')
+      .select('message, details, created_at')
+      .eq('category', 'signal_skip')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (pipelineErr) {
+      console.error('[perpetual-trader] pipeline logs error:', pipelineErr.message);
+      addApiError(errors, 'signal_pipeline_logs', pipelineErr);
+    }
+
     // Signal memory recent
     const { data: memory, error: memErr } = await supabase
       .from('signal_memory')
-      .select('symbol, side, strategy, confidence, outcome, outcome_pnl, description, generated_at')
+      .select('signal_id, symbol, side, strategy, confidence, outcome, outcome_pnl, description, generated_at')
       .order('generated_at', { ascending: false })
       .limit(20);
 
@@ -192,21 +284,11 @@ export default async function handler(req, res) {
       console.error('[perpetual-trader] TLL snapshot error:', tllErr.message);
     }
 
+    const enrichedOpenTrades = await enrichOpenTrades(openTrades || []);
     const closed = closedTrades || [];
     const scorecards = await getAllScorecards();
-    const totalTrades = closed.length;
-    const totalWins = closed.filter(t => (t.pnl_usd || 0) > 0).length;
-    const totalPnl = closed.reduce((s, t) => s + (t.pnl_usd || 0), 0);
-    const bestTrade = closed.length ? Math.max(...closed.map(t => t.pnl_usd || 0)) : 0;
-    const worstTrade = closed.length ? Math.min(...closed.map(t => t.pnl_usd || 0)) : 0;
-
-    // Max drawdown
-    let maxDrawdown = 0, peak = 0, running = 0;
-    for (const t of closed.slice().sort((a, b) => a.created_at.localeCompare(b.created_at))) {
-      running += t.pnl_usd || 0;
-      if (running > peak) peak = running;
-      maxDrawdown = Math.max(maxDrawdown, peak - running);
-    }
+    const summary = summarizeClosedTrades(allClosedTrades || []);
+    summary.openTradeCount = enrichedOpenTrades.length;
 
     const startBalance = account?.starting_balance || 100000;
     const currentBalance = account?.current_balance || startBalance;
@@ -239,19 +321,12 @@ export default async function handler(req, res) {
         ...diagnostics,
         apiErrors: errors,
       },
-      summary: {
-        totalTrades,
-        wins: totalWins,
-        losses: totalTrades - totalWins,
-        winRate: totalTrades > 0 ? totalWins / totalTrades : 0,
-        totalPnl,
-        avgPnl: totalTrades > 0 ? totalPnl / totalTrades : 0,
-        bestTrade,
-        worstTrade,
-        maxDrawdown,
-        openTradeCount: (openTrades || []).length,
+      summary,
+      freshness: {
+        generatedAt: new Date().toISOString(),
+        worker: diagnostics.trades?.worker || null,
       },
-      openTrades: (openTrades || []).map(t => ({
+      openTrades: enrichedOpenTrades.map(t => ({
         id: t.id, createdAt: t.created_at, symbol: t.symbol, side: t.side,
         entryPrice: t.entry_price, sizeUsd: t.position_size_usd,
         marginUsed: t.margin_used, leverage: t.leverage,
@@ -259,6 +334,12 @@ export default async function handler(req, res) {
         riskReward: t.risk_reward, strategy: t.strategy,
         confidence: t.confidence, timeframe: t.timeframe,
         entryReason: t.entry_reason,
+        markPrice: t.mark_price,
+        markSource: t.mark_source,
+        unrealizedPnlUsd: t.unrealized_pnl_usd,
+        unrealizedPnlPct: t.unrealized_pnl_pct,
+        breachedExit: t.breached_exit,
+        markError: t.mark_error,
       })),
       closedTrades: closed.map(t => ({
         id: t.id, createdAt: t.created_at, symbol: t.symbol, side: t.side,
@@ -278,10 +359,16 @@ export default async function handler(req, res) {
         createdAt: l.created_at,
       })),
       signalMemory: (memory || []).map(m => ({
+        signalId: m.signal_id,
         symbol: m.symbol, side: m.side, strategy: m.strategy,
         confidence: m.confidence, outcome: m.outcome,
         outcomePnl: m.outcome_pnl, description: m.description,
         generatedAt: m.generated_at,
+      })),
+      signalPipeline: (pipelineLogs || []).map((log) => ({
+        message: log.message,
+        createdAt: log.created_at,
+        ...(log.details || {}),
       })),
       ts: new Date().toISOString(),
     });

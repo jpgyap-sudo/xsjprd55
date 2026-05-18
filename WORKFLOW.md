@@ -63,3 +63,13 @@ Before production release:
 - Max position size and daily loss limits configured
 - Stop-loss rules enforced
 - Paper mode is default; live mode requires explicit user opt-in
+
+## VPS Operating Model
+- Production runtime is PM2-first; Docker/Compose files are auxiliary unless a deployment explicitly says otherwise.
+- Use Tailscale/private SSH for operations whenever available.
+- Keep one authoritative deploy flow and one consolidated health surface:
+  - `/api/vps-health`
+  - `/api/worker-health`
+  - `/api/pm2-status`
+- Critical workers must publish heartbeats so "process exists" is never mistaken for "work is current."
+- Treat stale worker heartbeats, large restart counts, and open trades past exit conditions as production issues, not cosmetic warnings.

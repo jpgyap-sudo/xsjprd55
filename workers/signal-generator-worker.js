@@ -7,6 +7,7 @@
 import '../lib/env.js';
 import fetch from 'node-fetch';
 import { logger } from '../lib/logger.js';
+import { recordWorkerHeartbeat } from '../lib/worker-health.js';
 
 const INTERVAL_MS = 15 * 60 * 1000; // 15 minutes
 const SERVER_PORT = process.env.PORT || 3000;
@@ -36,11 +37,13 @@ async function fetchWithRetry(url, options, retries = MAX_RETRIES) {
 }
 
 async function runSignalGenerator() {
+  const started = Date.now();
   logger.info('[SIGNAL-GEN] Starting signal scan...');
 
   try {
     if (!process.env.CRON_SECRET) {
       logger.error('[SIGNAL-GEN] CRON_SECRET missing; refusing to run protected signal scan');
+      await recordWorkerHeartbeat('signal-generator-worker', { status: 'error', durationMs: Date.now() - started, error: 'CRON_SECRET missing' });
       return;
     }
 
@@ -57,13 +60,23 @@ async function runSignalGenerator() {
     if (!res.ok) {
       const text = await res.text();
       logger.warn(`[SIGNAL-GEN] API returned ${res.status}: ${text.slice(0, 200)}`);
+      await recordWorkerHeartbeat('signal-generator-worker', {
+        status: 'error',
+        durationMs: Date.now() - started,
+        error: `API returned ${res.status}`,
+      });
       return;
     }
 
     const data = await res.json();
     logger.info(`[SIGNAL-GEN] Scan complete — ${data.signals?.length || 0} signals, ${data.errors?.length || 0} errors`);
+    await recordWorkerHeartbeat('signal-generator-worker', {
+      durationMs: Date.now() - started,
+      details: { signals: data.signals?.length || 0, errors: data.errors?.length || 0 },
+    });
   } catch (e) {
     logger.error(`[SIGNAL-GEN] Failed to reach ${API_URL}: ${e.message}`);
+    await recordWorkerHeartbeat('signal-generator-worker', { status: 'error', durationMs: Date.now() - started, error: e.message });
   }
 }
 

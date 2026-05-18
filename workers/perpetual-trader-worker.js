@@ -13,6 +13,7 @@ import { isMainModule } from '../lib/entrypoint.js';
 import { brainRiskCheck, logAgentEvent } from '../lib/brain-integration.js';
 import { fetchPublicPrice } from '../lib/market-price.js';
 import { getTllRegimeForMockTrading, getActiveTllSkills, checkSignalAgainstTllSkills, getTllStrategyWeights } from '../lib/learning-layer/mock-trading-bridge.js';
+import { recordWorkerHeartbeat } from '../lib/worker-health.js';
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -28,6 +29,31 @@ const TRANSIENT_SKIP_REASONS = [
   'schema cache',
   'does not exist',
 ];
+
+async function logWorkerCycle(details = {}) {
+  try {
+    const { data: account } = await supabase
+      .from('perpetual_mock_accounts')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+
+    await supabase.from('perpetual_trader_logs').insert({
+      account_id: account?.id || null,
+      trade_id: null,
+      level: 'info',
+      category: 'system',
+      message: 'worker_cycle',
+      details: {
+        kind: 'cycle',
+        ...details,
+      },
+      created_at: new Date().toISOString(),
+    });
+  } catch (e) {
+    logger.warn(`[perp-worker] Cycle heartbeat log failed: ${e.message}`);
+  }
+}
 
 export function shouldRetrySignal(reason = '') {
   const normalized = String(reason).toLowerCase();
@@ -102,6 +128,22 @@ async function pollAndTrade(tllRegime = null, tllSkills = [], tllWeights = {}) {
             verdict: riskCheck.verdict,
             confidence: riskCheck.confidence
           });
+          await supabase.from('perpetual_trader_logs').insert({
+            account_id: null,
+            trade_id: null,
+            level: 'info',
+            category: 'signal_skip',
+            message: `Brain blocked ${signal.symbol}: ${riskCheck.verdict}`,
+            details: {
+              kind: 'signal_pipeline',
+              signal_id: signal.id,
+              symbol: signal.symbol,
+              status: 'brain_blocked',
+              verdict: riskCheck.verdict,
+              confidence: riskCheck.confidence,
+            },
+            created_at: new Date().toISOString(),
+          });
           // Don't permanently skip — brain may approve later
           continue;
         }
@@ -126,6 +168,21 @@ async function pollAndTrade(tllRegime = null, tllSkills = [], tllWeights = {}) {
             reason: 'high_volatility_regime',
             regime: tllRegime.regime,
           });
+          await supabase.from('perpetual_trader_logs').insert({
+            account_id: null,
+            trade_id: null,
+            level: 'info',
+            category: 'signal_skip',
+            message: `TLL blocked ${signal.symbol}: high volatility regime`,
+            details: {
+              kind: 'signal_pipeline',
+              signal_id: signal.id,
+              symbol: signal.symbol,
+              status: 'tll_regime_blocked',
+              regime: tllRegime.regime,
+            },
+            created_at: new Date().toISOString(),
+          });
           continue;
         }
 
@@ -138,6 +195,22 @@ async function pollAndTrade(tllRegime = null, tllSkills = [], tllWeights = {}) {
           if (skillCheck.conflictingSkills.length > 0 && skillCheck.boost < -0.05) {
             results.skipped++;
             logger.debug(`[perp-worker] TLL skills blocked ${signal.symbol}: ${skillCheck.conflictingSkills.join(', ')}`);
+            await supabase.from('perpetual_trader_logs').insert({
+              account_id: null,
+              trade_id: null,
+              level: 'info',
+              category: 'signal_skip',
+              message: `TLL skills blocked ${signal.symbol}`,
+              details: {
+                kind: 'signal_pipeline',
+                signal_id: signal.id,
+                symbol: signal.symbol,
+                status: 'tll_skill_blocked',
+                conflicting_skills: skillCheck.conflictingSkills,
+                boost: skillCheck.boost,
+              },
+              created_at: new Date().toISOString(),
+            });
             continue;
           }
         }
@@ -147,6 +220,21 @@ async function pollAndTrade(tllRegime = null, tllSkills = [], tllWeights = {}) {
         if (strategyName && tllWeights[strategyName] === 0) {
           results.skipped++;
           logger.debug(`[perp-worker] TLL blocked ${signal.symbol}: strategy "${strategyName}" is quarantined`);
+          await supabase.from('perpetual_trader_logs').insert({
+            account_id: null,
+            trade_id: null,
+            level: 'info',
+            category: 'signal_skip',
+            message: `TLL quarantined strategy ${strategyName}`,
+            details: {
+              kind: 'signal_pipeline',
+              signal_id: signal.id,
+              symbol: signal.symbol,
+              status: 'tll_strategy_quarantined',
+              strategy: strategyName,
+            },
+            created_at: new Date().toISOString(),
+          });
           continue;
         }
 
@@ -160,6 +248,22 @@ async function pollAndTrade(tllRegime = null, tllSkills = [], tllWeights = {}) {
           if (!shouldRetrySignal(result.reason)) {
             PROCESSED_SIGNALS.add(signal.id);
           }
+          await supabase.from('perpetual_trader_logs').insert({
+            account_id: null,
+            trade_id: null,
+            level: 'info',
+            category: 'signal_skip',
+            message: `Skipped ${signal.symbol}: ${result.reason}`,
+            details: {
+              kind: 'signal_pipeline',
+              signal_id: signal.id,
+              symbol: signal.symbol,
+              status: 'risk_or_engine_skipped',
+              reason: result.reason,
+              retryable: shouldRetrySignal(result.reason),
+            },
+            created_at: new Date().toISOString(),
+          });
         }
       } catch (e) {
         results.errors++;
@@ -239,47 +343,6 @@ async function closeStaleTrades() {
         );
         closed++;
         logger.info(`[perp-worker] Force-closed stale trade ${trade.id} (${trade.symbol})`);
-        continue;
-
-        // Calculate PnL
-        const isLong = (trade.side || '').toLowerCase() === 'long';
-        const pnlPct = isLong
-          ? ((exitPrice - trade.entry_price) / trade.entry_price) * 100
-          : ((trade.entry_price - exitPrice) / trade.entry_price) * 100;
-        const pnl = (trade.position_size || 0) * (pnlPct / 100);
-
-        await supabase
-          .from('perpetual_mock_trades')
-          .update({
-            status: 'closed',
-            exit_price: exitPrice,
-            pnl: pnl,
-            pnl_pct: pnlPct,
-            closed_at: new Date().toISOString(),
-            close_reason: 'stale_timeout',
-            close_detail: `Force-closed after ${maxAgeHours}h (created ${trade.created_at})`
-          })
-          .eq('id', trade.id);
-
-        // Update account balance — fetch current, then add PnL
-        const { data: account } = await supabase
-          .from('perpetual_mock_accounts')
-          .select('current_balance, total_pnl')
-          .eq('id', trade.account_id)
-          .single();
-
-        if (account) {
-          await supabase
-            .from('perpetual_mock_accounts')
-            .update({
-              current_balance: Number(account.current_balance || 0) + pnl,
-              total_pnl: Number(account.total_pnl || 0) + pnl
-            })
-            .eq('id', trade.account_id);
-        }
-
-        closed++;
-        logger.info(`[perp-worker] Force-closed stale trade ${trade.id} (${trade.symbol}) — PnL: $${pnl.toFixed(2)}`);
       } catch (e) {
         logger.warn(`[perp-worker] Failed to close stale trade ${trade.id}: ${e.message}`);
       }
@@ -299,6 +362,11 @@ export async function runPerpetualTraderCycle() {
   const started = Date.now();
   if (isSupabaseNoOp()) {
     logger.error('[perp-worker] Supabase is in NO-OP mode. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars.');
+    await recordWorkerHeartbeat('perpetual-trader-worker', {
+      status: 'error',
+      durationMs: Date.now() - started,
+      error: 'Supabase NO-OP',
+    });
     return { ok: false, error: 'Supabase NO-OP' };
   }
   logger.info('[perp-worker] Starting cycle...');
@@ -340,6 +408,27 @@ export async function runPerpetualTraderCycle() {
 
   const duration = Date.now() - started;
   logger.info(`[perp-worker] Cycle complete in ${duration}ms: stale=${staleClosed}, opened=${tradeResult.opened}, monitored=${monitorResult.checked}, closed=${monitorResult.closed}`);
+  await logWorkerCycle({
+    duration_ms: duration,
+    stale_closed: staleClosed,
+    opened: tradeResult.opened,
+    monitored: monitorResult.checked,
+    closed: monitorResult.closed,
+    skipped: tradeResult.skipped,
+    errors: tradeResult.errors,
+  });
+  await recordWorkerHeartbeat('perpetual-trader-worker', {
+    durationMs: duration,
+    details: {
+      staleClosed,
+      opened: tradeResult.opened,
+      monitored: monitorResult.checked,
+      closed: monitorResult.closed,
+      skipped: tradeResult.skipped,
+      errors: tradeResult.errors,
+    },
+    status: tradeResult.errors || monitorResult.error ? 'warning' : 'ok',
+  });
 
   return {
     ok: true,

@@ -18,6 +18,7 @@ import { dedupSendIdea } from '../lib/agent-improvement-bus.js';
 import { fetchPublicPrice } from '../lib/market-price.js';
 import { isMainModule } from '../lib/entrypoint.js';
 import { brainRiskCheck, logAgentEvent } from '../lib/brain-integration.js';
+import { recordWorkerHeartbeat } from '../lib/worker-health.js';
 
 // TLL imports
 import {
@@ -34,13 +35,24 @@ const INTERVAL_MS = 3 * 60 * 1000;
 const PROCESSED_PROMOTED_STRATEGIES = new Set();
 
 export async function runMockTradingWorker() {
+  const started = Date.now();
   if (!config.ENABLE_MOCK_TRADING_WORKER) {
     logger.debug('[MOCK-WORKER] Disabled by config');
+    await recordWorkerHeartbeat('mock-trading-worker', {
+      status: 'warning',
+      durationMs: Date.now() - started,
+      details: { disabled: true },
+    });
     return;
   }
 
   if (isSupabaseNoOp()) {
     logger.error('[MOCK-WORKER] Supabase is in NO-OP mode. Check SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars.');
+    await recordWorkerHeartbeat('mock-trading-worker', {
+      status: 'error',
+      durationMs: Date.now() - started,
+      error: 'Supabase NO-OP',
+    });
     return;
   }
 
@@ -351,8 +363,10 @@ export async function runMockTradingWorker() {
     }
 
     logger.info('[MOCK-WORKER] Tick complete');
+    await recordWorkerHeartbeat('mock-trading-worker', { durationMs: Date.now() - started });
   } catch (err) {
     logger.error(`[MOCK-WORKER] ${err.message}`);
+    await recordWorkerHeartbeat('mock-trading-worker', { status: 'error', durationMs: Date.now() - started, error: err.message });
     await dedupSendIdea({
       sourceBot: 'Mock Trading Bot',
       ideaType: 'Bug Fix',

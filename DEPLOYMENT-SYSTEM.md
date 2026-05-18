@@ -254,7 +254,7 @@ chmod +x .git/hooks/*
 node workers/deployment-orchestrator.js status
 
 # Check VPS connectivity
-ssh root@165.22.110.111 "echo 'OK'"
+ssh root@100.86.182.7 "echo 'OK'"
 ```
 
 ### Issue: Queue stuck
@@ -269,8 +269,8 @@ node workers/deployment-orchestrator.js force-deploy
 ### Issue: Health checks failing
 ```bash
 # Check VPS manually
-ssh root@165.22.110.111 "pm2 status"
-ssh root@165.22.110.111 "curl http://localhost:3000/api/health"
+ssh root@100.86.182.7 "pm2 status"
+ssh root@100.86.182.7 "curl http://localhost:3000/api/health"
 ```
 
 ## Database Setup
@@ -303,7 +303,7 @@ Get alerts for:
  tail -f .deployment-activity.log
 
 # VPS deployment logs
-ssh root@165.22.110.111 "tail -f /var/log/roo-deploy.log"
+ssh root@100.86.182.7 "tail -f /var/log/roo-deploy.log"
 ```
 
 ## Architecture

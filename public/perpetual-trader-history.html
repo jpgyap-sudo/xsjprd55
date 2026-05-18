@@ -456,12 +456,16 @@ function loadTrades(offset) {
       renderTrades(allTrades);
       renderSummary(data.summary, allTrades);
       renderPagination(data.pagination);
-      renderStrategyBreakdown(allTrades);
-      renderSymbolBreakdown(allTrades);
-      renderWhatWorked(allTrades);
-      renderWhatFailed(allTrades);
-      renderBestWorst(allTrades);
+      var analyticsTrades = data.analytics?.allTrades || [];
+      renderStrategyBreakdown(analyticsTrades);
+      renderSymbolBreakdown(analyticsTrades);
+      renderWhatWorked(analyticsTrades);
+      renderWhatFailed(analyticsTrades);
+      renderBestWorst(analyticsTrades);
       document.getElementById('trade-count-label').textContent = totalCount + ' total trades';
+      if (data.historySource === 'perpetual_mock_trades_fallback') {
+        document.getElementById('trade-count-label').textContent += ' · basic history fallback';
+      }
     })
     .catch(function(err) {
       console.error('Failed to load trade history:', err);

@@ -10,6 +10,7 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { logger } from '../lib/logger.js';
+import { getWorkerGroup, groupWorkerNames } from '../lib/worker-catalog.js';
 
 const ECOSYSTEM_PATH = path.join(process.cwd(), 'ecosystem.config.cjs');
 
@@ -62,6 +63,7 @@ function parsePm2List(raw) {
         outLog: p.pm2_env?.pm_out_log_path || '',
         errorLog: p.pm2_env?.pm_err_log_path || '',
         created: p.pm2_env?.created_at ? new Date(p.pm2_env.created_at).toISOString() : null,
+        group: getWorkerGroup(p.name),
       }));
     }
     return [];
@@ -168,6 +170,7 @@ function buildSummary(processes, definedWorkers) {
     coveragePct: definedWorkers.length > 0
       ? Math.round((processes.length / definedWorkers.length) * 100)
       : 0,
+    groups: groupWorkerNames(definedWorkers),
   };
 }
 
@@ -231,6 +234,7 @@ export default async function handler(req, res) {
         outLog: p.outLog,
         errorLog: p.errorLog,
         created: p.created,
+        group: p.group,
       })),
       definedWorkers,
       timestamp: new Date().toISOString(),

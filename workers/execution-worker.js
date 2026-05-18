@@ -14,6 +14,7 @@ import {
   monitorExecutions,
   getOrCreateExecutionAccount,
 } from '../lib/mock-trading/execution-engine.js';
+import { recordWorkerHeartbeat } from '../lib/worker-health.js';
 
 const POLL_INTERVAL_MS = Number(process.env.EXECUTION_POLL_INTERVAL_MS || 30_000);
 const MAX_SIGNAL_AGE_MINUTES = Number(process.env.MAX_SIGNAL_AGE_MINUTES || 720); // 12h default — processes any signal still valid
@@ -26,6 +27,7 @@ async function pollAndExecute() {
   isRunning = true;
 
   try {
+    const started = Date.now();
     // 1. Fetch active signals that haven't been processed yet
     //    NOTE: The signals table has a CHECK constraint on status that only allows
     //    ('active','confirmed','dismissed','expired'). We cannot set status to
@@ -49,11 +51,17 @@ async function pollAndExecute() {
 
     if (error) {
       logger.error('[EXEC-WORKER] Signal fetch error:', error.message);
+      await recordWorkerHeartbeat('execution-worker', {
+        status: 'error',
+        durationMs: Date.now() - started,
+        error: error.message,
+      });
       isRunning = false;
       return;
     }
 
     if (!signals?.length) {
+      await recordWorkerHeartbeat('execution-worker', { durationMs: Date.now() - started, details: { executed: 0, skipped: 0 } });
       isRunning = false;
       return;
     }
@@ -124,8 +132,10 @@ async function pollAndExecute() {
     if (executed > 0 || skipped > 0) {
       logger.info(`[EXEC-WORKER] Cycle complete — executed=${executed}, skipped=${skipped}`);
     }
+    await recordWorkerHeartbeat('execution-worker', { durationMs: Date.now() - started, details: { executed, skipped } });
   } catch (e) {
     logger.error('[EXEC-WORKER] Poll cycle error:', e.message);
+    await recordWorkerHeartbeat('execution-worker', { status: 'error', error: e.message });
   } finally {
     isRunning = false;
   }
