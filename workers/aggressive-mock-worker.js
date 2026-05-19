@@ -25,7 +25,7 @@ import { isMainModule } from '../lib/entrypoint.js';
 import { evaluateSignalQuality } from '../lib/mock-trading/signal-quality-gate.js';
 import { detectMarketRegime } from '../lib/mock-trading/market-regime-filter.js';
 import { getDynamicThreshold } from '../lib/mock-trading/dynamic-confidence.js';
-import { isBadTradingWindow } from '../lib/mock-trading/trading-window-filter.js';
+import { checkTradingWindow } from '../lib/mock-trading/trading-window-filter.js';
 import { learnFromTrade } from '../lib/mock-trading/post-trade-learning.js';
 import { updateScorecard } from '../lib/mock-trading/strategy-scorecard.js';
 import { enhancedCloseLogic } from '../lib/mock-trading/exit-engine.js';
@@ -155,7 +155,8 @@ export async function runAggressiveWorker() {
     let isBadWindow = false;
     if (config.ENABLE_TRADING_WINDOW_FILTER) {
       try {
-        isBadWindow = await isBadTradingWindow();
+        const windowResult = await checkTradingWindow('BTCUSDT', {});
+        isBadWindow = !windowResult.allowed;
       } catch (e) {
         logger.warn(`[AGGRESSIVE-WORKER] Trading window check failed: ${e.message}`);
       }
