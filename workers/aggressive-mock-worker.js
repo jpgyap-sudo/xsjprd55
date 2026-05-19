@@ -26,8 +26,8 @@ import { evaluateSignalQuality } from '../lib/mock-trading/signal-quality-gate.j
 import { detectMarketRegime } from '../lib/mock-trading/market-regime-filter.js';
 import { getDynamicThreshold } from '../lib/mock-trading/dynamic-confidence.js';
 import { checkTradingWindow } from '../lib/mock-trading/trading-window-filter.js';
-import { learnFromTrade } from '../lib/mock-trading/post-trade-learning.js';
-import { updateScorecard } from '../lib/mock-trading/strategy-scorecard.js';
+import { analyzeClosedTrade } from '../lib/mock-trading/post-trade-learning.js';
+import { recordTradeOutcome } from '../lib/mock-trading/strategy-scorecard.js';
 import { enhancedCloseLogic } from '../lib/mock-trading/exit-engine.js';
 
 // TLL imports
@@ -88,7 +88,7 @@ export async function runAggressiveWorker() {
         // Post-trade learning (MFE/MAE/lessons)
         if (config.ENABLE_POST_TRADE_LEARNING) {
           try {
-            await learnFromTrade({
+            await analyzeClosedTrade({
               tradeId: trade.id,
               symbol: trade.symbol,
               side: trade.side,
@@ -111,10 +111,8 @@ export async function runAggressiveWorker() {
         // Update strategy scorecard
         if (config.ENABLE_STRATEGY_SCORECARD) {
           try {
-            await updateScorecard({
-              strategy: trade.strategy_name || trade.strategy || 'unknown',
-              symbol: trade.symbol,
-              timeframe: trade.timeframe || '15m',
+            const scorecardKey = `${trade.symbol}:${trade.strategy_name || trade.strategy || 'unknown'}:${trade.timeframe || '15m'}`;
+            await recordTradeOutcome(scorecardKey, {
               pnlUsd,
               pnlPct,
               win: pnlUsd > 0,
