@@ -1,10 +1,26 @@
 // ============================================================
-// PM2 Ecosystem Config — VPS Process Management
+// PM2 Ecosystem Config — VPS Process Management (OPTIMIZED)
+//
+// Previously: 30 always-running workers consuming 30+ Node.js
+// processes on a 1 vCPU / 2GB RAM droplet.
+//
+// Now: 3 processes total.
+//   1. trading-signal-bot  — Express server (API + WebSocket)
+//   2. orchestrator        — Single process running ALL cyclical
+//      background tasks on staggered schedules
+//   3. deploy-checker      — Cron-based deploy checker (kept
+//      separate because it needs to run even if orchestrator
+//      is busy)
+//
+// All debug/dev workers are now on-demand via:
+//   POST /api/run-worker/:taskName
+//
 // Docs: https://pm2.keymetrics.io/docs/usage/application-declaration/
 // ============================================================
 
 module.exports = {
   apps: [
+    // ── 1. Main Express Server ──────────────────────────────
     {
       name: 'trading-signal-bot',
       script: './server.js',
@@ -14,440 +30,81 @@ module.exports = {
         NODE_ENV: 'production',
         DEPLOYMENT_TARGET: 'vps'
       },
-      // Auto-restart on crash
       autorestart: true,
-      // Max memory before restart
       max_memory_restart: '512M',
-      // Log files
       log_file: './logs/combined.log',
       out_file: './logs/out.log',
       error_file: './logs/error.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      // Graceful shutdown
       kill_timeout: 5000,
       listen_timeout: 10000,
-      // Monitoring
       pmx: true,
-      // Restart delay
-      restart_delay: 3000,
-      // Max restarts within 60s before marked as errored
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'diagnostic-agent',
-      script: './workers/diagnostic-agent.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/diag-combined.log',
-      out_file: './logs/diag-out.log',
-      error_file: './logs/diag-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
       restart_delay: 3000,
       max_restarts: 10,
       min_uptime: '10s'
     },
+
+    // ── 2. Orchestrator (replaces 28 workers) ────────────────
     {
-      name: 'social-news-worker',
-      script: './workers/social-news-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/social-combined.log',
-      out_file: './logs/social-out.log',
-      error_file: './logs/social-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'debug-crawler',
-      script: './workers/debug-crawler-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/debug-crawler-combined.log',
-      out_file: './logs/debug-crawler-out.log',
-      error_file: './logs/debug-crawler-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'api-debugger',
-      script: './workers/api-debugger-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/api-debugger-combined.log',
-      out_file: './logs/api-debugger-out.log',
-      error_file: './logs/api-debugger-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'bug-hunter-worker',
-      script: './workers/bug-hunter-worker.js',
+      name: 'orchestrator',
+      script: './workers/orchestrator-worker.js',
       instances: 1,
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
         DEPLOYMENT_TARGET: 'vps',
-        BUG_HUNTER_ENABLED: 'true'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/bug-hunter-combined.log',
-      out_file: './logs/bug-hunter-out.log',
-      error_file: './logs/bug-hunter-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'mock-trading-worker',
-      script: './workers/mock-trading-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
-        ENABLE_MOCK_TRADING_WORKER: 'true'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/mock-trading-combined.log',
-      out_file: './logs/mock-trading-out.log',
-      error_file: './logs/mock-trading-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'execution-worker',
-      script: './workers/execution-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/execution-combined.log',
-      out_file: './logs/execution-out.log',
-      error_file: './logs/execution-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'signal-generator-worker',
-      script: './workers/signal-generator-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/signal-gen-combined.log',
-      out_file: './logs/signal-gen-out.log',
-      error_file: './logs/signal-gen-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'research-agent-worker',
-      script: './workers/research-agent-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
+
+        // ── Trading ──
+        ENABLE_MOCK_TRADING_WORKER: 'true',
+        MOCK_TRADING_INTERVAL_MS: '60000',
+        AGGRESSIVE_MOCK_INTERVAL_MS: '120000',
+        PERPETUAL_TRADER_INTERVAL_SECONDS: '60',
+        ENABLE_STRATEGY_MONITOR_WORKER: 'true',
+
+        // ── Data Feeds ──
+        NEWS_INGEST_INTERVAL_SECONDS: '180',
+        NEWS_INGEST_MAX_AGE_MINUTES: '720',
+        ENABLE_SOCIAL_CRAWLER_WORKER: 'true',
+        WALLET_TRACKER_INTERVAL_MS: '300000',
+
+        // ── Learning ──
+        LEARNING_INTERVAL_HOURS: '6',
+        TLL_ENABLED: 'true',
+        TLL_INTERVAL_MS: '1800000',
+        BRAIN_LEARNING_INTERVAL_MS: '86400000',
+        ENABLE_SIMULATION_LEARNING: 'true',
+        SIMULATION_LEARNING_INTERVAL_MS: '1800000',
+        ENABLE_CONTINUOUS_BACKTESTER: 'true',
+
+        // ── Brain ──
+        BRAIN_SCAN_INTERVAL_MS: '300000',
+        BRAIN_SYMBOLS: 'BTCUSDT,ETHUSDT',
+        BRAIN_TIMEFRAMES: '15m,1h,4h',
+        BRAIN_LIVE_MODE: 'false',
+
+        // ── Maintenance ──
+        ENABLE_NOTIFICATION_WORKER: 'true',
+
+        // ── TLL Notifications ──
+        TLL_NOTIFY_ENABLED: 'true',
+        TLL_NOTIFY_INTERVAL_MS: '300000',
+
+        // ── Research ──
         ENABLE_RESEARCH_AGENT: 'true'
       },
       autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/research-agent-combined.log',
-      out_file: './logs/research-agent-out.log',
-      error_file: './logs/research-agent-error.log',
+      max_memory_restart: '512M',
+      log_file: './logs/orchestrator-combined.log',
+      out_file: './logs/orchestrator-out.log',
+      error_file: './logs/orchestrator-error.log',
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
+      kill_timeout: 10000,
+      restart_delay: 5000,
       max_restarts: 10,
       min_uptime: '10s'
     },
-    {
-      name: 'capability-consolidator',
-      script: './workers/capability-consolidator-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/capability-consolidator-combined.log',
-      out_file: './logs/capability-consolidator-out.log',
-      error_file: './logs/capability-consolidator-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'liquidation-intel-worker',
-      script: './workers/liquidation-intel-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/liq-intel-combined.log',
-      out_file: './logs/liq-intel-out.log',
-      error_file: './logs/liq-intel-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'continuous-backtester',
-      script: './workers/continuous-backtester.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/backtester-combined.log',
-      out_file: './logs/backtester-out.log',
-      error_file: './logs/backtester-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'aggressive-mock-worker',
-      script: './workers/aggressive-mock-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
-        ENABLE_MOCK_TRADING_WORKER: 'true',
-        ENABLE_TV_TA_SCAN: 'true'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/aggressive-mock-combined.log',
-      out_file: './logs/aggressive-mock-out.log',
-      error_file: './logs/aggressive-mock-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'news-ingest-worker',
-      script: './workers/news-ingest-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
-        NEWS_INGEST_INTERVAL_SECONDS: 180,
-        NEWS_INGEST_MAX_AGE_MINUTES: 720
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/news-ingest-combined.log',
-      out_file: './logs/news-ingest-out.log',
-      error_file: './logs/news-ingest-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'perpetual-trader-worker',
-      script: './workers/perpetual-trader-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
-        PERPETUAL_TRADER_INTERVAL_SECONDS: 60,
-        PERPETUAL_MAX_TRADE_AGE_HOURS: 72
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/perp-trader-combined.log',
-      out_file: './logs/perp-trader-out.log',
-      error_file: './logs/perp-trader-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'strategy-monitor-worker',
-      script: './workers/strategy-monitor-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
-        STRATEGY_MIN_WIN_RATE: '0.40',
-        STRATEGY_MIN_TRADES: '10'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/strategy-monitor-combined.log',
-      out_file: './logs/strategy-monitor-out.log',
-      error_file: './logs/strategy-monitor-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'bug-fix-pipeline',
-      script: './workers/bug-fix-pipeline-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/bug-fix-pipeline-combined.log',
-      out_file: './logs/bug-fix-pipeline-out.log',
-      error_file: './logs/bug-fix-pipeline-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'secretary',
-      script: './scripts/secretary.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps'
-      },
-      autorestart: true,
-      max_memory_restart: '128M',
-      log_file: './logs/secretary-combined.log',
-      out_file: './logs/secretary-out.log',
-      error_file: './logs/secretary-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'learning-loop-worker',
-      script: './workers/learning-loop-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
-        LEARNING_INTERVAL_HOURS: '6'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/learning-loop-combined.log',
-      out_file: './logs/learning-loop-out.log',
-      error_file: './logs/learning-loop-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'news-signal-worker',
-      script: './workers/news-signal-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps'
-      },
-      autorestart: false,
-      // Run daily at 1 AM UTC (same schedule as old vercel.json cron)
-      cron_restart: '0 1 * * *',
-      max_memory_restart: '256M',
-      log_file: './logs/news-signal-combined.log',
-      out_file: './logs/news-signal-out.log',
-      error_file: './logs/news-signal-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 3,
-      min_uptime: '1s'
-    },
+
+    // ── 3. Deploy Checker (cron-based, kept separate) ────────
     {
       name: 'deploy-checker',
       script: './workers/deploy-checker.js',
@@ -468,355 +125,6 @@ module.exports = {
       restart_delay: 3000,
       max_restarts: 3,
       min_uptime: '1s'
-    },
-    {
-      name: 'vps-deployer-agent',
-      script: './workers/vps-deployer-agent.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
-        VPS_IP: '100.86.182.7',
-        ENABLE_AUTO_DEPLOY: 'true'
-      },
-      autorestart: false,
-      cron_restart: '*/2 * * * *',
-      max_memory_restart: '256M',
-      log_file: './logs/vps-deployer-agent-combined.log',
-      out_file: './logs/vps-deployer-agent-out.log',
-      error_file: './logs/vps-deployer-agent-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 3,
-      min_uptime: '1s'
-    },
-    {
-      name: 'continuous-test-monitor',
-      script: './workers/continuous-test-monitor.cjs',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
-        VPS_IP: '100.86.182.7',
-        API_BASE_URL: 'http://localhost:3000'
-      },
-      autorestart: true,
-      max_memory_restart: '512M',
-      log_file: './logs/test-monitor-combined.log',
-      out_file: './logs/test-monitor-out.log',
-      error_file: './logs/test-monitor-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'trading-brain-worker',
-      script: './workers/brain-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
-        BRAIN_SCAN_INTERVAL_MS: '300000',
-        BRAIN_SYMBOLS: 'BTCUSDT,ETHUSDT',
-        BRAIN_TIMEFRAMES: '15m,1h,4h'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/brain-combined.log',
-      out_file: './logs/brain-out.log',
-      error_file: './logs/brain-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'trading-learning-worker',
-      script: './workers/learning-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
-        BRAIN_LEARNING_INTERVAL_MS: '86400000'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/brain-learning-combined.log',
-      out_file: './logs/brain-learning-out.log',
-      error_file: './logs/brain-learning-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'openclaw-analysis-worker',
-      script: './workers/openclaw-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
-        OPENCLAW_SCAN_INTERVAL_MS: '3600000'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/openclaw-combined.log',
-      out_file: './logs/openclaw-out.log',
-      error_file: './logs/openclaw-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'simulation-learning-worker',
-      script: './workers/simulation-learning-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
-        ENABLE_SIMULATION_LEARNING: 'true',
-        SIMULATION_LEARNING_INTERVAL_MS: '1800000'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/sim-learning-combined.log',
-      out_file: './logs/sim-learning-out.log',
-      error_file: './logs/sim-learning-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    // ── Missing workers added below ─────────────────────────
-    {
-      name: 'app-improvement-worker',
-      script: './workers/app-improvement-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: { NODE_ENV: 'production', DEPLOYMENT_TARGET: 'vps' },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/app-improvement-combined.log',
-      out_file: './logs/app-improvement-out.log',
-      error_file: './logs/app-improvement-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'backtest-sync-worker',
-      script: './workers/backtest-sync-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: { NODE_ENV: 'production', DEPLOYMENT_TARGET: 'vps' },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/backtest-sync-combined.log',
-      out_file: './logs/backtest-sync-out.log',
-      error_file: './logs/backtest-sync-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'coder-changelog-worker',
-      script: './workers/coder-changelog-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: { NODE_ENV: 'production', DEPLOYMENT_TARGET: 'vps' },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/coder-changelog-combined.log',
-      out_file: './logs/coder-changelog-out.log',
-      error_file: './logs/coder-changelog-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'data-health-worker',
-      script: './workers/data-health-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: { NODE_ENV: 'production', DEPLOYMENT_TARGET: 'vps' },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/data-health-combined.log',
-      out_file: './logs/data-health-out.log',
-      error_file: './logs/data-health-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'diagnostic-worker',
-      script: './workers/diagnostic-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: { NODE_ENV: 'production', DEPLOYMENT_TARGET: 'vps' },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/diagnostic-worker-combined.log',
-      out_file: './logs/diagnostic-worker-out.log',
-      error_file: './logs/diagnostic-worker-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'liquidation-heatmap-worker',
-      script: './workers/liquidation-heatmap-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: { NODE_ENV: 'production', DEPLOYMENT_TARGET: 'vps' },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/liq-heatmap-combined.log',
-      out_file: './logs/liq-heatmap-out.log',
-      error_file: './logs/liq-heatmap-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'notification-worker',
-      script: './workers/notification-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: { NODE_ENV: 'production', DEPLOYMENT_TARGET: 'vps' },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/notification-combined.log',
-      out_file: './logs/notification-out.log',
-      error_file: './logs/notification-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'open-interest-worker',
-      script: './workers/open-interest-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: { NODE_ENV: 'production', DEPLOYMENT_TARGET: 'vps' },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/open-interest-combined.log',
-      out_file: './logs/open-interest-out.log',
-      error_file: './logs/open-interest-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'social-crawler-worker',
-      script: './workers/social-crawler-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: { NODE_ENV: 'production', DEPLOYMENT_TARGET: 'vps' },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/social-crawler-combined.log',
-      out_file: './logs/social-crawler-out.log',
-      error_file: './logs/social-crawler-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'wallet-tracker-worker',
-      script: './workers/wallet-tracker-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: { NODE_ENV: 'production', DEPLOYMENT_TARGET: 'vps' },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/wallet-tracker-combined.log',
-      out_file: './logs/wallet-tracker-out.log',
-      error_file: './logs/wallet-tracker-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'trading-learning-layer-worker',
-      script: './workers/trading-learning-layer-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
-        TLL_ENABLED: 'true',
-        TLL_INTERVAL_MS: '1800000',
-        TLL_OUTCOME_TTL_HOURS: '24',
-        TLL_MAX_RESOLVE: '200'
-      },
-      autorestart: true,
-      max_memory_restart: '256M',
-      log_file: './logs/tll-combined.log',
-      out_file: './logs/tll-out.log',
-      error_file: './logs/tll-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
-    },
-    {
-      name: 'tll-notification-worker',
-      script: './workers/tll-notification-worker.js',
-      instances: 1,
-      exec_mode: 'fork',
-      env: {
-        NODE_ENV: 'production',
-        DEPLOYMENT_TARGET: 'vps',
-        TLL_NOTIFY_ENABLED: 'true',
-        TLL_NOTIFY_INTERVAL_MS: '300000'
-      },
-      autorestart: true,
-      max_memory_restart: '128M',
-      log_file: './logs/tll-notify-combined.log',
-      out_file: './logs/tll-notify-out.log',
-      error_file: './logs/tll-notify-error.log',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
-      kill_timeout: 5000,
-      restart_delay: 3000,
-      max_restarts: 10,
-      min_uptime: '10s'
     }
   ]
 };
